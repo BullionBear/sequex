@@ -9,10 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Config represents the structure of the configuration file.
 func main() {
 	logrus.SetLevel(logrus.InfoLevel)
-	// Define a flag for the configuration file path.
 	configPath := flag.String("config", "config.json", "path to config file")
 	flag.Parse()
 
@@ -31,7 +29,7 @@ func main() {
 
 	// Simulate pushing a model to Janus for processing
 	go func() {
-		janus.Channel <- alpha.Kline{StartTime: 123, EndTime: 456}
+		janus.SourceChannel() <- alpha.Kline{StartTime: 123, EndTime: 456}
 	}()
 	// Receive the processed data
 	processedData := <-janus.OutputChannel()

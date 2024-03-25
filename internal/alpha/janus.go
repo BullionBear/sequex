@@ -1,13 +1,13 @@
 package alpha
 
 type Janus struct {
-	Channel    chan Kline
+	sourceChan chan Kline
 	resultChan chan JanusAlpha
 }
 
 func NewJanus() *Janus {
 	return &Janus{
-		Channel:    make(chan Kline),
+		sourceChan: make(chan Kline),
 		resultChan: make(chan JanusAlpha),
 	}
 }
@@ -16,8 +16,12 @@ func (j *Janus) Name() string {
 	return "Janus"
 }
 
+func (j *Janus) SourceChannel() chan<- Kline {
+	return j.sourceChan
+}
+
 func (j *Janus) Start() {
-	for model := range j.Channel {
+	for model := range j.sourceChan {
 		processedData := j.processModel(model)
 		j.resultChan <- processedData
 	}
