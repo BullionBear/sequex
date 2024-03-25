@@ -13,7 +13,7 @@ build:
 	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/*.go
 
 run:
-	./bin/$(BINARY)-linux-x86
+	./bin/$(BINARY)-linux-x86 -config ./configs/config_template.json
 
 clean:
 	rm -rf bin/*
