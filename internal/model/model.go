@@ -24,3 +24,10 @@ type Tick struct {
 	Price   float64
 	IsValid bool
 }
+
+type MACD struct {
+	TradeID  int64
+	Time     int64
+	FastDiff float64
+	SlowMACD float64
+}

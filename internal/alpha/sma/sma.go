@@ -8,8 +8,8 @@ import (
 )
 
 type SMA struct {
-	sourceChan chan model.Tick
-	resultChan chan model.Tick
+	sourceChan chan *model.Tick
+	resultChan chan *model.Tick
 	period     int64
 	window     []float64
 	runningSum float64
@@ -18,8 +18,8 @@ type SMA struct {
 
 func NewSMA(period int64) *SMA {
 	return &SMA{
-		sourceChan: make(chan model.Tick),
-		resultChan: make(chan model.Tick),
+		sourceChan: make(chan *model.Tick),
+		resultChan: make(chan *model.Tick),
 		period:     period,
 		window:     make([]float64, 0, period),
 		runningSum: 0,
@@ -31,7 +31,7 @@ func (s *SMA) Name() string {
 	return fmt.Sprintf("SMA(%d)", s.period)
 }
 
-func (s *SMA) SourceChannel() chan<- model.Tick {
+func (s *SMA) SourceChannel() chan<- *model.Tick {
 	return s.sourceChan
 }
 
@@ -51,11 +51,11 @@ func (s *SMA) End() {
 	s.wg.Wait()         // Wait for the processing to complete
 }
 
-func (s *SMA) OutputChannel() <-chan model.Tick {
+func (s *SMA) OutputChannel() <-chan *model.Tick {
 	return s.resultChan
 }
 
-func (s *SMA) process(tick model.Tick) model.Tick {
+func (s *SMA) process(tick *model.Tick) *model.Tick {
 	s.runningSum += tick.Price
 	s.window = append(s.window, tick.Price)
 
@@ -66,11 +66,16 @@ func (s *SMA) process(tick model.Tick) model.Tick {
 	}
 
 	// Compute the SMA and update the tick if we have a full period of data
+	isValid := tick.IsValid
 	if int64(len(s.window)) == s.period {
-		tick.Price = s.runningSum / float64(s.period)
-		tick.IsValid = true
+		isValid = isValid && true
 	} else {
-		tick.IsValid = false
+		isValid = false
 	}
-	return tick
+	return &model.Tick{
+		TradeID: tick.TradeID,
+		Time:    tick.Time,
+		Price:   s.runningSum / float64(s.period),
+		IsValid: isValid,
+	}
 }

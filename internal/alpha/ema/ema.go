@@ -10,7 +10,7 @@ import (
 type EMA struct {
 	sourceChan chan model.Tick
 	resultChan chan model.Tick
-	period     int64
+	Period     int64
 	multiplier float64
 	ema        float64
 	ticks      []float64
@@ -23,17 +23,17 @@ func NewEMA(period int64) *EMA {
 	return &EMA{
 		sourceChan: make(chan model.Tick),
 		resultChan: make(chan model.Tick),
-		period:     period,
+		Period:     period,
 		multiplier: multiplier,
 		ema:        0,
-		ticks:      make([]float64, 0, period), // 初始化，容量为period
+		ticks:      make([]float64, 0, period),
 		tickCount:  0,
 		wg:         sync.WaitGroup{},
 	}
 }
 
 func (e *EMA) Name() string {
-	return fmt.Sprintf("EMA(%d)", e.period)
+	return fmt.Sprintf("EMA(%d)", e.Period)
 }
 
 func (e *EMA) SourceChannel() chan<- model.Tick {
@@ -64,7 +64,7 @@ func (e *EMA) process(tick model.Tick) model.Tick {
 	e.tickCount++
 	e.ticks = append(e.ticks, tick.Price)
 	IsValid := true
-	if e.tickCount <= e.period {
+	if e.tickCount <= e.Period {
 		sum := 0.0
 		for _, price := range e.ticks {
 			sum += price
@@ -78,9 +78,10 @@ func (e *EMA) process(tick model.Tick) model.Tick {
 			e.ema = (tick.Price-e.ema)*e.multiplier + e.ema
 		}
 	}
-
-	// 更新tick的价格为计算后的EMA，并标记为有效
 	tick.Price = e.ema
 	tick.IsValid = IsValid
+	if e.tickCount >= 1024 { // reset tickCount
+		e.tickCount = e.Period
+	}
 	return tick
 }

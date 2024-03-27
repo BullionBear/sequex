@@ -12,7 +12,7 @@ func TestSMAChannelCommunication(t *testing.T) {
 	sma := NewSMA(period)
 
 	// Test data
-	ticksToSend := []model.Tick{
+	ticksToSend := []*model.Tick{
 		{TradeID: 1, Time: 100, Price: 10},
 		{TradeID: 2, Time: 200, Price: 20},
 		{TradeID: 3, Time: 300, Price: 30},
@@ -32,7 +32,7 @@ func TestSMAChannelCommunication(t *testing.T) {
 	}()
 
 	// Collect the processed ticks
-	var receivedTicks []model.Tick
+	var receivedTicks []*model.Tick
 	timeout := time.After(2 * time.Second) // Set a timeout for safety
 
 	keepCollecting := true
