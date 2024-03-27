@@ -78,10 +78,14 @@ func (e *EMA) process(tick *model.Tick) *model.Tick {
 			e.ema = (tick.Price-e.ema)*e.multiplier + e.ema
 		}
 	}
-	tick.Price = e.ema
-	tick.IsValid = IsValid
+
 	if e.tickCount >= 1024 { // reset tickCount
 		e.tickCount = e.Period
 	}
-	return tick
+	return &model.Tick{
+		TradeID: tick.TradeID,
+		Time:    tick.Time,
+		Price:   e.ema,
+		IsValid: tick.IsValid && IsValid,
+	}
 }
