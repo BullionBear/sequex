@@ -9,8 +9,8 @@ import (
 )
 
 type MACD struct {
-	sourceChan chan model.Tick
-	resultChan chan model.MACD
+	sourceChan chan *model.Tick
+	resultChan chan *model.MACD
 	fastEMA    ema.EMA
 	slowEMA    ema.EMA
 	signalEMA  ema.EMA
@@ -19,8 +19,8 @@ type MACD struct {
 
 func NewMACD(fastPeriod int64, slowPeriod int64, signalPeriod int64) *MACD {
 	return &MACD{
-		sourceChan: make(chan model.Tick),
-		resultChan: make(chan model.MACD),
+		sourceChan: make(chan *model.Tick),
+		resultChan: make(chan *model.MACD),
 		fastEMA:    *ema.NewEMA(fastPeriod),
 		slowEMA:    *ema.NewEMA(slowPeriod),
 		signalEMA:  *ema.NewEMA(signalPeriod),
@@ -54,21 +54,30 @@ func (m *MACD) End() {
 	m.wg.Wait()
 }
 
-func (m *MACD) OutputChannel() <-chan model.MACD {
+func (m *MACD) OutputChannel() <-chan *model.MACD {
 	return m.resultChan
 }
 
-func (m *MACD) process(tick model.Tick) model.MACD {
-	macd := model.MACD{
-		TradeID:  tick.TradeID,
-		Time:     tick.Time,
-		FastDiff: 0,
-		SlowMACD: 0,
-	}
+func (m *MACD) process(tick *model.Tick) *model.MACD {
 	m.fastEMA.SourceChannel() <- tick
 	m.slowEMA.SourceChannel() <- tick
-	fastEMA <- m.fastEMA.OutputChannel()
-	slowEMA <- m.slowEMA.OutputChannel()
+	fastEMA := <-m.fastEMA.OutputChannel()
+	slowEMA := <-m.slowEMA.OutputChannel()
+	difTick := &model.Tick{
+		TradeID: tick.TradeID,
+		Time:    tick.Time,
+		Price:   fastEMA.Price - slowEMA.Price,
+		IsValid: fastEMA.IsValid && slowEMA.IsValid,
+	}
 
-	return
+	m.signalEMA.SourceChannel() <- difTick
+	macdSignal := <-m.signalEMA.OutputChannel()
+
+	return &model.MACD{
+		TradeID: tick.TradeID,
+		Time:    tick.Time,
+		DIF:     difTick.Price,
+		DEM:     macdSignal.Price,
+		IsValid: difTick.IsValid && macdSignal.IsValid,
+	}
 }

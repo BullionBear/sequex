@@ -26,8 +26,9 @@ type Tick struct {
 }
 
 type MACD struct {
-	TradeID  int64
-	Time     int64
-	FastDiff float64
-	SlowMACD float64
+	TradeID int64
+	Time    int64
+	DIF     float64
+	DEM     float64
+	IsValid bool
 }
