@@ -8,8 +8,8 @@ import (
 )
 
 type EMA struct {
-	sourceChan chan model.Tick
-	resultChan chan model.Tick
+	sourceChan chan *model.Tick
+	resultChan chan *model.Tick
 	Period     int64
 	multiplier float64
 	ema        float64
@@ -21,8 +21,8 @@ type EMA struct {
 func NewEMA(period int64) *EMA {
 	multiplier := 2.0 / float64(period+1)
 	return &EMA{
-		sourceChan: make(chan model.Tick),
-		resultChan: make(chan model.Tick),
+		sourceChan: make(chan *model.Tick),
+		resultChan: make(chan *model.Tick),
 		Period:     period,
 		multiplier: multiplier,
 		ema:        0,
@@ -36,7 +36,7 @@ func (e *EMA) Name() string {
 	return fmt.Sprintf("EMA(%d)", e.Period)
 }
 
-func (e *EMA) SourceChannel() chan<- model.Tick {
+func (e *EMA) SourceChannel() chan<- *model.Tick {
 	return e.sourceChan
 }
 
@@ -56,11 +56,11 @@ func (e *EMA) End() {
 	e.wg.Wait()
 }
 
-func (e *EMA) OutputChannel() <-chan model.Tick {
+func (e *EMA) OutputChannel() <-chan *model.Tick {
 	return e.resultChan
 }
 
-func (e *EMA) process(tick model.Tick) model.Tick {
+func (e *EMA) process(tick *model.Tick) *model.Tick {
 	e.tickCount++
 	e.ticks = append(e.ticks, tick.Price)
 	IsValid := true

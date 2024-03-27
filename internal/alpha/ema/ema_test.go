@@ -11,7 +11,7 @@ func TestEMAChannelCommunication(t *testing.T) {
 	period := int64(3)
 	ema := NewEMA(period) // Assuming a constructor similar to NewSMA
 
-	ticksToSend := []model.Tick{
+	ticksToSend := []*model.Tick{
 		{Price: 1},
 		{Price: 2},
 		{Price: 3},
@@ -37,7 +37,7 @@ collectLoop:
 	for {
 		select {
 		case tick := <-ema.OutputChannel():
-			receivedTicks = append(receivedTicks, tick)
+			receivedTicks = append(receivedTicks, *tick)
 			if len(receivedTicks) == len(ticksToSend) {
 				break collectLoop
 			}
