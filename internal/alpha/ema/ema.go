@@ -12,7 +12,9 @@ type EMA struct {
 	resultChan chan model.Tick
 	period     int64
 	multiplier float64
-	ema        float64 // Current EMA value
+	ema        float64
+	ticks      []float64
+	tickCount  int64
 	wg         sync.WaitGroup
 }
 
@@ -23,7 +25,9 @@ func NewEMA(period int64) *EMA {
 		resultChan: make(chan model.Tick),
 		period:     period,
 		multiplier: multiplier,
-		ema:        0, // Initialized to 0, but will be set to the price of the first tick received
+		ema:        0,
+		ticks:      make([]float64, 0, period), // 初始化，容量为period
+		tickCount:  0,
 		wg:         sync.WaitGroup{},
 	}
 }
@@ -57,12 +61,26 @@ func (e *EMA) OutputChannel() <-chan model.Tick {
 }
 
 func (e *EMA) process(tick model.Tick) model.Tick {
-	if e.ema == 0 { // If it's the first tick, initialize EMA with its price
-		e.ema = tick.Price
+	e.tickCount++
+	e.ticks = append(e.ticks, tick.Price)
+	IsValid := true
+	if e.tickCount <= e.period {
+		sum := 0.0
+		for _, price := range e.ticks {
+			sum += price
+		}
+		e.ema = sum / float64(len(e.ticks))
+		IsValid = false
 	} else {
-		e.ema = (tick.Price-e.ema)*e.multiplier + e.ema
+		if e.ema == 0 {
+			e.ema = tick.Price
+		} else {
+			e.ema = (tick.Price-e.ema)*e.multiplier + e.ema
+		}
 	}
+
+	// 更新tick的价格为计算后的EMA，并标记为有效
 	tick.Price = e.ema
-	tick.IsValid = true // Assuming the EMA is always valid after the first tick
+	tick.IsValid = IsValid
 	return tick
 }

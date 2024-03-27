@@ -12,14 +12,14 @@ func TestEMAChannelCommunication(t *testing.T) {
 	ema := NewEMA(period) // Assuming a constructor similar to NewSMA
 
 	ticksToSend := []model.Tick{
-		{Price: 10},
-		{Price: 20},
-		{Price: 30},
+		{Price: 1},
+		{Price: 2},
+		{Price: 3},
+		{Price: 4},
 		// Add more ticks as needed for testing
 	}
 
-	// Expected EMA value after the last tick, adjust based on your calculation
-	expectedEMA := 25.0 // Placeholder value, calculate based on your EMA formula
+	expectedEMA := 3.0 // Placeholder value, calculate based on your EMA formula
 
 	go ema.Start()
 	defer ema.End()
