@@ -54,6 +54,10 @@ func (m *MACD) End() {
 	m.wg.Wait()
 }
 
+func (m *MACD) SourceChannel() chan<- *model.Tick {
+	return m.sourceChan
+}
+
 func (m *MACD) OutputChannel() <-chan *model.MACD {
 	return m.resultChan
 }

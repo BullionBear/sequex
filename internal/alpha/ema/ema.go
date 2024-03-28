@@ -61,7 +61,11 @@ func (e *EMA) OutputChannel() <-chan *model.Tick {
 }
 
 func (e *EMA) process(tick *model.Tick) *model.Tick {
-	e.tickCount++
+	if tick.IsValid {
+		e.tickCount++
+	} else {
+		e.tickCount = 0
+	}
 	e.ticks = append(e.ticks, tick.Price)
 	IsValid := true
 	if e.tickCount <= e.Period {
@@ -79,7 +83,7 @@ func (e *EMA) process(tick *model.Tick) *model.Tick {
 		}
 	}
 
-	if e.tickCount >= 1024 { // reset tickCount
+	if e.tickCount >= 86400 { // reset tickCount
 		e.tickCount = e.Period
 	}
 	return &model.Tick{
