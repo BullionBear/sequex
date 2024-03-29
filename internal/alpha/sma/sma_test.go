@@ -7,56 +7,81 @@ import (
 	"github.com/BullionBear/crypto-trade/internal/model"
 )
 
+// Define a struct for expected tick results to compare every attribute
+type expectedTick struct {
+	TradeID int64
+	Time    int64
+	Price   float64
+	IsValid bool
+}
+
 func TestSMAChannelCommunication(t *testing.T) {
-	period := int64(3)
-	sma := NewSMA(period)
-
-	// Test data
-	ticksToSend := []*model.Tick{
-		{TradeID: 1, Time: 100, Price: 10},
-		{TradeID: 2, Time: 200, Price: 20},
-		{TradeID: 3, Time: 300, Price: 30},
-		{TradeID: 4, Time: 400, Price: 40},
+	cases := []struct {
+		name          string
+		period        int64
+		ticksToSend   []*model.Tick
+		expectedTicks []expectedTick // Use this to specify detailed expectations
+	}{
+		{
+			name:   "Basic SMA with multiple ticks",
+			period: 3,
+			ticksToSend: []*model.Tick{
+				{TradeID: 1, Time: 100, Price: 10, IsValid: false},
+				{TradeID: 2, Time: 200, Price: 20, IsValid: true},
+				{TradeID: 3, Time: 300, Price: 30, IsValid: true},
+				{TradeID: 4, Time: 400, Price: 40, IsValid: true},
+			},
+			expectedTicks: []expectedTick{
+				{TradeID: 1, Time: 100, Price: 10, IsValid: false},
+				{TradeID: 2, Time: 200, Price: 15, IsValid: false},
+				{TradeID: 3, Time: 300, Price: 20, IsValid: false},
+				{TradeID: 4, Time: 400, Price: 30, IsValid: true},
+			},
+		},
+		// Add more test cases here
 	}
 
-	// the SMA for the last tick (price 40) should consider the prices [20, 30, 40].
-	expectedLastPrice := (20.0 + 30.0 + 40.0) / 3.0
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			sma := NewSMA(tc.period)
+			sma.Start()
+			defer sma.End()
 
-	sma.Start()
-	defer sma.End()
+			go func() {
+				for _, tick := range tc.ticksToSend {
+					sma.SourceChannel() <- tick
+				}
+			}()
 
-	go func() {
-		for _, tick := range ticksToSend {
-			sma.SourceChannel() <- tick
-		}
-	}()
+			var receivedTicks []*model.Tick
+			timeout := time.After(2 * time.Second) // Set a timeout for safety
 
-	// Collect the processed ticks
-	var receivedTicks []*model.Tick
-	timeout := time.After(2 * time.Second) // Set a timeout for safety
-
-	keepCollecting := true
-	for keepCollecting {
-		select {
-		case tick := <-sma.OutputChannel():
-			receivedTicks = append(receivedTicks, tick)
-			if len(receivedTicks) == len(ticksToSend) {
-				keepCollecting = false
+			keepCollecting := true
+			for keepCollecting {
+				select {
+				case tick := <-sma.OutputChannel():
+					receivedTicks = append(receivedTicks, tick)
+					if len(receivedTicks) == len(tc.ticksToSend) {
+						keepCollecting = false
+					}
+				case <-timeout:
+					t.Fatal("Timeout waiting for ticks to be processed")
+					keepCollecting = false
+				}
 			}
-		case <-timeout:
-			t.Fatal("Timeout waiting for ticks to be processed")
-			keepCollecting = false
-		}
-	}
 
-	// Verify the number of received ticks matches the number sent
-	if len(receivedTicks) != len(ticksToSend) {
-		t.Errorf("Expected to receive %d ticks, got %d", len(ticksToSend), len(receivedTicks))
-	}
+			// Assert the length first to ensure we have the correct number of ticks
+			if len(receivedTicks) != len(tc.expectedTicks) {
+				t.Fatalf("Expected to receive %d ticks, got %d", len(tc.expectedTicks), len(receivedTicks))
+			}
 
-	// Verify the SMA calculation of the last tick
-	lastTick := receivedTicks[len(receivedTicks)-1]
-	if !lastTick.IsValid || lastTick.Price != expectedLastPrice {
-		t.Errorf("Expected the last tick to have price %v, got %v", expectedLastPrice, lastTick.Price)
+			// Verify each tick against expected outcomes
+			for i, expected := range tc.expectedTicks {
+				actual := receivedTicks[i]
+				if actual.TradeID != expected.TradeID || actual.Time != expected.Time || actual.Price != expected.Price || actual.IsValid != expected.IsValid {
+					t.Errorf("Tick %d mismatched. Expected %+v, got %+v", i, expected, actual)
+				}
+			}
+		})
 	}
 }

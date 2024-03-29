@@ -83,7 +83,7 @@ func (s *SMA) process(tick *model.Tick) *model.Tick {
 	return &model.Tick{
 		TradeID: tick.TradeID,
 		Time:    tick.Time,
-		Price:   s.runningSum / float64(s.Period),
+		Price:   s.runningSum / float64(len(s.window)),
 		IsValid: tick.IsValid && isValid,
 	}
 }
