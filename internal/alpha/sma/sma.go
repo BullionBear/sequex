@@ -58,11 +58,18 @@ func (s *SMA) OutputChannel() <-chan *model.Tick {
 }
 
 func (s *SMA) process(tick *model.Tick) *model.Tick {
-	if tick.IsValid {
-		s.tickCount++
-	} else {
+	if !tick.IsValid {
 		s.tickCount = 0
+		s.runningSum = 0
+		s.window = s.window[:0]
+		return &model.Tick{
+			TradeID: tick.TradeID,
+			Time:    tick.Time,
+			Price:   tick.Price,
+			IsValid: false,
+		}
 	}
+	s.tickCount++
 	s.runningSum += tick.Price
 	s.window = append(s.window, tick.Price)
 

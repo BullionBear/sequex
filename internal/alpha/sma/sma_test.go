@@ -33,8 +33,8 @@ func TestSMAChannelCommunication(t *testing.T) {
 			},
 			expectedTicks: []expectedTick{
 				{TradeID: 1, Time: 100, Price: 10, IsValid: false},
-				{TradeID: 2, Time: 200, Price: 15, IsValid: false},
-				{TradeID: 3, Time: 300, Price: 20, IsValid: false},
+				{TradeID: 2, Time: 200, Price: 20, IsValid: false},
+				{TradeID: 3, Time: 300, Price: 25, IsValid: false},
 				{TradeID: 4, Time: 400, Price: 30, IsValid: true},
 			},
 		},
