@@ -7,48 +7,80 @@ import (
 	"github.com/BullionBear/crypto-trade/internal/model"
 )
 
+type expectedTick struct {
+	TradeID int64
+	Time    int64
+	Price   float64
+	IsValid bool
+}
+
 func TestEMAChannelCommunication(t *testing.T) {
-	period := int64(3)
-	ema := NewEMA(period) // Assuming a constructor similar to NewSMA
-
-	ticksToSend := []*model.Tick{
-		{Price: 1},
-		{Price: 2},
-		{Price: 3},
-		{Price: 4},
-		// Add more ticks as needed for testing
+	cases := []struct {
+		name          string
+		period        int64
+		ticksToSend   []*model.Tick
+		expectedTicks []expectedTick
+	}{
+		{
+			name:   "Basic EMA with multiple ticks",
+			period: 3,
+			ticksToSend: []*model.Tick{
+				{TradeID: 1, Time: 100, Price: 10, IsValid: true},
+				{TradeID: 2, Time: 200, Price: 20, IsValid: true},
+				{TradeID: 3, Time: 300, Price: 30, IsValid: true},
+				{TradeID: 4, Time: 400, Price: 40, IsValid: true},
+				// Add more ticks as needed
+			},
+			expectedTicks: []expectedTick{
+				{TradeID: 1, Time: 100, Price: 10, IsValid: false},
+				{TradeID: 2, Time: 200, Price: 15, IsValid: false},
+				{TradeID: 3, Time: 300, Price: 20, IsValid: true},
+				{TradeID: 4, Time: 400, Price: 30, IsValid: true},
+			},
+		},
+		// Add more test cases as needed
 	}
 
-	expectedEMA := 3.0 // Placeholder value, calculate based on your EMA formula
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ema := NewEMA(tc.period)
+			ema.Start()
+			defer ema.End()
 
-	go ema.Start()
-	defer ema.End()
+			go func() {
+				for _, tick := range tc.ticksToSend {
+					ema.SourceChannel() <- tick
+				}
+			}()
 
-	go func() {
-		for _, tick := range ticksToSend {
-			ema.SourceChannel() <- tick
-		}
-	}()
+			var receivedTicks []*model.Tick
+			timeout := time.After(2 * time.Second)
 
-	var receivedTicks []model.Tick
-	timeout := time.After(2 * time.Second)
-
-collectLoop:
-	for {
-		select {
-		case tick := <-ema.OutputChannel():
-			receivedTicks = append(receivedTicks, *tick)
-			if len(receivedTicks) == len(ticksToSend) {
-				break collectLoop
+			keepCollecting := true
+			for keepCollecting {
+				select {
+				case tick := <-ema.OutputChannel():
+					receivedTicks = append(receivedTicks, tick)
+					if len(receivedTicks) == len(tc.ticksToSend) {
+						keepCollecting = false
+					}
+				case <-timeout:
+					t.Fatal("Timeout waiting for ticks to be processed")
+					keepCollecting = false
+				}
 			}
-		case <-timeout:
-			t.Fatal("Timeout waiting for ticks to be processed")
-		}
-	}
 
-	// Verify the EMA calculation of the last tick
-	lastTick := receivedTicks[len(receivedTicks)-1]
-	if lastTick.Price != expectedEMA {
-		t.Errorf("Expected the last tick to have EMA %v, got %v", expectedEMA, lastTick.Price)
+			if len(receivedTicks) != len(tc.expectedTicks) {
+				t.Fatalf("Expected to receive %d EMAs, got %d", len(tc.expectedTicks), len(receivedTicks))
+			}
+
+			// Verify each tick against expected outcomes
+			for i, expected := range tc.expectedTicks {
+				actual := receivedTicks[i]
+				if actual.TradeID != expected.TradeID || actual.Time != expected.Time || actual.Price != expected.Price || actual.IsValid != expected.IsValid {
+					t.Errorf("Tick %d mismatched. Expected %+v, got %+v", i, expected, actual)
+				}
+			}
+		})
 	}
 }

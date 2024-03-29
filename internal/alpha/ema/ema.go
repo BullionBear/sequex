@@ -61,35 +61,49 @@ func (e *EMA) OutputChannel() <-chan *model.Tick {
 }
 
 func (e *EMA) process(tick *model.Tick) *model.Tick {
-	if tick.IsValid {
-		e.tickCount++
-	} else {
+	// Only process valid ticks.
+	if !tick.IsValid {
+		e.ema = 0
+		e.ticks = e.ticks[0:]
 		e.tickCount = 0
+		return &model.Tick{
+			TradeID: tick.TradeID,
+			Time:    tick.Time,
+			Price:   0,
+			IsValid: false,
+		}
 	}
-	e.ticks = append(e.ticks, tick.Price)
-	IsValid := true
+
+	// Increment tick count for every valid tick.
+	e.tickCount++
+
+	// Calculate the initial EMA using simple moving average (SMA) approach for the first 'Period' ticks.
 	if e.tickCount <= e.Period {
+		// Aggregate ticks for initial SMA calculation.
+		e.ticks = append(e.ticks, tick.Price)
 		sum := 0.0
 		for _, price := range e.ticks {
 			sum += price
 		}
 		e.ema = sum / float64(len(e.ticks))
-		IsValid = false
-	} else {
-		if e.ema == 0 {
-			e.ema = tick.Price
-		} else {
-			e.ema = (tick.Price-e.ema)*e.multiplier + e.ema
+
+		// Return the tick with modified price (EMA) and IsValid flag.
+		return &model.Tick{
+			TradeID: tick.TradeID,
+			Time:    tick.Time,
+			Price:   e.ema,
+			IsValid: e.tickCount == e.Period, // Only valid after 'Period' ticks.
 		}
 	}
 
-	if e.tickCount >= 86400 { // reset tickCount
-		e.tickCount = e.Period
-	}
+	// For subsequent ticks, use the EMA formula.
+	e.ema = ((tick.Price - e.ema) * e.multiplier) + e.ema
+
+	// Return the processed tick.
 	return &model.Tick{
 		TradeID: tick.TradeID,
 		Time:    tick.Time,
 		Price:   e.ema,
-		IsValid: tick.IsValid && IsValid,
+		IsValid: true, // All subsequent ticks after the initial period are valid.
 	}
 }
