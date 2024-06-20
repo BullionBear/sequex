@@ -4,8 +4,8 @@ import (
 	"flag"
 	"time"
 
-	"github.com/BullionBear/crypto-trade/internal/alpha"
-	"github.com/BullionBear/crypto-trade/internal/config"
+	"github.com/BullionBear/crypto-trade/domain/alpha"
+	"github.com/BullionBear/crypto-trade/domain/config"
 	"github.com/BullionBear/crypto-trade/internal/model"
 	"github.com/sirupsen/logrus"
 )
