@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+	// Read the configuration file
 	configPath := flag.String("config", "", "path to config file")
 	flag.Parse()
 
@@ -19,5 +20,9 @@ func main() {
 		logrus.Fatal("Can't read config: ", err)
 	}
 	logrus.Infof("Load config with %+v", *alexConfig)
+
+	// New resources
+
+	// NewAlex
 
 }

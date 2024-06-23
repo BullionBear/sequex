@@ -8,6 +8,9 @@ LDFLAGS := -X '${PACKAGE}/env.Version=${VERSION}' \
            -X '${PACKAGE}/env.CommitHash=${COMMIT_HASH}' \
            -X '${PACKAGE}/env.BuildTime=${BUILD_TIMESTAMP}'
 
+gen:
+	protoc --go_out=. --go-grpc_out=. api/proto/feed.proto
+
 alex:
 	go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY) cmd/$(BINARY)/*.go
 	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/*.go
