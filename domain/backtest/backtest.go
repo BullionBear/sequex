@@ -16,7 +16,6 @@ func NewBacktest(db *pgdb.PgDatabase, wallet *wallet.Wallet) *Backtest {
 		db:     db,
 		wallet: wallet,
 	}
-
 }
 
 func (b *Backtest) CreateMarketOrder(symbol string, side bool, quoteQty decimal.Decimal, openTime int64) error {

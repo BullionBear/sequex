@@ -18,17 +18,6 @@ type Kline struct {
 	ActiveBuyQuoteVolume float64
 }
 
-type Tick struct {
-	TradeID int64
-	Time    int64
-	Price   float64
-	IsValid bool
-}
 
-type MACD struct {
-	TradeID int64
-	Time    int64
-	DIF     float64
-	DEM     float64
-	IsValid bool
-}
+// Define a kline handler
+KlineHandler func (kline Kline) 
