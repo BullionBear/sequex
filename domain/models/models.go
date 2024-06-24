@@ -17,7 +17,3 @@ type Kline struct {
 	ActiveBuyVolume      float64
 	ActiveBuyQuoteVolume float64
 }
-
-
-// Define a kline handler
-KlineHandler func (kline Kline) 

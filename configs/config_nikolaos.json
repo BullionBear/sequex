@@ -1,0 +1,8 @@
+{
+    "symbol": "BTC-USDT",
+    "grpc_client": {
+        "host": "localhost",
+        "port": 50051
+    }
+}
+  

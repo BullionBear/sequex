@@ -3,7 +3,8 @@ package feedclient
 import (
 	"context"
 	"io"
-	"log"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/BullionBear/crypto-trade/api/gen/feed"
 	"google.golang.org/grpc"
@@ -27,21 +28,21 @@ func (f *FeedClient) GetConfig() (*feed.Config, error) {
 }
 
 func (f *FeedClient) SubscribeKlines(handler func(event *Kline)) error {
-	stream, err := f.SubscribeKline(context.Background(), &emptypb.Empty{})
+	stream, err := f.conn.SubscribeKline(context.Background(), &emptypb.Empty{})
 	if err != nil {
-		log.Errorf("could not subscribe to kline: %v", status.Convert(err).Message())
+		logrus.Errorf("could not subscribe to kline: %v", status.Convert(err).Message())
 		return err
 	}
 	for {
 		kline, err := stream.Recv()
 		if err != nil {
 			if err == io.EOF {
-				log.Infoln("Stream closed by server")
+				logrus.Infoln("Stream closed by server")
 				return nil
 			} else {
-				log.Errorf("Error receiving from kline stream: %v", status.Convert(err).Message())
+				logrus.Errorf("Error receiving from kline stream: %v", status.Convert(err).Message())
 			}
 		}
-		log.Infof("Received kline: %+v", kline)
+		logrus.Infof("Received kline: %+v", kline)
 	}
 }

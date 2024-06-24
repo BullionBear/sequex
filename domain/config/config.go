@@ -32,7 +32,7 @@ type NikoConfig struct {
 	Symbol     string `json:"symbol"`
 	GrpcClient struct {
 		Host string `json:"host"`
-		Port string `json:"port"`
+		Port int    `json:"port"`
 	} `json:"grpc_client"`
 }
 
