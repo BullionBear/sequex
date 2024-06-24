@@ -1,5 +1,9 @@
 package main
 
+/*
+Nicholas is a backtest trading bot associated with alex and demetrius.
+*/
+
 import (
 	"flag"
 
@@ -9,17 +13,17 @@ import (
 
 func main() {
 	// Read the configuration file
-	configPath := flag.String("config", "", "path to config file")
+	configPath := flag.String("config", "", "path of nikolaos config file")
 	flag.Parse()
 
 	if *configPath == "" {
 		logrus.Fatal("Please provide a path to the configuration file")
 	}
-	alexConfig, err := config.LoadAlexConfig(*configPath)
+	nikoConfig, err := config.LoadAlexConfig(*configPath)
 	if err != nil {
 		logrus.Fatal("Can't read config: ", err)
 	}
-	logrus.Infof("Load config with %+v", *alexConfig)
+	logrus.Infof("Load config with %+v", *nikoConfig)
 
 	// New resources
 

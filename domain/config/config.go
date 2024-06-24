@@ -27,3 +27,23 @@ func LoadAlexConfig(path string) (*AlexConfig, error) {
 	}
 	return &config, nil
 }
+
+type NikoConfig struct {
+	Symbol     string `json:"symbol"`
+	GrpcClient struct {
+		Host string `json:"host"`
+		Port string `json:"port"`
+	} `json:"grpc_client"`
+}
+
+func LoadNikoConfig(path string) (*NikoConfig, error) {
+	var config NikoConfig
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(data, &config); err != nil {
+		return nil, err
+	}
+	return &config, nil
+}

@@ -15,6 +15,10 @@ alex:
 	go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY) cmd/$(BINARY)/*.go
 	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/$(BINARY)/*.go
 
+nikolaos:
+	go build -ldflags="$(LDFLAGS)" -o ./bin/nikolaos cmd/nikolaos/*.go
+	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/nikolaos-linux-x86 cmd/nikolaos/*.go
+
 run:
 	./bin/$(BINARY)-linux-x86 -config ./configs/config_template.json
 
