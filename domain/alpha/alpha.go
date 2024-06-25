@@ -1,7 +1,7 @@
 package alpha
 
 import (
-	"github.com/BullionBear/crypto-trade/api/gen/models"
+	"github.com/BullionBear/crypto-trade/domain/models"
 )
 
 type Alpha struct {

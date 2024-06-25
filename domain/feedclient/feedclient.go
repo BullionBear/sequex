@@ -2,14 +2,12 @@ package feedclient
 
 import (
 	"context"
-	"io"
-
-	"github.com/sirupsen/logrus"
+	"log"
 
 	"github.com/BullionBear/crypto-trade/api/gen/feed"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type FeedClient struct {
@@ -22,27 +20,33 @@ func NewFeedClient(conn *grpc.ClientConn) *FeedClient {
 	}
 }
 
-func (f *FeedClient) GetConfig() (*feed.Config, error) {
-	client := feed.NewFeedClient(f.conn)
-	return client.GetConfig(context.Background(), &feed.Empty{})
-}
-
-func (f *FeedClient) SubscribeKlines(handler func(event *Kline)) error {
-	stream, err := f.conn.SubscribeKline(context.Background(), &emptypb.Empty{})
+func (fc *FeedClient) GetConfig(ctx context.Context) error {
+	config, err := fc.GetConfig(ctx, &feed.Empty{})
 	if err != nil {
-		logrus.Errorf("could not subscribe to kline: %v", status.Convert(err).Message())
+		logrus.Errorf("could not get status: %v", status.Convert(err).Message())
 		return err
 	}
-	for {
-		kline, err := stream.Recv()
-		if err != nil {
-			if err == io.EOF {
-				logrus.Infoln("Stream closed by server")
-				return nil
-			} else {
-				logrus.Errorf("Error receiving from kline stream: %v", status.Convert(err).Message())
-			}
-		}
-		logrus.Infof("Received kline: %+v", kline)
-	}
+	log.Printf("Status: %v", config)
+	return nil
 }
+
+// func (f *FeedClient) SubscribeKlines(handler func(event *Kline)) error {
+// 	stream, err := f.conn.SubscribeKline(context.Background(), &emptypb.Empty{})
+// 	if err != nil {
+// 		logrus.Errorf("could not subscribe to kline: %v", status.Convert(err).Message())
+// 		return err
+// 	}
+// 	for {
+// 		kline, err := stream.Recv()
+// 		if err != nil {
+// 			if err == io.EOF {
+// 				logrus.Infoln("Stream closed by server")
+// 				return nil
+// 			} else {
+// 				logrus.Errorf("Error receiving from kline stream: %v", status.Convert(err).Message())
+// 			}
+// 		}
+// 		logrus.Infof("Received kline: %+v", kline)
+// 	}
+// }
+//
