@@ -20,6 +20,6 @@ func NewAlpha() *Alpha {
 }
 
 func (a *Alpha) Append(kline models.Kline) {
-	a.shortCloseMovingAvg.Append(kline.Close)
-	a.longCloseMovingAvg.Append(kline.Close)
+	a.ShortCloseMovingAvg.Append(kline.Close)
+	a.LongCloseMovingAvg.Append(kline.Close)
 }
