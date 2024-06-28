@@ -1,8 +1,8 @@
 package trader
 
 import (
-	"github.com/BullionBear/crypto-trade/domain/backtest/wallet"
 	"github.com/BullionBear/crypto-trade/domain/pgdb"
+	"github.com/BullionBear/crypto-trade/domain/wallet"
 	"github.com/shopspring/decimal"
 )
 
@@ -23,5 +23,7 @@ func (b *Backtest) CreateMarketOrder(symbol string, side bool, quoteQty decimal.
 	if err != nil {
 		return err
 	}
-	return b.wallet.Trade(symbol, side, kline.Close, quoteQty)
+	price := decimal.NewFromFloat(kline.Close)
+	baseQty := quoteQty.Div(price)
+	return b.wallet.Trade(symbol, side, price, baseQty)
 }
