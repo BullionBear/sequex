@@ -2,32 +2,59 @@ package feedclient
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"io"
 
 	"github.com/BullionBear/crypto-trade/api/gen/feed"
+	"github.com/BullionBear/crypto-trade/domain/models"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type FeedClient struct {
-	conn *grpc.ClientConn
+	conn   *grpc.ClientConn
+	client *feed.FeedClient
 }
 
-func NewFeedClient(conn *grpc.ClientConn) *FeedClient {
+func NewFeedClient(host string, port int) *FeedClient {
+	srvAddr := fmt.Sprintf("%s:%d", host, port)
+	conn, err := grpc.NewClient(srvAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logrus.Fatalf("did not connect: %v", err)
+	}
+	feedClient := feed.NewFeedClient(conn)
 	return &FeedClient{
-		conn: conn,
+		conn:   conn,
+		client: &feedClient,
 	}
 }
 
-func (fc *FeedClient) GetConfig(ctx context.Context) error {
-	config, err := fc.GetConfig(ctx, &feed.Empty{})
+func (fc *FeedClient) Close() {
+	fc.conn.Close()
+}
+
+func (fc *FeedClient) SubscribeKlines(handler func(event *models.Kline)) error {
+	stream, err := (*fc.client).SubscribeKline(context.Background(), &emptypb.Empty{})
 	if err != nil {
-		logrus.Errorf("could not get status: %v", status.Convert(err).Message())
+		logrus.Errorf("could not subscribe to kline: %v", status.Convert(err).Message())
 		return err
 	}
-	log.Printf("Status: %v", config)
-	return nil
+	for {
+		pbkline, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				logrus.Infoln("Stream closed by server")
+				return nil
+			} else {
+				logrus.Errorf("Error receiving from kline stream: %v", status.Convert(err).Message())
+			}
+		}
+		kline := models.NewKlineFromPb(pbkline.Kline)
+		handler(kline)
+	}
 }
 
 // func (f *FeedClient) SubscribeKlines(handler func(event *Kline)) error {

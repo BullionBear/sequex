@@ -1,8 +1,8 @@
 package trader
 
 import (
+	"github.com/BullionBear/crypto-trade/domain/backtest/wallet"
 	"github.com/BullionBear/crypto-trade/domain/pgdb"
-	"github.com/BullionBear/crypto-trade/domain/wallet"
 	"github.com/shopspring/decimal"
 )
 
@@ -19,7 +19,7 @@ func NewBacktest(db *pgdb.PgDatabase, wallet *wallet.Wallet) *Backtest {
 }
 
 func (b *Backtest) CreateMarketOrder(symbol string, side bool, quoteQty decimal.Decimal, openTime int64) error {
-	kline, err := b.db.GetKline(symbol, openTime)
+	kline, err := b.db.QueryKline(openTime)
 	if err != nil {
 		return err
 	}

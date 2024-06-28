@@ -33,11 +33,11 @@ func (w *Wallet) Trade(symbol string, side bool, price, baseQty decimal.Decimal)
 	baseBalance := w.GetBalance(base)
 	quoteBalance := w.GetBalance(quote)
 	if side {
-		w.balance[base] += baseBalance.Sub(baseQty)
-		w.balance[quote] -= quoteBalance.Add(quoteQty)
+		w.balance[base] = baseBalance.Sub(baseQty)
+		w.balance[quote] = quoteBalance.Add(quoteQty)
 	} else {
-		w.balance[base] -= baseBalance.Add(baseQty)
-		w.balance[quote] += quoteBalance.Sub(quoteQty)
+		w.balance[base] = baseBalance.Add(baseQty)
+		w.balance[quote] = quoteBalance.Sub(quoteQty)
 	}
 	return nil
 }
