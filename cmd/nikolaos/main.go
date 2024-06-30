@@ -7,6 +7,7 @@ Nicholas is a backtest trading bot associated with alex and demetrius.
 import (
 	"flag"
 
+	"github.com/BullionBear/crypto-trade/domain/alpha"
 	"github.com/BullionBear/crypto-trade/domain/config"
 	"github.com/BullionBear/crypto-trade/domain/feedclient"
 	"github.com/BullionBear/crypto-trade/domain/models"
@@ -32,9 +33,15 @@ func main() {
 	feedConfig := nikoConfig.GrpcClient
 	feedClient := feedclient.NewFeedClient(feedConfig.Host, feedConfig.Port)
 	defer feedClient.Close()
+	// alpha
+	alpha := alpha.NewAlpha()
 
 	feedClient.SubscribeKlines(func(event *models.Kline) {
-		logrus.Infof("Received kline %+v", event)
+		alpha.Append(*event)
+		lm := alpha.LongCloseMovingAvg.Mean()
+		sm := alpha.ShortCloseMovingAvg.Mean()
+		logrus.Infof("Long moving average: %f, Short moving average: %f", lm, sm)
+		// logrus.Infof("Received kline %+v", event)
 	})
 	doneC := make(chan struct{})
 	<-doneC
