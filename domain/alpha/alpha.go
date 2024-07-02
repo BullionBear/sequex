@@ -19,7 +19,7 @@ func NewAlpha() *Alpha {
 	}
 }
 
-func (a *Alpha) Append(kline models.Kline) {
+func (a *Alpha) Append(kline *models.Kline) {
 	a.ShortCloseMovingAvg.Append(kline.Close)
 	a.LongCloseMovingAvg.Append(kline.Close)
 }

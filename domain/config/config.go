@@ -34,6 +34,7 @@ type NikoConfig struct {
 		Host string `json:"host"`
 		Port int    `json:"port"`
 	} `json:"grpc_client"`
+	MongoUri string `json:"mongo_uri"`
 }
 
 func LoadNikoConfig(path string) (*NikoConfig, error) {
