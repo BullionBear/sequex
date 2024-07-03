@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/BullionBear/crypto-trade/api/gen/feed"
 	"github.com/BullionBear/crypto-trade/domain/models"
@@ -55,6 +56,26 @@ func (fc *FeedClient) SubscribeKlines(handler func(event *models.Kline)) error {
 		kline := models.NewKlineFromPb(pbkline.Kline)
 		handler(kline)
 	}
+}
+
+func (fc *FeedClient) LoadHistoricalKlines(handler func(event *models.Kline), start, end int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	stream, err := (*fc.client).ReadHistoricalKline(ctx, &feed.ReadKlineRequest{Start: start, End: end})
+	if err != nil {
+		logrus.Errorf("could not read historical kline: %v", status.Convert(err).Message())
+		return err
+	}
+	for {
+		pbkline, err := stream.Recv()
+		if err != nil {
+			logrus.Errorf("Error receiving from historical kline stream: %v", status.Convert(err).Message())
+			break
+		}
+		kline := models.NewKlineFromPb(pbkline.Kline)
+		handler(kline)
+	}
+	return nil
 }
 
 // func (f *FeedClient) SubscribeKlines(handler func(event *Kline)) error {
