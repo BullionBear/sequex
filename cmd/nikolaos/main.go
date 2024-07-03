@@ -8,12 +8,18 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
+	"syscall"
 
 	"github.com/BullionBear/crypto-trade/domain/alpha"
+	"github.com/BullionBear/crypto-trade/domain/chronicler"
 	"github.com/BullionBear/crypto-trade/domain/config"
 	"github.com/BullionBear/crypto-trade/domain/feedclient"
 	"github.com/BullionBear/crypto-trade/domain/models"
-	"github.com/BullionBear/crypto-trade/domain/reporter"
+	"github.com/BullionBear/crypto-trade/domain/shutdown"
+	"github.com/BullionBear/crypto-trade/domain/wallet"
+	"github.com/BullionBear/crypto-trade/trade/nikolaos"
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -32,6 +38,9 @@ func main() {
 		logrus.Fatal("Can't read config: ", err)
 	}
 	logrus.Infof("Load config with %+v", *nikoConfig)
+	shutdown.HookShutdownCallback("cleanup", func() {
+		logrus.Info("receive signal, start cleanup resources")
+	})
 
 	// New raw resources
 	// grpc client
@@ -52,15 +61,22 @@ func main() {
 	// Dependency injection wrapped resources
 	// alpha
 	alpha := alpha.NewAlpha()
-	reporter := reporter.NewReporter(client)
-	reporter.Record("alpha", alpha)
-	feedClient.SubscribeKlines(func(event *models.Kline) {
-		alpha.Append(event)
-		lm := alpha.LongCloseMovingAvg.Mean()
-		sm := alpha.ShortCloseMovingAvg.Mean()
-		logrus.Infof("Long moving average: %f, Short moving average: %f", lm, sm)
-		// logrus.Infof("Received kline %+v", event)
+	// chronicler
+	chronicler := chronicler.NewChronicler(client, "nikolaos")
+	shutdown.HookShutdownCallback("close chronicler", chronicler.Close)
+	// wallet
+	wallet := wallet.NewWallet()
+	for _, b := range nikoConfig.Balance {
+		wallet.SetBalance(b.Coin, decimal.NewFromFloat(b.Amount))
+	}
+	// Nikolas Strategy
+	niko := nikolaos.NewNikolaos(wallet, alpha, chronicler)
+
+	// Run niko
+	go feedClient.SubscribeKlines(func(event *models.Kline) {
+		niko.MakeDecision(event)
 	})
-	doneC := make(chan struct{})
-	<-doneC
+
+	shutdown.WaitForShutdown(os.Interrupt, syscall.SIGTERM)
+	logrus.Info("Nikolaos is done!")
 }

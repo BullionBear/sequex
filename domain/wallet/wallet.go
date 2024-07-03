@@ -16,6 +16,10 @@ func NewWallet() *Wallet {
 	}
 }
 
+func (w *Wallet) SetBalance(token string, balance decimal.Decimal) {
+	w.balance[token] = balance
+}
+
 func (w *Wallet) GetBalance(symbol string) decimal.Decimal {
 	if b, ok := w.balance[symbol]; ok {
 		return b

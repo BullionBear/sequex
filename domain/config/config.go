@@ -35,6 +35,10 @@ type NikoConfig struct {
 		Port int    `json:"port"`
 	} `json:"grpc_client"`
 	MongoUri string `json:"mongo_uri"`
+	Balance  []struct {
+		Coin   string  `json:"coin"`
+		Amount float64 `json:"amount"`
+	} `json:"balance"`
 }
 
 func LoadNikoConfig(path string) (*NikoConfig, error) {

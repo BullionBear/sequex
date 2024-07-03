@@ -4,6 +4,16 @@
         "host": "localhost",
         "port": 50051
     },
-    "mongo_uri": "mongodb://bullionbear:Sunshine4Jellybean@localhost:27010"
+    "mongo_uri": "mongodb://bullionbear:Sunshine4Jellybean@localhost:27010",
+    "balance":[
+        {
+            "coin": "USDT",
+            "amount": 1000
+        },
+        {
+            "coin": "BTC",
+            "amount": 0.1
+        }
+    ]
 }
   
