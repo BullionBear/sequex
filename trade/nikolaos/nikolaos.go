@@ -38,9 +38,11 @@ func (niko *Nikolaos) MakeDecision(kline *models.Kline) {
 		"long_moving_avg":  lm,
 		"short_moving_avg": sm,
 	}
+	BTCAmount, _ := niko.Wallet.GetBalance("BTC").Float64()
+	USDTAmount, _ := niko.Wallet.GetBalance("USDT").Float64()
 	wallet := bson.M{
-		"BTC":  niko.Wallet.GetBalance("BTC"),
-		"USDT": niko.Wallet.GetBalance("USDT"),
+		"BTC":  BTCAmount,
+		"USDT": USDTAmount,
 	}
 	history := chronicler.NewHistory(kline.OpenTime, data, wallet)
 	niko.Chronicler.Record(history)
