@@ -77,24 +77,3 @@ func (fc *FeedClient) LoadHistoricalKlines(handler func(event *models.Kline), st
 	}
 	return nil
 }
-
-// func (f *FeedClient) SubscribeKlines(handler func(event *Kline)) error {
-// 	stream, err := f.conn.SubscribeKline(context.Background(), &emptypb.Empty{})
-// 	if err != nil {
-// 		logrus.Errorf("could not subscribe to kline: %v", status.Convert(err).Message())
-// 		return err
-// 	}
-// 	for {
-// 		kline, err := stream.Recv()
-// 		if err != nil {
-// 			if err == io.EOF {
-// 				logrus.Infoln("Stream closed by server")
-// 				return nil
-// 			} else {
-// 				logrus.Errorf("Error receiving from kline stream: %v", status.Convert(err).Message())
-// 			}
-// 		}
-// 		logrus.Infof("Received kline: %+v", kline)
-// 	}
-// }
-//

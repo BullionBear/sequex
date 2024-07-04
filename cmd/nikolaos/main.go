@@ -9,6 +9,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"sync"
 	"syscall"
 
 	"github.com/BullionBear/crypto-trade/domain/alpha"
@@ -46,7 +47,7 @@ func main() {
 	// grpc client
 	feedConfig := nikoConfig.GrpcClient
 	feedClient := feedclient.NewFeedClient(feedConfig.Host, feedConfig.Port)
-	defer feedClient.Close()
+	shutdown.HookShutdownCallback("~feedClient", feedClient.Close)
 	// mongo client
 	mongoUri := nikoConfig.MongoUri
 	clientOptions := options.Client().ApplyURI(mongoUri)
@@ -63,7 +64,7 @@ func main() {
 	alpha := alpha.NewAlpha()
 	// chronicler
 	chronicler := chronicler.NewChronicler(client, "nikolaos")
-	shutdown.HookShutdownCallback("close chronicler", chronicler.Close)
+	shutdown.HookShutdownCallback("~chronicler", chronicler.Close)
 	// wallet
 	wallet := wallet.NewWallet()
 	for _, b := range nikoConfig.Balance {
@@ -73,8 +74,16 @@ func main() {
 	niko := nikolaos.NewNikolaos(wallet, alpha, chronicler)
 
 	// Run niko
+	var once sync.Once
 	go feedClient.SubscribeKlines(func(event *models.Kline) {
+		once.Do(func() {
+			feedClient.LoadHistoricalKlines(func(event *models.Kline) {
+				// logrus.Infof("Load historical kline: %d", event.OpenTime)
+				niko.Prepare(event)
+			}, event.OpenTime-30*86_400_000, event.OpenTime-1) // Retrieve 30 days of historical data
+		})
 		niko.MakeDecision(event)
+		// logrus.Infof("OpenTime: %d, Open: %f, Close: %f", event.OpenTime, event.Open, event.Close)
 	})
 
 	shutdown.WaitForShutdown(os.Interrupt, syscall.SIGTERM)
