@@ -1,6 +1,9 @@
 package alpha
 
-import "math"
+import (
+	"math"
+	"sync"
+)
 
 type MovingAverage struct {
 	// Immutable fields
@@ -10,6 +13,9 @@ type MovingAverage struct {
 	runningResSquare float64
 	valueBuffer      []float64
 	residualBuffer   []float64
+
+	// mutex
+	mu sync.RWMutex
 }
 
 func NewMovingAverage(length int) *MovingAverage {
@@ -20,6 +26,8 @@ func NewMovingAverage(length int) *MovingAverage {
 		runningResSquare: 0,
 		valueBuffer:      make([]float64, 0, length),
 		residualBuffer:   make([]float64, 0, length),
+
+		mu: sync.RWMutex{},
 	}
 }
 
@@ -28,6 +36,8 @@ func (ma *MovingAverage) Length() int {
 }
 
 func (ma *MovingAverage) Append(value float64) {
+	ma.mu.Lock()
+	defer ma.mu.Unlock()
 	ma.valueBuffer = append(ma.valueBuffer, value)
 	ma.runningSum += value
 
@@ -47,6 +57,8 @@ func (ma *MovingAverage) Append(value float64) {
 }
 
 func (ma *MovingAverage) Mean() float64 {
+	ma.mu.RLock()
+	defer ma.mu.RUnlock()
 	if len(ma.valueBuffer) == 0 {
 		return 0
 	}
@@ -54,6 +66,8 @@ func (ma *MovingAverage) Mean() float64 {
 }
 
 func (ma *MovingAverage) Std() float64 {
+	ma.mu.RLock()
+	defer ma.mu.RUnlock()
 	if len(ma.residualBuffer) == 0 {
 		return 0
 	}

@@ -1,8 +1,6 @@
 package nikolaos
 
 import (
-	"math"
-
 	"github.com/BullionBear/crypto-trade/domain/alpha"
 	"github.com/BullionBear/crypto-trade/domain/chronicler"
 	"github.com/BullionBear/crypto-trade/domain/models"
@@ -15,6 +13,8 @@ type Nikolaos struct {
 	Wallet     *wallet.Wallet
 	Alpha      *alpha.Alpha
 	Chronicler *chronicler.Chronicler
+
+	beat int
 }
 
 func NewNikolaos(wallet *wallet.Wallet, alpha *alpha.Alpha, chronicler *chronicler.Chronicler) *Nikolaos {
@@ -22,21 +22,27 @@ func NewNikolaos(wallet *wallet.Wallet, alpha *alpha.Alpha, chronicler *chronicl
 		Wallet:     wallet,
 		Alpha:      alpha,
 		Chronicler: chronicler,
+
+		beat: 0,
 	}
 }
 
 func (niko *Nikolaos) Prepare(kline *models.Kline) {
-	niko.Alpha.Append(kline)
-}
+	// var once sync.Once
 
-func (niko *Nikolaos) MakeDecision(kline *models.Kline) {
 	niko.Alpha.Append(kline)
-	lm := niko.Alpha.LongCloseMovingAvg.Mean()
-	sm := niko.Alpha.ShortCloseMovingAvg.Mean()
 
+	// Record the data
 	data := bson.M{
-		"long_moving_avg":  lm,
-		"short_moving_avg": sm,
+		"closeMA5Min":  niko.Alpha.CloseMovingAvg5Min.Mean(),
+		"closeMA30Min": niko.Alpha.CloseMovingAvg30Min.Mean(),
+		"closeMA3Hr":   niko.Alpha.CloseMovingAvg3Hr.Mean(),
+		"closeMA18Hr":  niko.Alpha.CloseMovingAvg18Hr.Mean(),
+
+		"volumeMA5Min":  niko.Alpha.VolumeMovingAvg5Min.Mean(),
+		"volumeMA30Min": niko.Alpha.VolumeMovingAvg30Min.Mean(),
+		"volumeMA3Hr":   niko.Alpha.VolumeMovingAvg3Hr.Mean(),
+		"volumeMA18Hr":  niko.Alpha.VolumeMovingAvg18Hr.Mean(),
 	}
 	BTCAmount, _ := niko.Wallet.GetBalance("BTC").Float64()
 	USDTAmount, _ := niko.Wallet.GetBalance("USDT").Float64()
@@ -47,8 +53,50 @@ func (niko *Nikolaos) MakeDecision(kline *models.Kline) {
 	history := chronicler.NewHistory(kline.OpenTime, data, wallet)
 	niko.Chronicler.Record(history)
 
-	indicator := (lm - sm) / lm
-	if math.Abs(indicator) > 0.05 {
-		logrus.Infof("Long moving average: %f, Short moving average: %f, indicator: %f", lm, sm, indicator)
+	niko.heartBeat("Load History")
+}
+
+func (niko *Nikolaos) MakeDecision(kline *models.Kline) {
+	// Append the kline to the alpha
+	niko.Alpha.Append(kline)
+	// Retrieve the moving averages
+	_ = niko.Alpha.CloseMovingAvg5Min.Mean()
+	// closeMA30Min := niko.Alpha.CloseMovingAvg3Hr.Mean()
+	// closeMA3Hr := niko.Alpha.CloseMovingAvg3Hr.Mean()
+	// closeMA18Hr := niko.Alpha.CloseMovingAvg18Hr.Mean()
+
+	// volumeMA5Min := niko.Alpha.VolumeMovingAvg5Min.Mean()
+	// volumeMA30Min := niko.Alpha.VolumeMovingAvg30Min.Mean()
+	// volumeMA3Hr := niko.Alpha.VolumeMovingAvg3Hr.Mean()
+	// volumeMA18Hr := niko.Alpha.VolumeMovingAvg18Hr.Mean()
+
+	// Record the data
+	data := bson.M{
+		"closeMA5Min":  niko.Alpha.CloseMovingAvg5Min.Mean(),
+		"closeMA30Min": niko.Alpha.CloseMovingAvg30Min.Mean(),
+		"closeMA3Hr":   niko.Alpha.CloseMovingAvg3Hr.Mean(),
+		"closeMA18Hr":  niko.Alpha.CloseMovingAvg18Hr.Mean(),
+
+		"volumeMA5Min":  niko.Alpha.VolumeMovingAvg5Min.Mean(),
+		"volumeMA30Min": niko.Alpha.VolumeMovingAvg30Min.Mean(),
+		"volumeMA3Hr":   niko.Alpha.VolumeMovingAvg3Hr.Mean(),
+		"volumeMA18Hr":  niko.Alpha.VolumeMovingAvg18Hr.Mean(),
 	}
+	BTCAmount, _ := niko.Wallet.GetBalance("BTC").Float64()
+	USDTAmount, _ := niko.Wallet.GetBalance("USDT").Float64()
+	wallet := bson.M{
+		"BTC":  BTCAmount,
+		"USDT": USDTAmount,
+	}
+	history := chronicler.NewHistory(kline.OpenTime, data, wallet)
+	niko.Chronicler.Record(history)
+
+	niko.heartBeat("Make Desision")
+}
+
+func (niko *Nikolaos) heartBeat(name string) {
+	if niko.beat%3600 == 0 {
+		logrus.Infof("%s: Nikolaos 5Min price: %f", name, niko.Alpha.CloseMovingAvg5Min.Mean())
+	}
+	niko.beat++
 }

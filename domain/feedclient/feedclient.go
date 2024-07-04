@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/BullionBear/crypto-trade/api/gen/feed"
 	"github.com/BullionBear/crypto-trade/domain/models"
@@ -59,9 +58,7 @@ func (fc *FeedClient) SubscribeKlines(handler func(event *models.Kline)) error {
 }
 
 func (fc *FeedClient) LoadHistoricalKlines(handler func(event *models.Kline), start, end int64) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	stream, err := (*fc.client).ReadHistoricalKline(ctx, &feed.ReadKlineRequest{Start: start, End: end})
+	stream, err := (*fc.client).ReadHistoricalKline(context.Background(), &feed.ReadKlineRequest{Start: start, End: end})
 	if err != nil {
 		logrus.Errorf("could not read historical kline: %v", status.Convert(err).Message())
 		return err
@@ -69,11 +66,15 @@ func (fc *FeedClient) LoadHistoricalKlines(handler func(event *models.Kline), st
 	for {
 		pbkline, err := stream.Recv()
 		if err != nil {
-			logrus.Errorf("Error receiving from historical kline stream: %v", status.Convert(err).Message())
-			break
+			if err == io.EOF {
+				logrus.Infoln("Stream closed by server")
+				return nil
+			} else {
+				logrus.Errorf("Error receiving from kline stream: %v", status.Convert(err).Message())
+				return err
+			}
 		}
 		kline := models.NewKlineFromPb(pbkline.Kline)
 		handler(kline)
 	}
-	return nil
 }
