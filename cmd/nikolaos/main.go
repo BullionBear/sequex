@@ -80,7 +80,7 @@ func main() {
 			feedClient.LoadHistoricalKlines(func(event *models.Kline) {
 				// logrus.Infof("Load historical kline: %d", event.OpenTime)
 				niko.Prepare(event)
-			}, event.OpenTime-30*86_400_000, event.OpenTime-1) // Retrieve 30 days of historical data
+			}, event.OpenTime-15*86_400_000, event.OpenTime-1) // Retrieve 15 days of historical data
 		})
 		niko.MakeDecision(event)
 		// logrus.Infof("OpenTime: %d, Open: %f, Close: %f", event.OpenTime, event.Open, event.Close)

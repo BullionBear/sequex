@@ -47,11 +47,14 @@ func (ma *MovingAverage) Append(value float64) {
 	}
 	// Calculate residual
 	movingAverage := ma.runningSum / float64(len(ma.valueBuffer))
-	resSquare := math.Pow(value-movingAverage, 2)
+	residual := value - movingAverage
+	ma.residualBuffer = append(ma.residualBuffer, residual)
+	resSquare := math.Pow(residual, 2)
 
 	ma.runningResSquare += resSquare
 	if len(ma.residualBuffer) > ma.length {
-		ma.runningResSquare -= ma.residualBuffer[0]
+		oldResidual := ma.residualBuffer[0]
+		ma.runningResSquare -= math.Pow(oldResidual, 2)
 		ma.residualBuffer = ma.residualBuffer[1:]
 	}
 }
