@@ -1,8 +1,9 @@
 package config
 
 import (
-	"encoding/json"
 	"os"
+
+	"github.com/yosuke-furukawa/json5/encoding/json5"
 )
 
 // Config represents the application configuration.
@@ -22,7 +23,7 @@ func LoadAlexConfig(path string) (*AlexConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := json.Unmarshal(data, &config); err != nil {
+	if err := json5.Unmarshal(data, &config); err != nil {
 		return nil, err
 	}
 	return &config, nil
@@ -47,7 +48,7 @@ func LoadNikoConfig(path string) (*NikoConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := json.Unmarshal(data, &config); err != nil {
+	if err := json5.Unmarshal(data, &config); err != nil {
 		return nil, err
 	}
 	return &config, nil
