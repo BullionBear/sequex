@@ -28,31 +28,8 @@ func NewNikolaos(wallet *wallet.Wallet, alpha *alpha.Alpha, chronicler *chronicl
 }
 
 func (niko *Nikolaos) Prepare(kline *models.Kline) {
-	// var once sync.Once
 
 	niko.Alpha.Append(kline)
-
-	// Record the data
-	data := bson.M{
-		"closeMA5Min":  niko.Alpha.CloseMovingAvg5Min.Mean(),
-		"closeMA30Min": niko.Alpha.CloseMovingAvg30Min.Mean(),
-		"closeMA3Hr":   niko.Alpha.CloseMovingAvg3Hr.Mean(),
-		"closeMA18Hr":  niko.Alpha.CloseMovingAvg18Hr.Mean(),
-
-		"volumeMA5Min":  niko.Alpha.VolumeMovingAvg5Min.Mean(),
-		"volumeMA30Min": niko.Alpha.VolumeMovingAvg30Min.Mean(),
-		"volumeMA3Hr":   niko.Alpha.VolumeMovingAvg3Hr.Mean(),
-		"volumeMA18Hr":  niko.Alpha.VolumeMovingAvg18Hr.Mean(),
-	}
-	BTCAmount, _ := niko.Wallet.GetBalance("BTC").Float64()
-	USDTAmount, _ := niko.Wallet.GetBalance("USDT").Float64()
-	wallet := bson.M{
-		"BTC":  BTCAmount,
-		"USDT": USDTAmount,
-	}
-	history := chronicler.NewHistory(kline.OpenTime, data, wallet)
-	niko.Chronicler.Record(history)
-
 	niko.heartBeat("Load History")
 }
 
@@ -72,15 +49,23 @@ func (niko *Nikolaos) MakeDecision(kline *models.Kline) {
 
 	// Record the data
 	data := bson.M{
-		"closeMA5Min":  niko.Alpha.CloseMovingAvg5Min.Mean(),
-		"closeMA30Min": niko.Alpha.CloseMovingAvg30Min.Mean(),
-		"closeMA3Hr":   niko.Alpha.CloseMovingAvg3Hr.Mean(),
-		"closeMA18Hr":  niko.Alpha.CloseMovingAvg18Hr.Mean(),
+		"closeMA5Min":     niko.Alpha.CloseMovingAvg5Min.Mean(),
+		"closeMa5MinStd":  niko.Alpha.CloseMovingAvg5Min.Std(),
+		"closeMA30Min":    niko.Alpha.CloseMovingAvg30Min.Mean(),
+		"closeMa30MinStd": niko.Alpha.CloseMovingAvg30Min.Std(),
+		"closeMA3Hr":      niko.Alpha.CloseMovingAvg3Hr.Mean(),
+		"closeMa3HrStd":   niko.Alpha.CloseMovingAvg3Hr.Std(),
+		"closeMA18Hr":     niko.Alpha.CloseMovingAvg18Hr.Mean(),
+		"closeMa18HrStd":  niko.Alpha.CloseMovingAvg18Hr.Std(),
 
-		"volumeMA5Min":  niko.Alpha.VolumeMovingAvg5Min.Mean(),
-		"volumeMA30Min": niko.Alpha.VolumeMovingAvg30Min.Mean(),
-		"volumeMA3Hr":   niko.Alpha.VolumeMovingAvg3Hr.Mean(),
-		"volumeMA18Hr":  niko.Alpha.VolumeMovingAvg18Hr.Mean(),
+		"volumeMA5Min":     niko.Alpha.VolumeMovingAvg5Min.Mean(),
+		"volumeMa5MinStd":  niko.Alpha.VolumeMovingAvg5Min.Std(),
+		"volumeMA30Min":    niko.Alpha.VolumeMovingAvg30Min.Mean(),
+		"volumeMa30MinStd": niko.Alpha.VolumeMovingAvg30Min.Std(),
+		"volumeMA3Hr":      niko.Alpha.VolumeMovingAvg3Hr.Mean(),
+		"volumeMa3HrStd":   niko.Alpha.VolumeMovingAvg3Hr.Std(),
+		"volumeMA18Hr":     niko.Alpha.VolumeMovingAvg18Hr.Mean(),
+		"volumeMa18HrStd":  niko.Alpha.VolumeMovingAvg18Hr.Std(),
 	}
 	BTCAmount, _ := niko.Wallet.GetBalance("BTC").Float64()
 	USDTAmount, _ := niko.Wallet.GetBalance("USDT").Float64()
@@ -96,7 +81,7 @@ func (niko *Nikolaos) MakeDecision(kline *models.Kline) {
 
 func (niko *Nikolaos) heartBeat(name string) {
 	if niko.beat%3600 == 0 {
-		logrus.Infof("%s: Nikolaos 5Min price: %f", name, niko.Alpha.CloseMovingAvg5Min.Mean())
+		logrus.Infof("%s: Nikolaos 5Min price: %f", name, niko.Alpha.CloseMovingAvg5Min.Std())
 	}
 	niko.beat++
 }

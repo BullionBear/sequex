@@ -73,3 +73,13 @@ func (ma *MovingAverage) Std() float64 {
 	}
 	return math.Sqrt(ma.runningResSquare / float64(len(ma.residualBuffer)-1))
 }
+
+func (ma *MovingAverage) ChangeRate() float64 {
+	ma.mu.RLock()
+	defer ma.mu.RUnlock()
+	// Calculate the change in the moving average
+	changeRate := ma.valueBuffer[0] - ma.valueBuffer[len(ma.valueBuffer)-1]
+	changeRate /= ma.valueBuffer[0]
+	return changeRate
+
+}

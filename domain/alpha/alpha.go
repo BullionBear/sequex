@@ -41,8 +41,8 @@ func (a *Alpha) Append(kline *models.Kline) {
 	a.CloseMovingAvg3Hr.Append(kline.Close)
 	a.CloseMovingAvg18Hr.Append(kline.Close)
 
-	a.VolumeMovingAvg5Min.Append(kline.Volume)
-	a.VolumeMovingAvg30Min.Append(kline.Volume)
-	a.VolumeMovingAvg3Hr.Append(kline.Volume)
-	a.VolumeMovingAvg18Hr.Append(kline.Volume)
+	a.VolumeMovingAvg5Min.Append(kline.QuoteAssetVolume)
+	a.VolumeMovingAvg30Min.Append(kline.QuoteAssetVolume)
+	a.VolumeMovingAvg3Hr.Append(kline.QuoteAssetVolume)
+	a.VolumeMovingAvg18Hr.Append(kline.QuoteAssetVolume)
 }
