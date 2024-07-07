@@ -5,29 +5,35 @@ package backtest
 	The basic components include:
 	- Data: Connecting crypto-feed gRPC
 	- Account: Managing the balance of assets
-	- Order: Managing the order status
+	- Order: Managing the order status (ignore)
 	- Position: Managing the position status
 */
 
 import (
-	"github.com/BullionBear/crypto-trade/domain/pgdb"
-	"github.com/BullionBear/crypto-trade/domain/wallet"
+	"github.com/BullionBear/crypto-trade/domain/feedclient"
+
+	"github.com/BullionBear/crypto-trade/domain/models"
 	"github.com/shopspring/decimal"
 )
 
 type Backtest struct {
-	db     *pgdb.PgDatabase
-	wallet *wallet.Wallet
+	account      *Account
+	feed         *feedclient.FeedClient
+	position     *Position
+	currentKline models.Kline
 }
 
-func NewBacktest(db *pgdb.PgDatabase, wallet *wallet.Wallet) *Backtest {
+func NewBacktest(acc *Account, feed *feedclient.FeedClient) *Backtest {
+	position := NewPosition()
 	return &Backtest{
-		db:     db,
-		wallet: wallet,
+		account:      acc,
+		feed:         feed,
+		position:     position,
+		currentKline: models.Kline{},
 	}
 }
 
-func (b *Backtest) CreateMarketOrder(symbol string, side bool, quoteQty decimal.Decimal, openTime int64) error {
+func (b *Backtest) OpenPosition(symbol string, side bool, quoteQty decimal.Decimal, openTime int64) (int, error) {
 	kline, err := b.db.QueryKline(openTime)
 	if err != nil {
 		return err
