@@ -1,4 +1,13 @@
-package trader
+package backtest
+
+/*
+	Backtest is a struct for simulating exchange behavior for backtesting.
+	The basic components include:
+	- Data: Connecting crypto-feed gRPC
+	- Account: Managing the balance of assets
+	- Order: Managing the order status
+	- Position: Managing the position status
+*/
 
 import (
 	"github.com/BullionBear/crypto-trade/domain/pgdb"
