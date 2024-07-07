@@ -73,7 +73,7 @@ func (niko *Nikolaos) MakeDecision(kline *models.Kline) {
 		"BTC":  BTCAmount,
 		"USDT": USDTAmount,
 	}
-	history := chronicler.NewHistory(kline.OpenTime, data, wallet)
+	history := chronicler.NewHistory(kline.OpenTime, kline.Close, data, wallet)
 	niko.Chronicler.Record(history)
 
 	niko.heartBeat("Make Desision")
