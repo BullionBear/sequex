@@ -76,3 +76,13 @@ func (acc *Account) Swap(symbol string, side bool, price, baseQty decimal.Decima
 	}
 	return nil
 }
+
+func (acc *Account) Lock(coin string, amount decimal.Decimal) error {
+	asset := acc.GetAsset(coin)
+	if asset.Free.LessThan(amount) {
+		return ErrInsufficientBalance
+	}
+	asset.Free = asset.Free.Sub(amount)
+	asset.Locked = asset.Locked.Add(amount)
+	return nil
+}

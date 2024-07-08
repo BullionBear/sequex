@@ -10,6 +10,8 @@ package backtest
 */
 
 import (
+	"strings"
+
 	"github.com/BullionBear/crypto-trade/domain/feedclient"
 
 	"github.com/BullionBear/crypto-trade/domain/models"
@@ -33,12 +35,30 @@ func NewBacktest(acc *Account, feed *feedclient.FeedClient) *Backtest {
 	}
 }
 
-func (b *Backtest) OpenPosition(symbol string, side bool, quoteQty decimal.Decimal, openTime int64) (int, error) {
-	kline, err := b.db.QueryKline(openTime)
+func (b *Backtest) OpenPosition(symbol string, quoteQty decimal.Decimal, leverage int) (int, error) {
+	margin := quoteQty.Div(decimal.NewFromInt(int64(leverage)))
+	parts := strings.Split(symbol, "-")
+	_, quote := parts[0], parts[1]
+	if err := b.account.Lock(quote, margin); err != nil {
+		return 0, err
+	}
+	price := decimal.NewFromFloat(b.currentKline.Close)
+	openTime := b.currentKline.OpenTime
+	baseQty := quoteQty.Div(price)
+	orderId := b.position.OpenPosition(symbol, openTime, baseQty, price, leverage)
+	return orderId, nil
+}
+
+func (b *Backtest) ClosePosition(orderId int) error {
+	perp, err := b.position.ClosePosition(orderId)
 	if err != nil {
 		return err
 	}
-	price := decimal.NewFromFloat(kline.Close)
-	baseQty := quoteQty.Div(price)
-	return b.wallet.Trade(symbol, side, price, baseQty)
+	parts := strings.Split(perp.Symbol, "-")
+	_, quote := parts[0], parts[1]
+	openPrice := perp.OpenPrice
+	closePrice := decimal.NewFromFloat(b.currentKline.Close)
+	pnl := perp.BaseQty.Mul(closePrice.Sub(openPrice))
+
+	return nil
 }

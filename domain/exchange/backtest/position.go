@@ -73,3 +73,10 @@ func (pos *Position) ClosePosition(Id int) (*Perpetual, error) {
 	}
 	return nil, ErrPositionNotFound
 }
+
+func (pos *Position) GetPosition(Id int) (*Perpetual, error) {
+	if _, ok := pos.PerpetualMap[Id]; !ok {
+		return nil, ErrPositionNotFound
+	}
+	return pos.PerpetualMap[Id], nil
+}
