@@ -59,6 +59,6 @@ func (b *Backtest) ClosePosition(orderId int) error {
 	openPrice := perp.OpenPrice
 	closePrice := decimal.NewFromFloat(b.currentKline.Close)
 	pnl := perp.BaseQty.Mul(closePrice.Sub(openPrice))
-
+	b.account.Unlock(quote, perp.Margin)
 	return nil
 }

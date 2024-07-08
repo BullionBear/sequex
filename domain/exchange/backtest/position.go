@@ -15,22 +15,29 @@ var (
 )
 
 type Perpetual struct {
-	Id        int
-	Symbol    string
-	OpenTime  int64
-	BaseQty   decimal.Decimal
-	OpenPrice decimal.Decimal
-	Leverage  int
+	Id             int
+	Symbol         string
+	OpenTime       int64
+	BaseQty        decimal.Decimal
+	OpenPrice      decimal.Decimal
+	Margin         decimal.Decimal // Equal to baseQty * openPrice / leverage
+	LiquidatePrice decimal.Decimal
+	Leverage       int
 }
 
 func NewPerpetual(id int, symbol string, openTime int64, baseQty, openPrice decimal.Decimal, leverage int) *Perpetual {
+	lv := decimal.NewFromInt(int64(leverage))
+	margin := baseQty.Mul(openPrice).Div(lv)
+	liquidate := openPrice.Sub(margin.Div(baseQty).Div(lv))
 	return &Perpetual{
-		Id:        id,
-		Symbol:    symbol,
-		OpenTime:  openTime,
-		BaseQty:   baseQty,
-		OpenPrice: openPrice,
-		Leverage:  leverage,
+		Id:             id,
+		Symbol:         symbol,
+		OpenTime:       openTime,
+		BaseQty:        baseQty,
+		OpenPrice:      openPrice,
+		Margin:         margin,
+		LiquidatePrice: liquidate,
+		Leverage:       leverage,
 	}
 }
 

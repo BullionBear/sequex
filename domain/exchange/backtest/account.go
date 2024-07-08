@@ -43,12 +43,13 @@ func (acc *Account) SetBalance(coin string, balance decimal.Decimal) {
 	acc.assets[coin] = NewAsset(coin, balance, decimal.Zero)
 }
 
-func (acc *Account) GetAsset(coin string) Asset {
+func (acc *Account) GetAsset(coin string) *Asset {
 	if b, ok := acc.assets[coin]; ok {
-		return b
+		return &b
 	}
 	acc.assets[coin] = NewAsset(coin, decimal.Zero, decimal.Zero)
-	return acc.assets[coin]
+	b := acc.assets[coin]
+	return &b
 }
 
 func (acc *Account) Swap(symbol string, side bool, price, baseQty decimal.Decimal) error {
@@ -84,5 +85,15 @@ func (acc *Account) Lock(coin string, amount decimal.Decimal) error {
 	}
 	asset.Free = asset.Free.Sub(amount)
 	asset.Locked = asset.Locked.Add(amount)
+	return nil
+}
+
+func (acc *Account) Unlock(coin string, amount decimal.Decimal) error {
+	asset := acc.GetAsset(coin)
+	if asset.Locked.LessThan(amount) {
+		return ErrInsufficientBalance // This would never happen
+	}
+	asset.Free = asset.Free.Add(amount)
+	asset.Locked = asset.Locked.Sub(amount)
 	return nil
 }
