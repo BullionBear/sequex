@@ -11,24 +11,14 @@ LDFLAGS := -X '${PACKAGE}/env.Version=${VERSION}' \
 gen:
 	protoc --go_out=. --go-grpc_out=. api/proto/feed.proto
 
-alex:
-	go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY) cmd/$(BINARY)/*.go
+build:
+	go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY) cmd/main.go
 	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/$(BINARY)/*.go
 
-nikolaos:
-	go build -ldflags="$(LDFLAGS)" -o ./bin/nikolaos cmd/nikolaos/*.go
-	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/nikolaos-linux-x86 cmd/nikolaos/*.go
-
-debug:
-	go build -ldflags="$(LDFLAGS)" -gcflags "all=-N -l" -o ./bin/nikolaosd cmd/nikolaos/*.go
-	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -gcflags "all=-N -l" -o ./bin/nikolaosd-linux-x86 cmd/nikolaos/*.go
-
-run:
-	./bin/$(BINARY)-linux-x86 -config ./configs/config_template.json
 
 clean:
 	rm -rf bin/*
 	rm -rf logs/*
 
 
-.PHONY: clean, build, run
+.PHONY: gen, build, clean
