@@ -1,5 +1,3 @@
-BINARY := alex
-
 PACKAGE="github.com/BullionBear/crypto-trade"
 VERSION := $(shell git describe --tags --always --abbrev=0 --match='v[0-9]*.[0-9]*.[0-9]*' 2> /dev/null)
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
@@ -12,7 +10,7 @@ gen:
 	protoc --go_out=. --go-grpc_out=. api/proto/feed.proto
 
 build:
-	go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY) cmd/main.go
+	go build -ldflags="$(LDFLAGS)" -o ./bin/main cmd/main.go
 	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/$(BINARY)/*.go
 
 
