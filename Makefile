@@ -1,4 +1,5 @@
-PACKAGE="github.com/BullionBear/crypto-trade"
+BINARY=sequex
+PACKAGE="github.com/BullionBear/sequex"
 VERSION := $(shell git describe --tags --always --abbrev=0 --match='v[0-9]*.[0-9]*.[0-9]*' 2> /dev/null)
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
 BUILD_TIMESTAMP := $(shell date '+%Y-%m-%dT%H:%M:%S')
@@ -11,7 +12,7 @@ gen:
 
 build:
 	go build -ldflags="$(LDFLAGS)" -o ./bin/main cmd/main.go
-	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/$(BINARY)/*.go
+	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/*.go
 
 
 clean:
