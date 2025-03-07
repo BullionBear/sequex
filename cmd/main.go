@@ -1,346 +1,213 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 )
 
-// 1. Market Data Structures
-type MarketData struct {
-	Symbol    string
-	Price     float64
-	Volume    float64
-	Timestamp time.Time
-}
+// --- Event Bus Implementation ---
 
-type Candle struct {
-	Symbol     string
-	Open       float64
-	High       float64
-	Low        float64
-	Close      float64
-	Volume     float64
-	Resolution string
-	StartTime  time.Time
-}
-
-// 2. Data Ingestion Component
-type MarketDataFetcher interface {
-	Fetch() <-chan MarketData
-}
-
-type MockMarketDataFetcher struct {
-	Symbol string
-}
-
-func (m *MockMarketDataFetcher) Fetch() <-chan MarketData {
-	out := make(chan MarketData)
-	go func() {
-		for {
-			time.Sleep(500 * time.Millisecond)
-			out <- MarketData{
-				Symbol:    m.Symbol,
-				Price:     rand.Float64() * 100,
-				Volume:    rand.Float64() * 1000,
-				Timestamp: time.Now(),
-			}
-		}
-	}()
-	return out
-}
-
-// 3. Data Processing Component
-type DataProcessor struct {
-	rawData <-chan MarketData
-}
-
-func NewDataProcessor(input <-chan MarketData) *DataProcessor {
-	return &DataProcessor{rawData: input}
-}
-
-func (p *DataProcessor) Process() <-chan Candle {
-	out := make(chan Candle)
-	go func() {
-		defer close(out)
-		for data := range p.rawData {
-			// Simple processing: create 1-second candles
-			// In real implementation, this would aggregate data
-			candle := Candle{
-				Symbol:     data.Symbol,
-				Open:       data.Price,
-				High:       data.Price,
-				Low:        data.Price,
-				Close:      data.Price,
-				Volume:     data.Volume,
-				Resolution: "1s",
-				StartTime:  data.Timestamp,
-			}
-			out <- candle
-		}
-	}()
-	return out
-}
-
-// 4. Trading Strategy Component
-type IStrategy interface {
-	GenerateSignal(Candle) *Order
-}
-
-type MomentumStrategy struct{}
-
-func (s *MomentumStrategy) GenerateSignal(candle Candle) *Order {
-	// Simple momentum strategy
-	if candle.Close > candle.Open {
-		return &Order{
-			Symbol:   candle.Symbol,
-			Side:     "BUY",
-			Quantity: 100,
-			Price:    candle.Close,
-		}
-	}
-	return nil
-}
-
-// 5. Risk Management Component
-type IRiskManager interface {
-	ValidateOrder(*Order) bool
-}
-
-type BasicRiskManager struct {
-	maxPositionSize float64
-}
-
-func (r *BasicRiskManager) ValidateOrder(order *Order) bool {
-	return order.Quantity <= r.maxPositionSize
-}
-
-// 6. Order Management Component
-type Order struct {
-	Symbol   string
-	Side     string
-	Quantity float64
-	Price    float64
-}
-
-type OrderManager struct {
-	orderSender IOrderSender
-}
-
-type IOrderSender interface {
-	SendOrder(*Order) error
-}
-
-type MockOrderSender struct{}
-
-func (s *MockOrderSender) SendOrder(order *Order) error {
-	fmt.Printf("Order sent: %+v\n", order)
-	return nil
-}
-
-// TradingPipelineManager manages multiple trading pipelines
-type TradingPipelineManager struct {
-	pipelines map[string]*TradingPipeline
-	mu        sync.RWMutex
-	wg        sync.WaitGroup
-	ctx       context.Context
-	cancel    context.CancelFunc
-}
-
-// NewTradingPipelineManager creates a new manager
-func NewTradingPipelineManager() *TradingPipelineManager {
-	ctx, cancel := context.WithCancel(context.Background())
-	return &TradingPipelineManager{
-		pipelines: make(map[string]*TradingPipeline),
-		ctx:       ctx,
-		cancel:    cancel,
-	}
-}
-
-// PipelineConfig contains configuration for a trading pipeline
-type PipelineConfig struct {
-	Symbol          string
-	Strategy        IStrategy
-	RiskManager     IRiskManager
-	OrderSender     IOrderSender
-	DataFetcher     MarketDataFetcher
-	Resolution      string
-	MaxPositionSize float64
-}
-
-// AddPipeline creates and starts a new trading pipeline
-func (m *TradingPipelineManager) AddPipeline(config *PipelineConfig) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if _, exists := m.pipelines[config.Symbol]; exists {
-		return fmt.Errorf("pipeline for symbol %s already exists", config.Symbol)
-	}
-
-	// Create pipeline components
-	processor := NewDataProcessor(config.DataFetcher.Fetch())
-
-	pipeline := &TradingPipeline{
-		fetcher:     config.DataFetcher,
-		processor:   processor,
-		strategy:    config.Strategy,
-		riskManager: config.RiskManager,
-		orderMgr: &OrderManager{
-			orderSender: config.OrderSender,
-		},
-		status: PipelineStatusStopped,
-		config: config,
-	}
-
-	m.pipelines[config.Symbol] = pipeline
-	m.startPipeline(pipeline)
-	return nil
-}
-
-// startPipeline starts an individual pipeline
-func (m *TradingPipelineManager) startPipeline(p *TradingPipeline) {
-	m.wg.Add(1)
-	go func() {
-		defer m.wg.Done()
-		p.Run(m.ctx)
-	}()
-}
-
-// StopPipeline stops a specific pipeline
-func (m *TradingPipelineManager) StopPipeline(symbol string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	p, exists := m.pipelines[symbol]
-	if !exists {
-		return fmt.Errorf("pipeline for symbol %s not found", symbol)
-	}
-
-	p.Stop()
-	delete(m.pipelines, symbol)
-	return nil
-}
-
-// Shutdown stops all pipelines gracefully
-func (m *TradingPipelineManager) Shutdown() {
-	m.cancel()
-	m.wg.Wait()
-}
-
-// GetPipelineStatus returns the status of all pipelines
-func (m *TradingPipelineManager) GetPipelineStatus() map[string]PipelineStatus {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	status := make(map[string]PipelineStatus)
-	for symbol, p := range m.pipelines {
-		status[symbol] = p.status
-	}
-	return status
-}
-
-// Updated TradingPipeline with status management
-type TradingPipeline struct {
-	fetcher     MarketDataFetcher
-	processor   *DataProcessor
-	strategy    IStrategy
-	riskManager IRiskManager
-	orderMgr    *OrderManager
-	config      *PipelineConfig
-	status      PipelineStatus
-}
-
-type PipelineStatus int
+type EventType string
 
 const (
-	PipelineStatusStopped PipelineStatus = iota
-	PipelineStatusRunning
-	PipelineStatusError
+	MarketDataEvent EventType = "MarketDataEvent"
+	BuySignalEvent  EventType = "BuySignalEvent"
+	SellSignalEvent EventType = "SellSignalEvent"
 )
 
-func (p *TradingPipeline) Run(ctx context.Context) {
-	p.status = PipelineStatusRunning
-	defer func() {
-		if r := recover(); r != nil {
-			p.status = PipelineStatusError
+type Event struct {
+	Type    EventType
+	Payload interface{}
+}
+
+type EventBus struct {
+	subscribers map[EventType][]chan Event
+	mu          sync.RWMutex
+}
+
+func NewEventBus() *EventBus {
+	return &EventBus{
+		subscribers: make(map[EventType][]chan Event),
+	}
+}
+
+func (eb *EventBus) Subscribe(eventType EventType) <-chan Event {
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
+
+	ch := make(chan Event)
+	eb.subscribers[eventType] = append(eb.subscribers[eventType], ch)
+	return ch
+}
+
+func (eb *EventBus) Publish(event Event) {
+	eb.mu.RLock()
+	defer eb.mu.RUnlock()
+
+	if subs, found := eb.subscribers[event.Type]; found {
+		for _, sub := range subs {
+			go func(s chan Event) {
+				s <- event
+			}(sub)
+		}
+	}
+}
+
+// --- Domain Models ---
+
+type MarketData struct {
+	Time  time.Time
+	Price float64
+}
+
+type Position struct {
+	Asset      string
+	Amount     float64
+	EntryPrice float64
+}
+
+type Portfolio struct {
+	Cash      float64
+	Positions map[string]Position
+}
+
+func NewPortfolio(initialCash float64) *Portfolio {
+	return &Portfolio{
+		Cash:      initialCash,
+		Positions: make(map[string]Position),
+	}
+}
+
+func (p *Portfolio) Buy(asset string, price, amount float64) {
+	cost := price * amount
+	if p.Cash >= cost {
+		p.Cash -= cost
+		p.Positions[asset] = Position{
+			Asset:      asset,
+			Amount:     amount,
+			EntryPrice: price,
+		}
+		fmt.Printf("Bought %.2f of %s at %.2f\n", amount, asset, price)
+	} else {
+		fmt.Println("Insufficient cash to buy.")
+	}
+}
+
+func (p *Portfolio) Sell(asset string, price float64) {
+	if position, ok := p.Positions[asset]; ok {
+		p.Cash += price * position.Amount
+		delete(p.Positions, asset)
+		fmt.Printf("Sold %.2f of %s at %.2f\n", position.Amount, asset, price)
+	} else {
+		fmt.Println("No position to sell.")
+	}
+}
+
+// --- Trading Pipeline ---
+
+type TradingPipeline struct {
+	EventBus   *EventBus
+	Portfolio  *Portfolio
+	MarketData []MarketData
+}
+
+func NewTradingPipeline(initialCash float64) *TradingPipeline {
+	return &TradingPipeline{
+		EventBus:  NewEventBus(),
+		Portfolio: NewPortfolio(initialCash),
+	}
+}
+
+func (tp *TradingPipeline) fetchMarketData() {
+	for i := 0; i < 20; i++ {
+		data := MarketData{
+			Time:  time.Now().Add(time.Duration(i) * time.Minute),
+			Price: 100 + rand.Float64()*10,
+		}
+		tp.MarketData = append(tp.MarketData, data)
+		tp.EventBus.Publish(Event{
+			Type:    MarketDataEvent,
+			Payload: data,
+		})
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+func simpleMovingAverage(data []MarketData, period int) float64 {
+	if len(data) < period {
+		return 0
+	}
+	sum := 0.0
+	for i := len(data) - period; i < len(data); i++ {
+		sum += data[i].Price
+	}
+	return sum / float64(period)
+}
+
+func (tp *TradingPipeline) runStrategy() {
+	ch := tp.EventBus.Subscribe(MarketDataEvent)
+	go func() {
+		for event := range ch {
+			marketData := event.Payload.(MarketData)
+			tp.MarketData = append(tp.MarketData, marketData)
+
+			shortPeriod := 5
+			longPeriod := 10
+
+			if len(tp.MarketData) >= longPeriod {
+				shortMA := simpleMovingAverage(tp.MarketData, shortPeriod)
+				longMA := simpleMovingAverage(tp.MarketData, longPeriod)
+				latestPrice := marketData.Price
+
+				fmt.Printf("Short MA: %.2f, Long MA: %.2f, Latest Price: %.2f\n", shortMA, longMA, latestPrice)
+
+				if shortMA > longMA {
+					tp.EventBus.Publish(Event{Type: BuySignalEvent, Payload: marketData})
+				} else if shortMA < longMA {
+					tp.EventBus.Publish(Event{Type: SellSignalEvent, Payload: marketData})
+				}
+			}
 		}
 	}()
-
-	rawData := p.fetcher.Fetch()
-	fmt.Printf("Starting pipeline for symbol %+v\n", rawData)
-	processedData := p.processor.Process()
-
-	for {
-		select {
-		case <-ctx.Done():
-			p.status = PipelineStatusStopped
-			return
-		case candle, ok := <-processedData:
-			if !ok {
-				p.status = PipelineStatusStopped
-				return
-			}
-			order := p.strategy.GenerateSignal(candle)
-			if order != nil && p.riskManager.ValidateOrder(order) {
-				p.orderMgr.orderSender.SendOrder(order)
-			}
-		}
-	}
 }
 
-func (p *TradingPipeline) Stop() {
-	// Implement any cleanup logic needed
-	p.status = PipelineStatusStopped
-}
+func (tp *TradingPipeline) handleOrders() {
+	buyCh := tp.EventBus.Subscribe(BuySignalEvent)
+	sellCh := tp.EventBus.Subscribe(SellSignalEvent)
 
-// Example usage
-func main() {
-	manager := NewTradingPipelineManager()
-
-	// Configuration for BTC pipeline
-	btcConfig := &PipelineConfig{
-		Symbol:   "BTC-USD",
-		Strategy: &MomentumStrategy{},
-		RiskManager: &BasicRiskManager{
-			maxPositionSize: 1000,
-		},
-		OrderSender: &MockOrderSender{},
-		DataFetcher: &MockMarketDataFetcher{Symbol: "BTC-USD"},
-	}
-
-	// Configuration for ETH pipeline
-	ethConfig := &PipelineConfig{
-		Symbol:   "ETH-USD",
-		Strategy: &MomentumStrategy{},
-		RiskManager: &BasicRiskManager{
-			maxPositionSize: 500,
-		},
-		OrderSender: &MockOrderSender{},
-		DataFetcher: &MockMarketDataFetcher{Symbol: "ETH-USD"},
-	}
-
-	// Add pipelines
-	manager.AddPipeline(btcConfig)
-	manager.AddPipeline(ethConfig)
-
-	// Start monitoring goroutine
 	go func() {
 		for {
-			status := manager.GetPipelineStatus()
-			fmt.Println("Pipeline Status:")
-			for symbol, s := range status {
-				fmt.Printf("%s: %v\n", symbol, s)
+			select {
+			case event := <-buyCh:
+				data := event.Payload.(MarketData)
+				if len(tp.Portfolio.Positions) == 0 {
+					tp.Portfolio.Buy("BTC", data.Price, 1)
+				}
+			case event := <-sellCh:
+				data := event.Payload.(MarketData)
+				if len(tp.Portfolio.Positions) > 0 {
+					tp.Portfolio.Sell("BTC", data.Price)
+				}
 			}
-			time.Sleep(2 * time.Second)
 		}
 	}()
+}
 
-	// Run for 30 seconds
-	time.Sleep(30 * time.Second)
+func (tp *TradingPipeline) Run() {
+	go tp.fetchMarketData()
+	tp.runStrategy()
+	tp.handleOrders()
 
-	// Graceful shutdown
-	manager.Shutdown()
-	fmt.Println("All pipelines stopped")
+	time.Sleep(3 * time.Second) // Wait for all events to process
+	fmt.Printf("Final Portfolio: Cash: %.2f, Positions: %+v\n", tp.Portfolio.Cash, tp.Portfolio.Positions)
+}
+
+// --- Main Function ---
+
+func main() {
+	rand.Seed(time.Now().UnixNano())
+	tradingPipeline := NewTradingPipeline(1000)
+	tradingPipeline.Run()
 }
