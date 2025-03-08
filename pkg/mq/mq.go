@@ -1,11 +1,7 @@
 package mq
 
-import (
-	"github.com/google/uuid"
-)
-
 type Message struct {
-	ID        uuid.UUID
+	ID        string
 	CreatedAt int64
 	Content   interface{}
 }
