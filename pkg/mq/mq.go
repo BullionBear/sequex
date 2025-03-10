@@ -1,13 +1,9 @@
 package mq
 
-type Message struct {
-	ID        string
-	CreatedAt int64
-	Content   interface{}
-}
+import "github.com/BullionBear/sequex/pkg/message"
 
 type MessageQueue interface {
-	Publish(topic string, msg Message) error
-	Subscribe(topic string) (<-chan Message, error)
-	Unsubscribe(topic string, ch <-chan Message) error
+	Publish(topic string, msg message.Message) error
+	Subscribe(topic string) (<-chan message.Message, error)
+	Unsubscribe(topic string, ch <-chan message.Message) error
 }

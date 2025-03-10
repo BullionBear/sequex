@@ -6,7 +6,7 @@ import (
 
 	"strconv"
 
-	"github.com/BullionBear/sequex/pkg/mq"
+	"github.com/BullionBear/sequex/pkg/message"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,8 +19,8 @@ func TestPublishSubscribe(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Publish messages
-	msg1 := mq.Message{ID: "1", Content: "Go 1.20 released", CreatedAt: time.Now().Unix()}
-	msg2 := mq.Message{ID: "2", Content: "New AI model", CreatedAt: time.Now().Unix()}
+	msg1 := message.Message{ID: "1", Content: "Go 1.20 released", CreatedAt: time.Now().Unix()}
+	msg2 := message.Message{ID: "2", Content: "New AI model", CreatedAt: time.Now().Unix()}
 	err = queue.Publish("tech", msg1)
 	assert.NoError(t, err)
 	err = queue.Publish("tech", msg2)
@@ -46,7 +46,7 @@ func TestUnsubscribe(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Try publishing after unsubscribe
-	msg := mq.Message{ID: "3", Content: "Football World Cup", CreatedAt: time.Now().Unix()}
+	msg := message.Message{ID: "3", Content: "Football World Cup", CreatedAt: time.Now().Unix()}
 	err = queue.Publish("sports", msg)
 	assert.NoError(t, err)
 
@@ -82,12 +82,12 @@ func TestChannelFull(t *testing.T) {
 
 	// Fill the channel buffer
 	for i := 0; i < 10; i++ {
-		err := queue.Publish("news", mq.Message{ID: strconv.Itoa(i), Content: "News", CreatedAt: time.Now().Unix()})
+		err := queue.Publish("news", message.Message{ID: strconv.Itoa(i), Content: "News", CreatedAt: time.Now().Unix()})
 		assert.NoError(t, err)
 	}
 
 	// Try to publish one more message
-	err = queue.Publish("news", mq.Message{ID: "11", Content: "Overflow", CreatedAt: time.Now().Unix()})
+	err = queue.Publish("news", message.Message{ID: "11", Content: "Overflow", CreatedAt: time.Now().Unix()})
 	assert.Error(t, err, "Expected error when channel is full")
 }
 
@@ -97,7 +97,7 @@ func TestConcurrentAccess(t *testing.T) {
 	sub, err := queue.Subscribe("concurrent")
 	assert.NoError(t, err)
 
-	var receivedMessages []mq.Message
+	var receivedMessages []message.Message
 	done := make(chan struct{})
 
 	// Subscriber goroutine
@@ -111,7 +111,7 @@ func TestConcurrentAccess(t *testing.T) {
 
 	// Publisher goroutines
 	for i := 0; i < 100; i++ {
-		go queue.Publish("concurrent", mq.Message{ID: strconv.Itoa(i), Content: "Message", CreatedAt: time.Now().Unix()})
+		go queue.Publish("concurrent", message.Message{ID: strconv.Itoa(i), Content: "Message", CreatedAt: time.Now().Unix()})
 	}
 
 	// Wait for subscriber to finish

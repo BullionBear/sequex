@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/BullionBear/sequex/pkg/message"
 	"github.com/BullionBear/sequex/pkg/mq"
 )
 
@@ -24,9 +25,9 @@ func New(size uint) *InprocQueue {
 }
 
 // Publish sends a message to all subscribers of a topic.
-func (q *InprocQueue) Publish(topic string, msg mq.Message) error {
+func (q *InprocQueue) Publish(topic string, msg message.Message) error {
 	if subs, ok := q.topics.Load(topic); ok {
-		for _, ch := range subs.([]chan mq.Message) {
+		for _, ch := range subs.([]chan message.Message) {
 			select {
 			case ch <- msg:
 			default:
@@ -39,29 +40,29 @@ func (q *InprocQueue) Publish(topic string, msg mq.Message) error {
 }
 
 // Subscribe allows a user to subscribe to a topic.
-func (q *InprocQueue) Subscribe(topic string) (<-chan mq.Message, error) {
-	var ch chan mq.Message
+func (q *InprocQueue) Subscribe(topic string) (<-chan message.Message, error) {
+	var ch chan message.Message
 
 	// Create either buffered or unbuffered channel based on size
 	if q.size > 0 {
-		ch = make(chan mq.Message, q.size) // Buffered channel
+		ch = make(chan message.Message, q.size) // Buffered channel
 	} else {
-		ch = make(chan mq.Message) // Unbuffered channel
+		ch = make(chan message.Message) // Unbuffered channel
 	}
 
 	if subs, ok := q.topics.Load(topic); ok {
-		q.topics.Store(topic, append(subs.([]chan mq.Message), ch))
+		q.topics.Store(topic, append(subs.([]chan message.Message), ch))
 	} else {
-		q.topics.Store(topic, []chan mq.Message{ch})
+		q.topics.Store(topic, []chan message.Message{ch})
 	}
 
 	return ch, nil
 }
 
 // Unsubscribe removes a subscriber's channel from a topic.
-func (q *InprocQueue) Unsubscribe(topic string, ch <-chan mq.Message) error {
+func (q *InprocQueue) Unsubscribe(topic string, ch <-chan message.Message) error {
 	if subs, ok := q.topics.Load(topic); ok {
-		channels := subs.([]chan mq.Message)
+		channels := subs.([]chan message.Message)
 		for i, sub := range channels {
 			if sub == ch {
 				// Remove the channel from the slice
