@@ -4,15 +4,18 @@ import (
 	"fmt"
 
 	"github.com/BullionBear/sequex/internal/metadata"
+	"github.com/BullionBear/sequex/internal/strategy/sequex"
 	"github.com/BullionBear/sequex/internal/tradingpipe"
 	"github.com/BullionBear/sequex/pkg/mq/inprocq"
 )
 
 func main() {
 	// Resource
-	tradingPipeline := tradingpipe.NewTradingPipeline("Trading Pipeline")
+	name := "Trading Pipeline"
+	strategy := sequex.NewSequex()
+	tradingPipeline := tradingpipe.NewTradingPipeline(name, strategy)
 	eventQ := inprocq.New(8)
-	ch, err := eventQ.Subscribe("event")
+	ch, err := eventQ.Subscribe(name)
 	if err != nil {
 		panic(err)
 	}

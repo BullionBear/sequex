@@ -1,7 +1,7 @@
 package strategy
 
-type IStrategy interface {
-	OnMarketUpdate()
-	OnSignal()
-	OnExecute()
+import "github.com/BullionBear/sequex/internal/metadata"
+
+type Strategy interface {
+	OnKLineUpdate(metadata.KLineUpdate)
 }

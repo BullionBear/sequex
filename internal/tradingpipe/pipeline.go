@@ -7,10 +7,10 @@ import (
 
 type TradingPipeline struct {
 	name string
-	st   strategy.IStrategy
+	st   strategy.Strategy
 }
 
-func NewTradingPipeline(name string, strategy strategy.IStrategy) *TradingPipeline {
+func NewTradingPipeline(name string, strategy strategy.Strategy) *TradingPipeline {
 	return &TradingPipeline{
 		name: name,
 		st:   strategy,
@@ -18,16 +18,7 @@ func NewTradingPipeline(name string, strategy strategy.IStrategy) *TradingPipeli
 }
 
 func (t *TradingPipeline) OnKLineUpdate(klineUpdate metadata.KLineUpdate) {
-	st.OnMarketUpdate(event)
-}
-
-func (t *TradingPipeline) Run() {
-}
-
-func (t *TradingPipeline) Stop() {
-}
-
-func (t *TradingPipeline) Destroy() {
+	t.st.OnKLineUpdate(klineUpdate)
 }
 
 func (t *TradingPipeline) Status() string {
