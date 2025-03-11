@@ -8,7 +8,6 @@ import (
 )
 
 func main() {
-
 	// Resource
 	tradingPipeline := tradingpipe.NewTradingPipeline("Trading Pipeline")
 	eventQ := inprocq.New(8)
@@ -18,13 +17,12 @@ func main() {
 	}
 	for event := range ch {
 		switch event.Type {
-		case "kline":
-			tradingPipeline.OnEvent(event)
+		case "kline_update":
+			tradingPipeline.OnKLineUpdate(event)
 		default:
 			fmt.Println("Unknown event type")
 		}
 	}
-	tradingPipeline.Run()
 	done := make(chan struct{})
 	<-done
 }
