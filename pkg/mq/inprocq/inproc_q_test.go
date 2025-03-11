@@ -1,6 +1,7 @@
 package inprocq
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -93,12 +94,16 @@ func TestChannelFull(t *testing.T) {
 
 // TestConcurrentAccess checks thread safety of concurrent publish and subscribe.
 func TestConcurrentAccess(t *testing.T) {
-	queue := New(10)
+	queue := New(100) // Use a buffered channel to prevent early message drops
+
 	sub, err := queue.Subscribe("concurrent")
 	assert.NoError(t, err)
 
-	var receivedMessages []message.Message
-	done := make(chan struct{})
+	var (
+		receivedMessages []message.Message
+		done             = make(chan struct{})
+		wg               sync.WaitGroup
+	)
 
 	// Subscriber goroutine
 	go func() {
@@ -110,13 +115,24 @@ func TestConcurrentAccess(t *testing.T) {
 	}()
 
 	// Publisher goroutines
+	wg.Add(100)
 	for i := 0; i < 100; i++ {
-		go queue.Publish("concurrent", message.Message{ID: strconv.Itoa(i), Data: "Message", CreatedAt: time.Now().Unix()})
+		go func(i int) {
+			defer wg.Done()
+			queue.Publish("concurrent", message.Message{
+				ID:        strconv.Itoa(i),
+				Data:      "Message",
+				CreatedAt: time.Now().Unix(),
+			})
+		}(i)
 	}
 
-	// Wait for subscriber to finish
+	// Ensure all publishers are done before checking results
+	wg.Wait()
+
+	// Wait for the subscriber to finish consuming messages
 	<-done
 
 	// Check all messages were received
-	assert.Equal(t, 100, len(receivedMessages))
+	assert.Equal(t, 100, len(receivedMessages), "Expected 100 messages, but got %d", len(receivedMessages))
 }
