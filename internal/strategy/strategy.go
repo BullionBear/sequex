@@ -1,5 +1,7 @@
 package strategy
 
 type IStrategy interface {
-	Act() string
+	OnMarketUpdate()
+	OnSignal()
+	OnExecute()
 }

@@ -1,16 +1,24 @@
 package tradingpipe
 
+import (
+	"github.com/BullionBear/sequex/internal/metadata"
+	"github.com/BullionBear/sequex/internal/strategy"
+)
+
 type TradingPipeline struct {
 	name string
+	st   strategy.IStrategy
 }
 
-func NewTradingPipeline(name string) *TradingPipeline {
+func NewTradingPipeline(name string, strategy strategy.IStrategy) *TradingPipeline {
 	return &TradingPipeline{
 		name: name,
+		st:   strategy,
 	}
 }
 
-func (t *TradingPipeline) OnKLineUpdate(event interface{}) {
+func (t *TradingPipeline) OnKLineUpdate(klineUpdate metadata.KLineUpdate) {
+	st.OnMarketUpdate(event)
 }
 
 func (t *TradingPipeline) Run() {

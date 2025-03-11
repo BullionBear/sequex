@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/BullionBear/sequex/internal/metadata"
 	"github.com/BullionBear/sequex/internal/tradingpipe"
 	"github.com/BullionBear/sequex/pkg/mq/inprocq"
 )
@@ -18,7 +19,8 @@ func main() {
 	for event := range ch {
 		switch event.Type {
 		case "kline_update":
-			tradingPipeline.OnKLineUpdate(event)
+			metadata := event.Data.(metadata.KLineUpdate)
+			tradingPipeline.OnKLineUpdate(metadata)
 		default:
 			fmt.Println("Unknown event type")
 		}
