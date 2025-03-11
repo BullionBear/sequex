@@ -1,11 +1,7 @@
 package core
 
-import "sync"
-
 type Core struct {
 	timestamp int64
-	sync.RWMutex
-	m map[string]int
 }
 
 func NewCore() *Core {
@@ -23,7 +19,5 @@ func (c *Core) GetTimestamp() int64 {
 }
 
 func (c *Core) OnOrder(order Order) {
-	c.Lock()
-	defer c.Unlock()
-	c.m[order.ID] = 1
+
 }
