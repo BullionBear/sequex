@@ -10,6 +10,9 @@ func NewTradingPipeline(name string) *TradingPipeline {
 	}
 }
 
+func (t *TradingPipeline) OnEvent(event interface{}) {
+}
+
 func (t *TradingPipeline) Run() {
 }
 
