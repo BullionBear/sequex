@@ -5,134 +5,119 @@ import (
 	"testing"
 	"time"
 
-	"strconv"
-
 	"github.com/BullionBear/sequex/pkg/message"
 	"github.com/stretchr/testify/assert"
 )
 
-// TestPublishSubscribe checks if messages are correctly published and received.
-func TestPublishSubscribe(t *testing.T) {
-	queue := New(10)
-
-	// Subscribe to a topic
-	sub, err := queue.Subscribe("tech")
+func TestSendAndRecv(t *testing.T) {
+	q := NewInprocQueue()
+	msg := &message.Message{ID: "1"}
+	err := q.Send(msg)
 	assert.NoError(t, err)
 
-	// Publish messages
-	msg1 := message.Message{ID: "1", Data: "Go 1.20 released", CreatedAt: time.Now().Unix()}
-	msg2 := message.Message{ID: "2", Data: "New AI model", CreatedAt: time.Now().Unix()}
-	err = queue.Publish("tech", msg1)
+	received, err := q.Recv()
 	assert.NoError(t, err)
-	err = queue.Publish("tech", msg2)
-	assert.NoError(t, err)
-
-	// Receive messages
-	received1 := <-sub
-	received2 := <-sub
-
-	assert.Equal(t, msg1, received1)
-	assert.Equal(t, msg2, received2)
+	assert.Equal(t, msg, received)
 }
 
-func TestUnsubscribe(t *testing.T) {
-	queue := New(10)
+func TestRecvBlocks(t *testing.T) {
+	q := NewInprocQueue()
 
-	// Subscribe to a topic
-	sub, err := queue.Subscribe("sports")
-	assert.NoError(t, err)
-
-	// Unsubscribe from the topic
-	err = queue.Unsubscribe("sports", sub)
-	assert.NoError(t, err)
-
-	// Try publishing after unsubscribe
-	msg := message.Message{ID: "3", Data: "Football World Cup", CreatedAt: time.Now().Unix()}
-	err = queue.Publish("sports", msg)
-	assert.NoError(t, err)
-
-	// Ensure no messages are received and the channel is closed
-	received := false
-	timeout := time.After(100 * time.Millisecond)
-	for {
-		select {
-		case _, ok := <-sub:
-			if !ok {
-				// Channel is closed, pass the test
-				return
-			} else {
-				received = true
-			}
-		case <-timeout:
-			if received {
-				t.Error("Received message after unsubscribe")
-			}
-			// Test passes if no message is received and timeout occurs
-			return
-		}
-	}
-}
-
-// TestChannelFull checks behavior when subscriber channels are full.
-func TestChannelFull(t *testing.T) {
-	queue := New(10)
-
-	// Subscribe with a small buffer
-	_, err := queue.Subscribe("news") // Remove unused `sub` variable
-	assert.NoError(t, err)
-
-	// Fill the channel buffer
-	for i := 0; i < 10; i++ {
-		err := queue.Publish("news", message.Message{ID: strconv.Itoa(i), Data: "News", CreatedAt: time.Now().Unix()})
-		assert.NoError(t, err)
-	}
-
-	// Try to publish one more message
-	err = queue.Publish("news", message.Message{ID: "11", Data: "Overflow", CreatedAt: time.Now().Unix()})
-	assert.Error(t, err, "Expected error when channel is full")
-}
-
-// TestConcurrentAccess checks thread safety of concurrent publish and subscribe.
-func TestConcurrentAccess(t *testing.T) {
-	queue := New(100) // Use a buffered channel to prevent early message drops
-
-	sub, err := queue.Subscribe("concurrent")
-	assert.NoError(t, err)
-
-	var (
-		receivedMessages []message.Message
-		done             = make(chan struct{})
-		wg               sync.WaitGroup
-	)
-
-	// Subscriber goroutine
 	go func() {
-		for i := 0; i < 100; i++ {
-			msg := <-sub
-			receivedMessages = append(receivedMessages, msg)
-		}
-		close(done)
+		time.Sleep(100 * time.Millisecond)
+		q.Send(&message.Message{ID: "1"})
 	}()
 
-	// Publisher goroutines
-	wg.Add(100)
-	for i := 0; i < 100; i++ {
-		go func(i int) {
+	start := time.Now()
+	msg, err := q.Recv()
+	elapsed := time.Since(start)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "1", msg.ID)
+	assert.True(t, elapsed >= 100*time.Millisecond, "Recv returned too quickly")
+}
+
+func TestRecvTimeout(t *testing.T) {
+	q := NewInprocQueue()
+
+	// Test timeout
+	start := time.Now()
+	_, err := q.RecvTimeout(100 * time.Millisecond)
+	elapsed := time.Since(start)
+	assert.Error(t, err)
+	assert.True(t, elapsed >= 100*time.Millisecond, "Timeout too short")
+
+	// Test message received before timeout
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		q.Send(&message.Message{ID: "2"})
+	}()
+
+	msg, err := q.RecvTimeout(100 * time.Millisecond)
+	assert.NoError(t, err)
+	assert.Equal(t, "2", msg.ID)
+}
+
+func TestConcurrentSendAndRecv(t *testing.T) {
+	q := NewInprocQueue()
+	const numMessages = 100
+	var wg sync.WaitGroup
+
+	for i := 0; i < numMessages; i++ {
+		wg.Add(1)
+		go func(id int) {
 			defer wg.Done()
-			queue.Publish("concurrent", message.Message{
-				ID:        strconv.Itoa(i),
-				Data:      "Message",
-				CreatedAt: time.Now().Unix(),
-			})
+			q.Send(&message.Message{ID: string(rune(id))})
 		}(i)
 	}
 
-	// Ensure all publishers are done before checking results
+	received := make(chan *message.Message, numMessages)
+	for i := 0; i < numMessages; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			msg, err := q.Recv()
+			assert.NoError(t, err)
+			received <- msg
+		}()
+	}
+
 	wg.Wait()
+	close(received)
 
-	// Wait for the subscriber to finish consuming messages
-	<-done
+	count := 0
+	for range received {
+		count++
+	}
+	assert.Equal(t, numMessages, count)
+}
 
-	// Check all messages were received
-	assert.Equal(t, 100, len(receivedMessages), "Expected 100 messages, but got %d", len(receivedMessages))
+func TestSize(t *testing.T) {
+	q := NewInprocQueue()
+	assert.Equal(t, uint64(0), q.Size())
+
+	q.Send(&message.Message{})
+	assert.Equal(t, uint64(1), q.Size())
+
+	q.Recv()
+	assert.Equal(t, uint64(0), q.Size())
+}
+
+func TestClear(t *testing.T) {
+	q := NewInprocQueue()
+	q.Send(&message.Message{})
+	q.Send(&message.Message{})
+
+	assert.Equal(t, uint64(2), q.Size())
+	assert.NoError(t, q.Clear())
+	assert.Equal(t, uint64(0), q.Size())
+	assert.True(t, q.IsEmpty())
+}
+
+func TestIsEmpty(t *testing.T) {
+	q := NewInprocQueue()
+	assert.True(t, q.IsEmpty())
+
+	q.Send(&message.Message{})
+	assert.False(t, q.IsEmpty())
 }

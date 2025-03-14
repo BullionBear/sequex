@@ -3,79 +3,97 @@ package inprocq
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/BullionBear/sequex/pkg/message"
 	"github.com/BullionBear/sequex/pkg/mq"
 )
 
-// Ensure InprocQueue implements the mq.MessageQueue interface.
-var _ mq.MessageQueue = (*InprocQueue)(nil)
-
-// InprocQueue is an in-process message queue with topic support.
+// InprocQueue is an in-memory implementation of the MessageQueue interface.
 type InprocQueue struct {
-	topics sync.Map // Thread-safe map to store topic channels.
-	size   uint     // Size determines if channels are buffered or unbuffered.
+	mu    sync.Mutex
+	cond  *sync.Cond
+	queue []*message.Message
 }
 
-// New creates a new InprocQueue.
-// If size > 0, creates buffered channels of given size.
-// If size == 0, creates unbuffered channels.
-func New(size uint) *InprocQueue {
-	return &InprocQueue{size: size}
+// NewInprocQueue creates a new instance of InprocQueue.
+func NewInprocQueue() *InprocQueue {
+	q := &InprocQueue{}
+	q.cond = sync.NewCond(&q.mu)
+	return q
 }
 
-// Publish sends a message to all subscribers of a topic.
-func (q *InprocQueue) Publish(topic string, msg message.Message) error {
-	if subs, ok := q.topics.Load(topic); ok {
-		for _, ch := range subs.([]chan message.Message) {
-			select {
-			case ch <- msg:
-			default:
-				// Drop message if subscriber's channel is full
-				return errors.New("subscriber channel is full, message dropped")
-			}
-		}
-	}
+// Send adds a message to the queue.
+func (q *InprocQueue) Send(msg *message.Message) error {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	q.queue = append(q.queue, msg)
+	q.cond.Signal()
 	return nil
 }
 
-// Subscribe allows a user to subscribe to a topic.
-func (q *InprocQueue) Subscribe(topic string) (<-chan message.Message, error) {
-	var ch chan message.Message
+// Recv blocks until a message is received from the queue.
+func (q *InprocQueue) Recv() (*message.Message, error) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
 
-	// Create either buffered or unbuffered channel based on size
-	if q.size > 0 {
-		ch = make(chan message.Message, q.size) // Buffered channel
-	} else {
-		ch = make(chan message.Message) // Unbuffered channel
+	for len(q.queue) == 0 {
+		q.cond.Wait()
 	}
 
-	if subs, ok := q.topics.Load(topic); ok {
-		q.topics.Store(topic, append(subs.([]chan message.Message), ch))
-	} else {
-		q.topics.Store(topic, []chan message.Message{ch})
-	}
-
-	return ch, nil
+	msg := q.queue[0]
+	q.queue = q.queue[1:]
+	return msg, nil
 }
 
-// Unsubscribe removes a subscriber's channel from a topic.
-func (q *InprocQueue) Unsubscribe(topic string, ch <-chan message.Message) error {
-	if subs, ok := q.topics.Load(topic); ok {
-		channels := subs.([]chan message.Message)
-		for i, sub := range channels {
-			if sub == ch {
-				// Remove the channel from the slice
-				newChannels := append(channels[:i], channels[i+1:]...)
-				if len(newChannels) == 0 {
-					q.topics.Delete(topic)
-				} else {
-					q.topics.Store(topic, newChannels)
-				}
-				close(sub)
-				break
-			}
+// RecvTimeout waits for a message with a specified timeout, returning an error if the timeout is exceeded.
+func (q *InprocQueue) RecvTimeout(timeout time.Duration) (*message.Message, error) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	deadline := time.Now().Add(timeout)
+	for len(q.queue) == 0 {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return nil, errors.New("timeout")
+		}
+
+		// Create a timer to trigger broadcast on timeout
+		timer := time.AfterFunc(remaining, q.cond.Broadcast)
+		defer timer.Stop()
+
+		q.cond.Wait()
+		if time.Now().After(deadline) {
+			return nil, errors.New("timeout")
 		}
 	}
+
+	msg := q.queue[0]
+	q.queue = q.queue[1:]
+	return msg, nil
+}
+
+// Size returns the number of messages in the queue.
+func (q *InprocQueue) Size() uint64 {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return uint64(len(q.queue))
+}
+
+// Clear removes all messages from the queue.
+func (q *InprocQueue) Clear() error {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	q.queue = nil
 	return nil
 }
+
+// IsEmpty checks if the queue is empty.
+func (q *InprocQueue) IsEmpty() bool {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return len(q.queue) == 0
+}
+
+var _ mq.MessageQueue = (*InprocQueue)(nil)

@@ -1,9 +1,23 @@
 package mq
 
-import "github.com/BullionBear/sequex/pkg/message"
+import (
+	"time"
 
+	"github.com/BullionBear/sequex/pkg/message"
+)
+
+// MessageQueue defines the interface for a message queue system.
 type MessageQueue interface {
-	Publish(topic string, msg message.Message) error
-	Subscribe(topic string) (<-chan message.Message, error)
-	Unsubscribe(topic string, ch <-chan message.Message) error
+	// Send a message to the queue.
+	Send(msg *message.Message) error
+	// Receive a message from the queue.
+	Recv() (*message.Message, error)
+	// Receive a message with a timeout.
+	RecvTimeout(timeout time.Duration) (*message.Message, error)
+	// Close the queue.
+	Size() uint64
+	// Clear the queue.
+	Clear() error
+	// is the queue empty.
+	IsEmpty() bool
 }
