@@ -16,6 +16,8 @@ type InprocQueue struct {
 	queue []*message.Message
 }
 
+var _ mq.MessageQueue = (*InprocQueue)(nil)
+
 // NewInprocQueue creates a new instance of InprocQueue.
 func NewInprocQueue() *InprocQueue {
 	q := &InprocQueue{}
@@ -95,5 +97,3 @@ func (q *InprocQueue) IsEmpty() bool {
 	defer q.mu.Unlock()
 	return len(q.queue) == 0
 }
-
-var _ mq.MessageQueue = (*InprocQueue)(nil)
