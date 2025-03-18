@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/BullionBear/sequex/internal/metadata"
+	"github.com/BullionBear/sequex/internal/payload"
 	"github.com/BullionBear/sequex/internal/strategy/sequex"
 	"github.com/BullionBear/sequex/internal/tradingpipe"
 	"github.com/BullionBear/sequex/pkg/message"
@@ -24,7 +24,7 @@ func main() {
 			msg := &message.Message{
 				ID:   uuid.New().String(),
 				Type: "kline_update",
-				Payload: metadata.KLineUpdate{
+				Payload: payload.KLineUpdate{
 					Symbol:    "BTCUSDT",
 					Interval:  "1m",
 					Timestamp: time.Now().Unix(),
@@ -44,7 +44,7 @@ func main() {
 				fmt.Printf("Received message: %v\n", msg)
 				switch msg.Type {
 				case "kline_update":
-					payload := msg.Payload.(metadata.KLineUpdate)
+					payload := msg.Payload.(payload.KLineUpdate)
 					pipeline.OnKLineUpdate(payload)
 
 				default:

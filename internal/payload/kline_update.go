@@ -1,4 +1,4 @@
-package metadata
+package payload
 
 type KLineUpdate struct {
 	Symbol    string `json:"symbol"`

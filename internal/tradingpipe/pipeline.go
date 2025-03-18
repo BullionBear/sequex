@@ -1,7 +1,7 @@
 package tradingpipe
 
 import (
-	"github.com/BullionBear/sequex/internal/metadata"
+	"github.com/BullionBear/sequex/internal/payload"
 	"github.com/BullionBear/sequex/internal/strategy"
 )
 
@@ -17,7 +17,7 @@ func NewTradingPipeline(name string, strategy strategy.Strategy) *TradingPipelin
 	}
 }
 
-func (t *TradingPipeline) OnKLineUpdate(klineUpdate metadata.KLineUpdate) {
+func (t *TradingPipeline) OnKLineUpdate(klineUpdate payload.KLineUpdate) {
 	t.st.OnKLineUpdate(klineUpdate)
 }
 
