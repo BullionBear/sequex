@@ -24,7 +24,7 @@ func main() {
 			msg := &message.Message{
 				ID:   uuid.New().String(),
 				Type: "kline_update",
-				Metadata: metadata.KLineUpdate{
+				Payload: metadata.KLineUpdate{
 					Symbol:    "BTCUSDT",
 					Interval:  "1m",
 					Timestamp: time.Now().Unix(),
@@ -44,8 +44,8 @@ func main() {
 				fmt.Printf("Received message: %v\n", msg)
 				switch msg.Type {
 				case "kline_update":
-					metadata := msg.Metadata.(metadata.KLineUpdate)
-					pipeline.OnKLineUpdate(metadata)
+					payload := msg.Payload.(metadata.KLineUpdate)
+					pipeline.OnKLineUpdate(payload)
 
 				default:
 					fmt.Printf("Unknown message type: %v\n", msg.Type)

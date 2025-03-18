@@ -12,11 +12,8 @@ func TestMessageMarshalUnmarshal(t *testing.T) {
 		ID:        "1234",
 		Type:      "test_type",
 		CreatedAt: 1710456789,
-		Data: map[string]interface{}{
+		Payload: map[string]interface{}{
 			"key": "value",
-		},
-		Metadata: map[string]interface{}{
-			"meta": "data",
 		},
 	}
 
@@ -34,6 +31,5 @@ func TestMessageMarshalUnmarshal(t *testing.T) {
 	assert.Equal(t, originalMessage.ID, unmarshalledMessage.ID, "ID should match")
 	assert.Equal(t, originalMessage.Type, unmarshalledMessage.Type, "Type should match")
 	assert.Equal(t, originalMessage.CreatedAt, unmarshalledMessage.CreatedAt, "CreatedAt should match")
-	assert.Equal(t, originalMessage.Data, unmarshalledMessage.Data, "Data should match")
-	assert.Equal(t, originalMessage.Metadata, unmarshalledMessage.Metadata, "Metadata should match")
+	assert.Equal(t, originalMessage.Payload, unmarshalledMessage.Payload, "Data should match")
 }

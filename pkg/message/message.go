@@ -6,10 +6,8 @@ type Message struct {
 	ID        string      `json:"id"`
 	Type      string      `json:"type"`
 	Source    string      `json:"source"`
-	Target    string      `json:"target"`
 	CreatedAt int64       `json:"created_at"`
-	Data      interface{} `json:"data"`
-	Metadata  interface{} `json:"metadata"`
+	Payload   interface{} `json:"payload"`
 }
 
 // MarshalJSON serializes the Message struct into JSON.

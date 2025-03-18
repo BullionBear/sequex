@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SequexService_StreamEvents_FullMethodName = "/sequex.SequexService/StreamEvents"
+	SequexService_OnEvent_FullMethodName = "/sequex.SequexService/OnEvent"
 )
 
 // SequexServiceClient is the client API for SequexService service.
@@ -28,8 +28,7 @@ const (
 //
 // Service definition for streaming Events
 type SequexServiceClient interface {
-	// Server-side streaming RPC
-	StreamEvents(ctx context.Context, in *Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Event], error)
+	OnEvent(ctx context.Context, in *Event, opts ...grpc.CallOption) (*Ack, error)
 }
 
 type sequexServiceClient struct {
@@ -40,24 +39,15 @@ func NewSequexServiceClient(cc grpc.ClientConnInterface) SequexServiceClient {
 	return &sequexServiceClient{cc}
 }
 
-func (c *sequexServiceClient) StreamEvents(ctx context.Context, in *Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Event], error) {
+func (c *sequexServiceClient) OnEvent(ctx context.Context, in *Event, opts ...grpc.CallOption) (*Ack, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &SequexService_ServiceDesc.Streams[0], SequexService_StreamEvents_FullMethodName, cOpts...)
+	out := new(Ack)
+	err := c.cc.Invoke(ctx, SequexService_OnEvent_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[Empty, Event]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
+	return out, nil
 }
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type SequexService_StreamEventsClient = grpc.ServerStreamingClient[Event]
 
 // SequexServiceServer is the server API for SequexService service.
 // All implementations must embed UnimplementedSequexServiceServer
@@ -65,8 +55,7 @@ type SequexService_StreamEventsClient = grpc.ServerStreamingClient[Event]
 //
 // Service definition for streaming Events
 type SequexServiceServer interface {
-	// Server-side streaming RPC
-	StreamEvents(*Empty, grpc.ServerStreamingServer[Event]) error
+	OnEvent(context.Context, *Event) (*Ack, error)
 	mustEmbedUnimplementedSequexServiceServer()
 }
 
@@ -77,8 +66,8 @@ type SequexServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedSequexServiceServer struct{}
 
-func (UnimplementedSequexServiceServer) StreamEvents(*Empty, grpc.ServerStreamingServer[Event]) error {
-	return status.Errorf(codes.Unimplemented, "method StreamEvents not implemented")
+func (UnimplementedSequexServiceServer) OnEvent(context.Context, *Event) (*Ack, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OnEvent not implemented")
 }
 func (UnimplementedSequexServiceServer) mustEmbedUnimplementedSequexServiceServer() {}
 func (UnimplementedSequexServiceServer) testEmbeddedByValue()                       {}
@@ -101,16 +90,23 @@ func RegisterSequexServiceServer(s grpc.ServiceRegistrar, srv SequexServiceServe
 	s.RegisterService(&SequexService_ServiceDesc, srv)
 }
 
-func _SequexService_StreamEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(Empty)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
+func _SequexService_OnEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Event)
+	if err := dec(in); err != nil {
+		return nil, err
 	}
-	return srv.(SequexServiceServer).StreamEvents(m, &grpc.GenericServerStream[Empty, Event]{ServerStream: stream})
+	if interceptor == nil {
+		return srv.(SequexServiceServer).OnEvent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SequexService_OnEvent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SequexServiceServer).OnEvent(ctx, req.(*Event))
+	}
+	return interceptor(ctx, in, info, handler)
 }
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type SequexService_StreamEventsServer = grpc.ServerStreamingServer[Event]
 
 // SequexService_ServiceDesc is the grpc.ServiceDesc for SequexService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -118,13 +114,12 @@ type SequexService_StreamEventsServer = grpc.ServerStreamingServer[Event]
 var SequexService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "sequex.SequexService",
 	HandlerType: (*SequexServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
+	Methods: []grpc.MethodDesc{
 		{
-			StreamName:    "StreamEvents",
-			Handler:       _SequexService_StreamEvents_Handler,
-			ServerStreams: true,
+			MethodName: "OnEvent",
+			Handler:    _SequexService_OnEvent_Handler,
 		},
 	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto/sequex.proto",
 }

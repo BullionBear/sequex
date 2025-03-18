@@ -27,13 +27,16 @@ message Event {
     EventType type = 2;
     EventSource source = 3;
     google.protobuf.Timestamp created_at = 4;
+    bytes data = 5;
+    bytes metadata = 6;
+}
+
+message Ack {
+    string id = 1; // UUID
+    google.protobuf.Timestamp received_at = 2;
 }
 
 // Service definition for streaming Events
 service SequexService {
-    // Server-side streaming RPC
-    rpc StreamEvents(Empty) returns (stream Event);
+    rpc OnEvent(Event) returns (Ack) {};
 }
-
-// Empty message for request
-message Empty {}
