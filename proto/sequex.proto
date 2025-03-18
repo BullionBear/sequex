@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package sequex;
+
+option go_package = "./protobuf/sequex";
+
+import "google/protobuf/timestamp.proto";
+
+// Enum for Event Type
+enum EventType {
+    UNKNOWN_EVENT = 0;
+    KLINE_UPDATE = 1;
+    // Add more event types as needed
+}
+
+// Enum for Event Source
+enum EventSource {
+    UNKNOWN_SOURCE = 0;
+    SOLVEXITY = 1;
+    SEQUEX = 2;
+    // Add more event sources as needed
+}
+
+// Message representing an Event
+message Event {
+    string id = 1; // UUID
+    EventType type = 2;
+    EventSource source = 3;
+    google.protobuf.Timestamp created_at = 4;
+}
+
+// Service definition for streaming Events
+service SequexService {
+    // Server-side streaming RPC
+    rpc StreamEvents(Empty) returns (stream Event);
+}
+
+// Empty message for request
+message Empty {}
