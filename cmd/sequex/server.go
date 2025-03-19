@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -12,8 +13,9 @@ import (
 
 	"encoding/json"
 
+	"github.com/BullionBear/sequex/internal/config"
 	"github.com/BullionBear/sequex/internal/payload"
-	"github.com/BullionBear/sequex/internal/strategy/sequex"
+	"github.com/BullionBear/sequex/internal/strategy/solvexity"
 	"github.com/BullionBear/sequex/internal/tradingpipe"
 	"github.com/BullionBear/sequex/pkg/message"
 	"github.com/BullionBear/sequex/pkg/mq"
@@ -45,12 +47,22 @@ func (s *server) OnEvent(ctx context.Context, in *pb.Event) (*pb.Ack, error) {
 }
 
 func main() {
+	// -c flag to specify the configuration file
+	// Define a string flag with a default value and a description
+	path := flag.String("c", "default.conf", "Path to the configuration file")
+
+	// Parse command-line flags
+	flag.Parse()
+
+	// Use the flag value
+	fmt.Println("Config file:", *path)
 	q := inprocq.NewInprocQueue()
-	name := "Sequex"
-	strategy := sequex.NewSequex()
+	conf := config.NewDomain(*path)
+	name := conf.GetConfig().Name
+	strategy := solvexity.NewSolvexity()
 	pipeline := tradingpipe.NewTradingPipeline(name, strategy)
 	// Start the gRPC server
-	lis, err := net.Listen("tcp", ":50051")
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GetConfig().Sequex.Port))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
