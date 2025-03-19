@@ -1,13 +1,15 @@
 package message
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type Message struct {
-	ID        string      `json:"id"`
-	Type      string      `json:"type"`
-	Source    string      `json:"source"`
-	CreatedAt int64       `json:"created_at"`
-	Payload   interface{} `json:"payload"`
+	ID        string `json:"id"`
+	Type      string `json:"type"`
+	Source    string `json:"source"`
+	CreatedAt int64  `json:"created_at"`
+	Payload   []byte `json:"payload"`
 }
 
 // MarshalJSON serializes the Message struct into JSON.
@@ -28,5 +30,8 @@ func (m *Message) UnmarshalJSON(data []byte) error {
 	}{
 		Alias: (*Alias)(m),
 	}
-	return json.Unmarshal(data, aux)
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	return nil
 }

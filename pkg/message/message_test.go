@@ -8,13 +8,14 @@ import (
 )
 
 func TestMessageMarshalUnmarshal(t *testing.T) {
+	// Create a sample payload as []byte
+	payload := []byte(`{"key": "value"}`)
+
 	originalMessage := Message{
 		ID:        "1234",
 		Type:      "test_type",
 		CreatedAt: 1710456789,
-		Payload: map[string]interface{}{
-			"key": "value",
-		},
+		Payload:   payload,
 	}
 
 	// Marshal to JSON
@@ -31,5 +32,5 @@ func TestMessageMarshalUnmarshal(t *testing.T) {
 	assert.Equal(t, originalMessage.ID, unmarshalledMessage.ID, "ID should match")
 	assert.Equal(t, originalMessage.Type, unmarshalledMessage.Type, "Type should match")
 	assert.Equal(t, originalMessage.CreatedAt, unmarshalledMessage.CreatedAt, "CreatedAt should match")
-	assert.Equal(t, originalMessage.Payload, unmarshalledMessage.Payload, "Data should match")
+	assert.Equal(t, originalMessage.Payload, unmarshalledMessage.Payload, "Payload should match")
 }

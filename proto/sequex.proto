@@ -27,8 +27,7 @@ message Event {
     EventType type = 2;
     EventSource source = 3;
     google.protobuf.Timestamp created_at = 4;
-    bytes data = 5;
-    bytes metadata = 6;
+    bytes payload = 5;
 }
 
 message Ack {
