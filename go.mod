@@ -3,7 +3,6 @@ module github.com/BullionBear/sequex
 go 1.22.0
 
 require (
-	github.com/google/uuid v1.6.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.10.0
 	google.golang.org/grpc v1.71.0
