@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 
 	"github.com/BullionBear/sequex/internal/config"
+	"github.com/BullionBear/sequex/internal/feed/binance"
 	"github.com/BullionBear/sequex/internal/payload"
 	"github.com/BullionBear/sequex/internal/strategy/solvexity"
 	"github.com/BullionBear/sequex/internal/tradingpipe"
@@ -50,19 +51,17 @@ func (s *server) OnEvent(ctx context.Context, in *pbSequex.Event) (*pbSequex.Ack
 
 func main() {
 	// -c flag to specify the configuration file
-	// Define a string flag with a default value and a description
 	path := flag.String("c", "default.conf", "Path to the configuration file")
-
-	// Parse command-line flags
 	flag.Parse()
 
 	// Use the flag value
 	fmt.Println("Config file:", *path)
-	q := inprocq.NewInprocQueue()
 	conf := config.NewDomain(*path)
 	name := conf.GetConfig().Name
-	// Create a new strategy
-	// Set up a connection to the server.
+	symbol := conf.GetConfig().Symbol
+	// Resource
+
+	// Set up trading pipeline.
 	conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", conf.GetConfig().Solvexity.Host, conf.GetConfig().Solvexity.Port),
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -72,17 +71,39 @@ func main() {
 	client := pbSolvexity.NewSolvexityClient(conn)
 	strategy := solvexity.NewSolvexity(client)
 	pipeline := tradingpipe.NewTradingPipeline(name, strategy)
+
 	// Start the gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GetConfig().Sequex.Port))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
-
+	q := inprocq.NewInprocQueue()
 	grpcServer := grpc.NewServer()
 	pbSequex.RegisterSequexServiceServer(grpcServer, &server{
 		q:        q,
 		pipeline: *pipeline,
 	})
+	// event source
+	feed := binance.NewBinanceFeed()
+	unsubscribe, err := feed.SubscribeKlineUpdate(symbol, func(klineUpdate *payload.KLineUpdate) {
+		payload, err := json.Marshal(klineUpdate)
+		if err != nil {
+			log.Printf("Error marshalling payload: %v\n", err)
+			return
+		}
+		msg := message.Message{
+			ID:        "1",
+			Type:      "KLINE_UPDATE",
+			Source:    "BINANCE",
+			CreatedAt: time.Now().Unix(),
+			Payload:   payload,
+		}
+		q.Send(&msg)
+	})
+	if err != nil {
+		log.Fatalf("Failed to subscribe to KlineUpdate: %v", err)
+	}
+	defer unsubscribe()
 	go func() {
 		for {
 			msg, err := q.RecvTimeout(2 * time.Second)
