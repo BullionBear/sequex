@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"encoding/json"
@@ -20,18 +21,19 @@ import (
 	"github.com/BullionBear/sequex/pkg/message"
 	"github.com/BullionBear/sequex/pkg/mq"
 	"github.com/BullionBear/sequex/pkg/mq/inprocq"
-	pb "github.com/BullionBear/sequex/pkg/protobuf/sequex" // Correct import path
+	pbSequex "github.com/BullionBear/sequex/pkg/protobuf/sequex"       // Correct import path
+	pbSolvexity "github.com/BullionBear/sequex/pkg/protobuf/solvexity" // Correct import path
 )
 
 // EventServiceServer implements the gRPC service
 type server struct {
-	pb.UnimplementedSequexServiceServer
+	pbSequex.UnimplementedSequexServiceServer
 	q        mq.MessageQueue
 	pipeline tradingpipe.TradingPipeline
 }
 
 // StreamEvents streams mock events to the client
-func (s *server) OnEvent(ctx context.Context, in *pb.Event) (*pb.Ack, error) {
+func (s *server) OnEvent(ctx context.Context, in *pbSequex.Event) (*pbSequex.Ack, error) {
 	msg := message.Message{
 		ID:        in.Id,
 		Type:      in.Type.String(),
@@ -40,7 +42,7 @@ func (s *server) OnEvent(ctx context.Context, in *pb.Event) (*pb.Ack, error) {
 		Payload:   in.Payload,
 	}
 	s.q.Send(&msg)
-	return &pb.Ack{
+	return &pbSequex.Ack{
 		Id:         in.Id,
 		ReceivedAt: timestamppb.New(time.Now()),
 	}, nil
@@ -59,7 +61,16 @@ func main() {
 	q := inprocq.NewInprocQueue()
 	conf := config.NewDomain(*path)
 	name := conf.GetConfig().Name
-	strategy := solvexity.NewSolvexity()
+	// Create a new strategy
+	// Set up a connection to the server.
+	conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", conf.GetConfig().Solvexity.Host, conf.GetConfig().Solvexity.Port),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+	client := pbSolvexity.NewSolvexityClient(conn)
+	strategy := solvexity.NewSolvexity(client)
 	pipeline := tradingpipe.NewTradingPipeline(name, strategy)
 	// Start the gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GetConfig().Sequex.Port))
@@ -68,7 +79,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	pb.RegisterSequexServiceServer(grpcServer, &server{
+	pbSequex.RegisterSequexServiceServer(grpcServer, &server{
 		q:        q,
 		pipeline: *pipeline,
 	})
