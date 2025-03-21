@@ -1,6 +1,4 @@
 {
-    "name": "sequex",
-    "symbol": "BTCUSDT",
     "sequex": {
         "host": "localhost",
         "port": 50051
