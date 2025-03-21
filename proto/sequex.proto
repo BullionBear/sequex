@@ -8,15 +8,32 @@ import "google/protobuf/timestamp.proto";
 
 // Enum for Event Type
 enum EventType {
-    UNKNOWN_EVENT = 0;
-    KLINE_UPDATE = 1;
-    // Add more event types as needed
+  // Unknown
+  UNKNOWN_EVENT = 0;
+
+  // Kline Events
+  KLINE_UPDATE = 1;
+  KLINE_ACK = 2;
+  KLINE_FAILED = 3;
+  KLINE_FINISHED = 4;
+
+  // Order Events
+  ORDER_UPDATE = 5;
+  ORDER_ACK = 6;
+  ORDER_FAILED = 7;
+  ORDER_FINISHED = 8;
+
+  // Execution Events
+  EXECUTION_UPDATE = 9;
+  EXECUTION_ACK = 10;
+  EXECUTION_FAILED = 11;
+  EXECUTION_FINISHED = 12;
 }
+
 
 // Enum for Event Source
 enum EventSource {
     UNKNOWN_SOURCE = 0;
-    SOLVEXITY = 1;
     SEQUEX = 2;
     // Add more event sources as needed
 }
@@ -27,15 +44,12 @@ message Event {
     EventType type = 2;
     EventSource source = 3;
     google.protobuf.Timestamp created_at = 4;
+    google.protobuf.Timestamp finished_at = 5;
     bytes payload = 5;
 }
 
-message Ack {
-    string id = 1; // UUID
-    google.protobuf.Timestamp received_at = 2;
-}
 
 // Service definition for streaming Events
 service SequexService {
-    rpc OnEvent(Event) returns (Ack) {};
+    rpc OnEvent(stream Event) returns (stream Event);
 }
