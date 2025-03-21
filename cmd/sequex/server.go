@@ -1,12 +1,10 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -15,11 +13,9 @@ import (
 	"encoding/json"
 
 	"github.com/BullionBear/sequex/internal/config"
-	"github.com/BullionBear/sequex/internal/feed/binance"
 	"github.com/BullionBear/sequex/internal/payload"
+	"github.com/BullionBear/sequex/internal/strategy"
 	"github.com/BullionBear/sequex/internal/strategy/solvexity"
-	"github.com/BullionBear/sequex/internal/tradingpipe"
-	"github.com/BullionBear/sequex/pkg/message"
 	"github.com/BullionBear/sequex/pkg/mq"
 	"github.com/BullionBear/sequex/pkg/mq/inprocq"
 	pbSequex "github.com/BullionBear/sequex/pkg/protobuf/sequex"       // Correct import path
@@ -27,26 +23,95 @@ import (
 )
 
 // EventServiceServer implements the gRPC service
-type server struct {
+type SequexServer struct {
 	pbSequex.UnimplementedSequexServiceServer
-	q        mq.MessageQueue
-	pipeline tradingpipe.TradingPipeline
+	q  mq.MessageQueue
+	st strategy.Strategy
+}
+
+func NewSequexServer(q mq.MessageQueue, st strategy.Strategy) *SequexServer {
+	return &SequexServer{
+		q:  q,
+		st: st,
+	}
 }
 
 // StreamEvents streams mock events to the client
-func (s *server) OnEvent(ctx context.Context, in *pbSequex.Event) (*pbSequex.Ack, error) {
-	msg := message.Message{
-		ID:        in.Id,
-		Type:      in.Type.String(),
-		Source:    in.Source.String(),
-		CreatedAt: in.CreatedAt.Seconds,
-		Payload:   in.Payload,
+func (s *SequexServer) OnEvent(stream pbSequex.SequexService_OnEventServer) error {
+	sendChan := make(chan *pbSequex.Event, 100)
+	defer close(sendChan)
+
+	go func() {
+		for event := range sendChan {
+			if err := stream.Send(event); err != nil {
+				log.Printf("Error sending event: %v", err)
+			}
+		}
+	}()
+
+	for {
+		event, err := stream.Recv()
+		if err != nil {
+			return err
+		}
+
+		log.Printf("Received event: %s (%s) from %s", event.Type, event.Id, event.Source)
+		switch event.Type {
+		case pbSequex.EventType_KLINE_UPDATE:
+			sendChan <- &pbSequex.Event{
+				Id:        event.Id,
+				Type:      pbSequex.EventType_KLINE_ACK,
+				Source:    pbSequex.EventSource_SEQUEX,
+				CreatedAt: timestamppb.Now(),
+				Payload:   []byte("Kline update received"),
+			}
+			var payload payload.KLineUpdate
+			err := json.Unmarshal(event.Payload, &payload)
+			if err != nil {
+				log.Printf("Error unmarshalling payload: %v\n", err)
+				continue
+			}
+			err = s.st.OnKLineUpdate(payload)
+			if err != nil {
+				log.Printf("Error processing KlineUpdate: %v\n", err)
+				sendChan <- &pbSequex.Event{
+					Id:        event.Id,
+					Type:      pbSequex.EventType_KLINE_FAILED,
+					Source:    pbSequex.EventSource_SEQUEX,
+					CreatedAt: timestamppb.Now(),
+					Payload:   []byte(err.Error()),
+				}
+				continue
+			}
+			sendChan <- &pbSequex.Event{
+				Id:        event.Id,
+				Type:      pbSequex.EventType_KLINE_FINISHED,
+				Source:    pbSequex.EventSource_SEQUEX,
+				CreatedAt: timestamppb.Now(),
+				Payload:   []byte("Kline update processed"),
+			}
+			continue
+
+		case pbSequex.EventType_ORDER_UPDATE:
+			sendChan <- &pbSequex.Event{
+				Id:        event.Id,
+				Type:      pbSequex.EventType_ORDER_ACK,
+				Source:    pbSequex.EventSource_SEQUEX,
+				CreatedAt: timestamppb.Now(),
+				Payload:   []byte("Order update received"),
+			}
+		case pbSequex.EventType_EXECUTION_UPDATE:
+			sendChan <- &pbSequex.Event{
+				Id:        event.Id,
+				Type:      pbSequex.EventType_EXECUTION_ACK,
+				Source:    pbSequex.EventSource_SEQUEX,
+				CreatedAt: timestamppb.Now(),
+				Payload:   []byte("Execution update received"),
+			}
+		default:
+			log.Printf("Undefine event type: %s", event.Type)
+		}
 	}
-	s.q.Send(&msg)
-	return &pbSequex.Ack{
-		Id:         in.Id,
-		ReceivedAt: timestamppb.New(time.Now()),
-	}, nil
 }
 
 func main() {
@@ -57,8 +122,6 @@ func main() {
 	// Use the flag value
 	fmt.Println("Config file:", *path)
 	conf := config.NewDomain(*path)
-	name := conf.GetConfig().Name
-	symbol := conf.GetConfig().Symbol
 	// Resource
 
 	// Set up trading pipeline.
@@ -70,7 +133,6 @@ func main() {
 	defer conn.Close()
 	client := pbSolvexity.NewSolvexityClient(conn)
 	strategy := solvexity.NewSolvexity(client)
-	pipeline := tradingpipe.NewTradingPipeline(name, strategy)
 
 	// Start the gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GetConfig().Sequex.Port))
@@ -79,59 +141,33 @@ func main() {
 	}
 	q := inprocq.NewInprocQueue()
 	grpcServer := grpc.NewServer()
-	pbSequex.RegisterSequexServiceServer(grpcServer, &server{
-		q:        q,
-		pipeline: *pipeline,
+	pbSequex.RegisterSequexServiceServer(grpcServer, &SequexServer{
+		q:  q,
+		st: strategy,
 	})
 	// event source
-	feed := binance.NewBinanceFeed()
-	unsubscribe, err := feed.SubscribeKlineUpdate(symbol, func(klineUpdate *payload.KLineUpdate) {
-		payload, err := json.Marshal(klineUpdate)
-		if err != nil {
-			log.Printf("Error marshalling payload: %v\n", err)
-			return
-		}
-		msg := message.Message{
-			ID:        "1",
-			Type:      "KLINE_UPDATE",
-			Source:    "BINANCE",
-			CreatedAt: time.Now().Unix(),
-			Payload:   payload,
-		}
-		q.Send(&msg)
-	})
-	if err != nil {
-		log.Fatalf("Failed to subscribe to KlineUpdate: %v", err)
-	}
-	defer unsubscribe()
-	go func() {
-		for {
-			msg, err := q.RecvTimeout(2 * time.Second)
+	/*
+		feed := binance.NewBinanceFeed()
+		unsubscribe, err := feed.SubscribeKlineUpdate(symbol, func(klineUpdate *payload.KLineUpdate) {
+			payload, err := json.Marshal(klineUpdate)
 			if err != nil {
-				log.Printf("Error receiving message: %v\n", err)
-			} else {
-				log.Printf("Received message: %v\n", msg)
-				switch msg.Type {
-				case "KLINE_UPDATE":
-					var payload payload.KLineUpdate
-					err = json.Unmarshal(msg.Payload, &payload)
-					if err != nil {
-						log.Printf("Error unmarshalling payload: %v\n", err)
-						continue
-					}
-					pipeline.OnKLineUpdate(payload)
-				case "ORDER_UPDATE":
-					continue
-				case "EXECUTION_UPDATE":
-					continue
-				case "PLAYBACK_UPDATE":
-					continue
-				default:
-					fmt.Printf("Unknown message type: %v\n", msg.Type)
-				}
+				log.Printf("Error marshalling payload: %v\n", err)
+				return
 			}
+			msg := message.Message{
+				ID:        "1",
+				Type:      "KLINE_UPDATE",
+				Source:    "BINANCE",
+				CreatedAt: time.Now().Unix(),
+				Payload:   payload,
+			}
+			q.Send(&msg)
+		})
+		if err != nil {
+			log.Fatalf("Failed to subscribe to KlineUpdate: %v", err)
 		}
-	}()
+		defer unsubscribe()
+	*/
 
 	log.Println("Server is running on port 50051")
 	if err := grpcServer.Serve(lis); err != nil {
