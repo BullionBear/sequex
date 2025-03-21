@@ -17,7 +17,6 @@ import (
 	"github.com/BullionBear/sequex/internal/strategy"
 	"github.com/BullionBear/sequex/internal/strategy/solvexity"
 	"github.com/BullionBear/sequex/pkg/mq"
-	"github.com/BullionBear/sequex/pkg/mq/inprocq"
 	pbSequex "github.com/BullionBear/sequex/pkg/protobuf/sequex"       // Correct import path
 	pbSolvexity "github.com/BullionBear/sequex/pkg/protobuf/solvexity" // Correct import path
 )
@@ -25,13 +24,11 @@ import (
 // EventServiceServer implements the gRPC service
 type SequexServer struct {
 	pbSequex.UnimplementedSequexServiceServer
-	q  mq.MessageQueue
 	st strategy.Strategy
 }
 
 func NewSequexServer(q mq.MessageQueue, st strategy.Strategy) *SequexServer {
 	return &SequexServer{
-		q:  q,
 		st: st,
 	}
 }
@@ -90,8 +87,6 @@ func (s *SequexServer) OnEvent(stream pbSequex.SequexService_OnEventServer) erro
 				CreatedAt: timestamppb.Now(),
 				Payload:   []byte("Kline update processed"),
 			}
-			continue
-
 		case pbSequex.EventType_ORDER_UPDATE:
 			sendChan <- &pbSequex.Event{
 				Id:        event.Id,
@@ -139,10 +134,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
-	q := inprocq.NewInprocQueue()
 	grpcServer := grpc.NewServer()
 	pbSequex.RegisterSequexServiceServer(grpcServer, &SequexServer{
-		q:  q,
 		st: strategy,
 	})
 	// event source
