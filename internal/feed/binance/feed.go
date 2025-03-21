@@ -18,7 +18,7 @@ func NewBinanceFeed() *BinanceFeed {
 	return &BinanceFeed{}
 }
 
-func (b *BinanceFeed) SubscribeKlineUpdate(symbol string, handler func(*payload.KLine)) (unsubscribe func(), err error) {
+func (b *BinanceFeed) SubscribeKlineUpdate(symbol string, handler func(*payload.KLineUpdate)) (unsubscribe func(), err error) {
 	doneC, stopC, err := binance.WsKlineServe(symbol, "1m", func(event *binance.WsKlineEvent) {
 		k := event.Kline
 
@@ -31,7 +31,7 @@ func (b *BinanceFeed) SubscribeKlineUpdate(symbol string, handler func(*payload.
 		takerBaseVolume, _ := strconv.ParseFloat(k.ActiveBuyVolume, 64)
 		takerQuoteVolume, _ := strconv.ParseFloat(k.ActiveBuyQuoteVolume, 64)
 
-		handler(&payload.KLine{
+		handler(&payload.KLineUpdate{
 			Symbol:                   k.Symbol,
 			Interval:                 k.Interval,
 			OpenTime:                 k.StartTime,

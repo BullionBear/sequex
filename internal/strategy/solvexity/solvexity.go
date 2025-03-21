@@ -23,7 +23,7 @@ func NewSolvexity(client pb.SolvexityClient) *Solvexity {
 	}
 }
 
-func (s *Solvexity) OnKLineUpdate(kline payload.KLine) error {
+func (s *Solvexity) OnKLineUpdate(kline payload.KLineUpdate) error {
 	ts := time.Unix(time.Now().Unix(), 0).UTC()
 	resp, err := s.c.Solve(context.Background(), &pb.SolveRequest{
 		Symbol:    kline.Symbol,

@@ -62,7 +62,7 @@ func (s *SequexServer) OnEvent(stream pbSequex.SequexService_OnEventServer) erro
 				CreatedAt: timestamppb.Now(),
 				Payload:   []byte("Kline update received"),
 			}
-			var payload payload.KLine
+			var payload payload.KLineUpdate
 			err := json.Unmarshal(event.Payload, &payload)
 			if err != nil {
 				log.Printf("Error unmarshalling payload: %v\n", err)
@@ -141,7 +141,7 @@ func main() {
 	// event source
 	/*
 		feed := binance.NewBinanceFeed()
-		unsubscribe, err := feed.SubscribeKlineUpdate(symbol, func(klineUpdate *payload.KLineUpdate) {
+		unsubscribe, err := feed.SubscribeKlineUpdate(symbol, func(klineUpdate *payload.KLineUpdateUpdate) {
 			payload, err := json.Marshal(klineUpdate)
 			if err != nil {
 				log.Printf("Error marshalling payload: %v\n", err)
