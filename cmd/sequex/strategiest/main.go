@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"log"
 	"sync"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -54,7 +53,8 @@ func main() {
 	}
 	defer unsubscribe()
 
-	time.Sleep(20 * time.Second)
+	doneC := make(chan struct{})
+	<-doneC
 	// Proper close send
 	if err := stream.CloseSend(); err != nil {
 		log.Printf("Error closing send: %v", err)
