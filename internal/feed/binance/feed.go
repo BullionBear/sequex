@@ -36,6 +36,7 @@ func (b *BinanceFeed) SubscribeKlineUpdate(symbol string, handler func(*payload.
 			Interval:                 k.Interval,
 			OpenTime:                 k.StartTime,
 			CloseTime:                k.EndTime,
+			EventTime:                event.Time, // Event time is the time the event was received
 			OpenPx:                   openPx,
 			HighPx:                   highPx,
 			LowPx:                    lowPx,

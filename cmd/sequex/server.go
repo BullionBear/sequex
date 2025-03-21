@@ -68,7 +68,7 @@ func (s *SequexServer) OnEvent(stream pbSequex.SequexService_OnEventServer) erro
 				log.Printf("Error unmarshalling payload: %v\n", err)
 				continue
 			}
-			err = s.st.OnKLineUpdate(payload)
+			err = s.st.OnKLineUpdate(payload.Symbol, payload.EventTime)
 			if err != nil {
 				log.Printf("Error processing KlineUpdate: %v\n", err)
 				sendChan <- &pbSequex.Event{
@@ -138,30 +138,6 @@ func main() {
 	pbSequex.RegisterSequexServiceServer(grpcServer, &SequexServer{
 		st: strategy,
 	})
-	// event source
-	/*
-		feed := binance.NewBinanceFeed()
-		unsubscribe, err := feed.SubscribeKlineUpdate(symbol, func(klineUpdate *payload.KLineUpdateUpdate) {
-			payload, err := json.Marshal(klineUpdate)
-			if err != nil {
-				log.Printf("Error marshalling payload: %v\n", err)
-				return
-			}
-			msg := message.Message{
-				ID:        "1",
-				Type:      "KLINE_UPDATE",
-				Source:    "BINANCE",
-				CreatedAt: time.Now().Unix(),
-				Payload:   payload,
-			}
-			q.Send(&msg)
-		})
-		if err != nil {
-			log.Fatalf("Failed to subscribe to KlineUpdate: %v", err)
-		}
-		defer unsubscribe()
-	*/
-
 	log.Println("Server is running on port 50051")
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)

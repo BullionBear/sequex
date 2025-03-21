@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/BullionBear/sequex/internal/payload"
 	"github.com/BullionBear/sequex/internal/strategy"
 	pb "github.com/BullionBear/sequex/pkg/protobuf/solvexity"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -23,10 +22,10 @@ func NewSolvexity(client pb.SolvexityClient) *Solvexity {
 	}
 }
 
-func (s *Solvexity) OnKLineUpdate(kline payload.KLineUpdate) error {
-	ts := time.Unix(time.Now().Unix(), 0).UTC()
+func (s *Solvexity) OnKLineUpdate(symbol string, timestamp int64) error {
+	ts := time.Unix(timestamp, 0).UTC()
 	resp, err := s.c.Solve(context.Background(), &pb.SolveRequest{
-		Symbol:    kline.Symbol,
+		Symbol:    symbol,
 		Timestamp: timestamppb.New(ts),
 	})
 	if err != nil {

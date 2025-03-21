@@ -1,10 +1,11 @@
 package payload
 
-type KLine struct {
+type KLineUpdate struct {
 	Symbol                   string  `json:"symbol"`
 	Interval                 string  `json:"interval"`
 	OpenTime                 int64   `json:"open_time"`
 	CloseTime                int64   `json:"close_time"`
+	EventTime                int64   `json:"event_time"`
 	OpenPx                   float64 `json:"open_px"`
 	HighPx                   float64 `json:"high_px"`
 	LowPx                    float64 `json:"low_px"`
