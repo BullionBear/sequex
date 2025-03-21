@@ -7,16 +7,20 @@ LDFLAGS := -X '${PACKAGE}/env.Version=${VERSION}' \
            -X '${PACKAGE}/env.CommitHash=${COMMIT_HASH}' \
            -X '${PACKAGE}/env.BuildTime=${BUILD_TIMESTAMP}'
 
-gen:
-	protoc --go_out=. --go-grpc_out=. api/proto/feed.proto
+codegen:
+	protoc --go_out=pkg/ --go-grpc_out=pkg/ proto/greet.proto
+	protoc --go_out=pkg/ --go-grpc_out=pkg/ proto/sequex.proto
+	protoc --go_out=pkg/ --go-grpc_out=pkg/ proto/solvexity.proto
 
 build:
 	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/sequex/server.go
 
+test:
+	go test -v ./...
 
 clean:
 	rm -rf bin/*
 	rm -rf logs/*
 
 
-.PHONY: gen, build, clean
+.PHONY: codegen, build, clean

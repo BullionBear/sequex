@@ -1,83 +1,46 @@
+# SEQUEX
 
-# Tests Directory
-
-This directory contains all the unit tests and integration tests for the project. The tests are organized by module, ensuring a clear and maintainable structure.
-
-## Running Tests
-
-We use `pytest` as the testing framework. Below are some common commands to run tests:
-
-### 1. Run All Tests in the Project
-To execute all tests in the `tests/` directory:
-```bash
-pytest
-```
-
-### 2. Run Tests by Module
-To run all tests within a specific module (e.g., `trader`):
-```bash
-pytest tests/trader/
-```
-
-### 3. Run Tests by File
-To run tests from a specific file (e.g., `test_spot_trade.py`):
-```bash
-pytest tests/trader/context/test_spot_trade.py
-```
-
-### 4. Run a Specific Test Function
-To run a specific test function within a file (e.g., `test_balance_retrieval` in `test_spot_trade.py`):
-```bash
-pytest tests/trader/context/test_spot_trade.py::test_balance_retrieval
-```
-
-### 5. Display Print Output
-By default, `pytest` suppresses `print` output. To see printed statements during test execution, use the `-s` flag:
-```bash
-pytest -s
-```
-
-Example:
-```bash
-pytest -s tests/trader/context/test_spot_trade.py
-```
-
-### 6. Run Tests with Logging Output
-To enable logging output (e.g., `INFO` or `DEBUG` level) during test runs:
-```bash
-pytest --log-cli-level=INFO
-```
-
-Example:
-```bash
-pytest --log-cli-level=DEBUG tests/trader/context/test_spot_trade.py
-```
-
-### 7. Run Tests with Detailed Output
-For verbose output to see more details about the tests being executed:
-```bash
-pytest -v
-```
-
-### 8. Run Tests with Coverage
-To measure test coverage and generate a report:
-```bash
-pytest --cov=solvexity --cov-report=term-missing
-```
-
-### 9. Run Tests and Generate an HTML Coverage Report
-To generate an HTML report for coverage:
-```bash
-pytest --cov=solvexity --cov-report=html
-```
-The report will be saved in the `htmlcov/` directory.
-
-## Tips for Writing Tests
-- Place test files in the appropriate module directory.
-- Test file names should start with `test_` (e.g., `test_spot_trade.py`).
-- Use fixtures for reusable test setup code.
-- Follow naming conventions for test functions: `test_<functionality>`.
+**SEQUEX** is a centralized, event-driven trading system designed for high-performance and modularity. It provides a clean architecture for handling trading logic, messaging, infrastructure, and configuration in a scalable and maintainable way.
 
 ---
 
-Happy testing! 🚀
+## 📦 Project Structure
+```
+.
+├── cmd             # Application entry point
+├── config          # Configuration files
+├── env             # Environment definitions
+├── go.mod
+├── go.sum
+├── internal        # Core logic
+├── Makefile        # Automation command
+├── pkg             # Shared utilities
+├── proto           # gRPC service definitions
+└── README.md
+```
+
+## ⚙️ Make command
+
+Generate pb code
+```
+make codegen
+```
+
+Build binaries to bin/
+```
+make build
+```
+
+Run
+```
+./bin/sequex-linux-x86 -c ./config/config_sequex.json
+```
+or
+```
+go run cmd/sequex/server.go -c ./config/config_sequex.json
+```
+
+Test
+```
+make test
+```
