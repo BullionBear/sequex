@@ -34,7 +34,8 @@ enum EventType {
 // Enum for Event Source
 enum EventSource {
     UNKNOWN_SOURCE = 0;
-    SEQUEX = 2;
+    SEQUEX = 1;
+    SOLVEXITY = 2;
     // Add more event sources as needed
 }
 
@@ -45,7 +46,7 @@ message Event {
     EventSource source = 3;
     google.protobuf.Timestamp created_at = 4;
     google.protobuf.Timestamp finished_at = 5;
-    bytes payload = 5;
+    bytes payload = 6;
 }
 
 
