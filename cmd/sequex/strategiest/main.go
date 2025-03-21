@@ -68,7 +68,7 @@ func sendEvent(stream pbSequex.SequexService_OnEventClient, eventType pbSequex.E
 	event := &pbSequex.Event{
 		Id:        uuid.New().String(),
 		Type:      eventType,
-		Source:    pbSequex.EventSource_SEQUEX,
+		Source:    pbSequex.EventSource_STRATEGIST,
 		CreatedAt: timestamppb.Now(),
 		Payload:   payload,
 	}
