@@ -7,8 +7,6 @@ import (
 )
 
 type Config struct {
-	Name   string `json:"name"`
-	Symbol string `json:"symbol"`
 	Sequex struct {
 		Host string `json:"host"`
 		Port int    `json:"port"`
