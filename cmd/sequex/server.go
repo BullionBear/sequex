@@ -120,6 +120,12 @@ func main() {
 						continue
 					}
 					pipeline.OnKLineUpdate(payload)
+				case "ORDER_UPDATE":
+					continue
+				case "EXECUTION_UPDATE":
+					continue
+				case "PLAYBACK_UPDATE":
+					continue
 				default:
 					fmt.Printf("Unknown message type: %v\n", msg.Type)
 				}
