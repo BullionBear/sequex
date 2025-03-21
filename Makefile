@@ -11,8 +11,7 @@ gen:
 	protoc --go_out=. --go-grpc_out=. api/proto/feed.proto
 
 build:
-	go build -ldflags="$(LDFLAGS)" -o ./bin/main cmd/main.go
-	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/*.go
+	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/sequex/server.go
 
 
 clean:
