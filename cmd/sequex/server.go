@@ -62,7 +62,7 @@ func (s *SequexServer) OnEvent(stream pbSequex.SequexService_OnEventServer) erro
 				CreatedAt: timestamppb.Now(),
 				Payload:   []byte("Kline update received"),
 			}
-			var payload payload.KLineUpdate
+			var payload payload.KLine
 			err := json.Unmarshal(event.Payload, &payload)
 			if err != nil {
 				log.Printf("Error unmarshalling payload: %v\n", err)

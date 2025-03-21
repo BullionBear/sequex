@@ -41,7 +41,7 @@ func main() {
 	}()
 
 	feed := binance.NewBinanceFeed()
-	unsubscribe, err := feed.SubscribeKlineUpdate(symbol, func(klineUpdate *payload.KLineUpdate) {
+	unsubscribe, err := feed.SubscribeKlineUpdate(symbol, func(klineUpdate *payload.KLine) {
 		payload, err := json.Marshal(klineUpdate)
 		if err != nil {
 			log.Printf("Error marshalling payload: %v\n", err)
