@@ -23,7 +23,8 @@ func NewSolvexity(client pb.SolvexityClient) *Solvexity {
 }
 
 func (s *Solvexity) OnKLineUpdate(symbol string, timestamp int64) error {
-	ts := time.Unix(timestamp, 0).UTC()
+	// Convert milliseconds to seconds
+	ts := time.Unix(timestamp/1000, 0).UTC()
 	resp, err := s.c.Solve(context.Background(), &pb.SolveRequest{
 		Symbol:    symbol,
 		Timestamp: timestamppb.New(ts),
