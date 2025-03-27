@@ -57,3 +57,6 @@ func (b *BinanceFeed) SubscribeKlineUpdate(symbol string, handler func(*payload.
 		<-doneC
 	}, nil
 }
+
+func (b *BinanceFeed) Next(symbol string) {
+}
