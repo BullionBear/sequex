@@ -94,7 +94,10 @@ func (oa *AskBookArray) UpdateDiff(levels []PriceLevel) {
 		index := int(level.Price.Div(oa.tickSize).IntPart())
 		oa.PriceLevels[index%MaxPriceLevels].Set(level.Price, level.Size)
 		oa.BestIndex = min(oa.BestIndex, index)
-		if level.Size.IsZero() {
+		if index-oa.BestIndex >= MaxPriceLevels {
+			log.Print("AskBookArray: UpdateDiff: index is too far from the best index")
+			break
+		} else if level.Size.IsZero() {
 			oa.PriceLevels[index%MaxPriceLevels].Empty()
 		} else {
 			oa.PriceLevels[index%MaxPriceLevels].Set(level.Price, level.Size)
@@ -148,7 +151,11 @@ func (ob *BidBookArray) GetBook(depth int) []PriceLevel {
 
 	book := make([]PriceLevel, 0, depth) // Create a slice with capacity but no length
 	for i := 0; i < MaxPriceLevels; i++ {
-		if !ob.PriceLevels[(ob.BestIndex-i+MaxPriceLevels)%MaxPriceLevels].Size.IsZero() {
+		prevPrice := ob.PriceLevels[(ob.BestIndex-i+MaxPriceLevels+1)%MaxPriceLevels].Price
+		currPrice := ob.PriceLevels[(ob.BestIndex-i+MaxPriceLevels)%MaxPriceLevels].Price
+		if i == 0 {
+			book = append(book, ob.PriceLevels[(ob.BestIndex-i+MaxPriceLevels)%MaxPriceLevels]) // Use append to add elements
+		} else if !ob.PriceLevels[(ob.BestIndex-i+MaxPriceLevels)%MaxPriceLevels].Size.IsZero() && prevPrice.Cmp(currPrice) == 1 {
 			book = append(book, ob.PriceLevels[(ob.BestIndex-i+MaxPriceLevels)%MaxPriceLevels]) // Use append to add elements
 			if len(book) == depth {
 				break
@@ -163,7 +170,10 @@ func (ob *BidBookArray) UpdateDiff(levels []PriceLevel) {
 		index := int(level.Price.Div(ob.tickSize).IntPart())
 		ob.PriceLevels[index%MaxPriceLevels].Set(level.Price, level.Size)
 		ob.BestIndex = max(ob.BestIndex, index)
-		if level.Size.IsZero() {
+		if ob.BestIndex-index >= MaxPriceLevels {
+			log.Print("BidBookArray: UpdateDiff: index is too far from the best index")
+			break
+		} else if level.Size.IsZero() {
 			ob.PriceLevels[index%MaxPriceLevels].Empty()
 		} else {
 			ob.PriceLevels[index%MaxPriceLevels].Set(level.Price, level.Size)
