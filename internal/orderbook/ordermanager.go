@@ -7,7 +7,15 @@ import (
 	"log"
 
 	"github.com/adshao/go-binance/v2"
+	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shopspring/decimal"
+)
+
+type InstrumentType int
+
+const (
+	Spot InstrumentType = iota
+	Perpetual
 )
 
 type OrderBook struct {
@@ -19,61 +27,125 @@ type OrderBook struct {
 }
 
 type BinanceOrderManager struct {
-	OrderBook map[string]*BinanceOrderBook
+	SpotOrderBook map[string]*BinanceOrderBook
+	PerpOrderBook map[string]*BinancePerpOrderBook
 }
 
 func NewBinanceOrderManager() *BinanceOrderManager {
 	return &BinanceOrderManager{
-		OrderBook: make(map[string]*BinanceOrderBook),
+		SpotOrderBook: make(map[string]*BinanceOrderBook),
+		PerpOrderBook: make(map[string]*BinancePerpOrderBook),
 	}
 }
 
-func getTickSize(symbol string) (decimal.Decimal, error) {
-	client := binance.NewClient("", "")
-	info, err := client.NewExchangeInfoService().Symbol(symbol).Do(context.Background())
-	if err != nil {
-		return decimal.Decimal{}, err
-	}
-	// Extract the number of price decimals for the symbol
-	for _, s := range info.Symbols {
-		if s.Symbol == symbol {
-			for _, filter := range s.Filters {
-				if filter["filterType"] == "PRICE_FILTER" {
-					priceTickSize := filter["tickSize"].(string)
-					dTickSize, err := decimal.NewFromString(priceTickSize)
-					if err != nil {
-						log.Printf("Error parsing tick size: %+v", err)
-						return decimal.Decimal{}, err
+func getTickSize(symbol string, instrumentType InstrumentType) (decimal.Decimal, error) {
+	switch instrumentType {
+	case Spot:
+		client := binance.NewClient("", "")
+		info, err := client.NewExchangeInfoService().Symbol(symbol).Do(context.Background())
+		if err != nil {
+			return decimal.Decimal{}, err
+		}
+		// Extract the number of price decimals for the symbol
+		for _, s := range info.Symbols {
+			if s.Symbol == symbol {
+				for _, filter := range s.Filters {
+					if filter["filterType"] == "PRICE_FILTER" {
+						priceTickSize := filter["tickSize"].(string)
+						dTickSize, err := decimal.NewFromString(priceTickSize)
+						if err != nil {
+							log.Printf("Error parsing tick size: %+v", err)
+							return decimal.Decimal{}, err
+						}
+						return dTickSize, nil
 					}
-					return dTickSize, nil
 				}
 			}
 		}
+		return decimal.Decimal{}, errors.New("unable to find tick size")
+	case Perpetual:
+		client := futures.NewClient("", "")
+		info, err := client.NewExchangeInfoService().Do(context.Background())
+		if err != nil {
+			return decimal.Decimal{}, err
+		}
+		// Extract the number of price decimals for the symbol
+		for _, s := range info.Symbols {
+			if s.Symbol == symbol {
+				for _, filter := range s.Filters {
+					if filter["filterType"] == "PRICE_FILTER" {
+						priceTickSize := filter["tickSize"].(string)
+						dTickSize, err := decimal.NewFromString(priceTickSize)
+						if err != nil {
+							log.Printf("Error parsing tick size: %+v", err)
+							return decimal.Decimal{}, err
+						}
+						return dTickSize, nil
+					}
+				}
+			}
+
+		}
+		return decimal.Decimal{}, errors.New("unable to find tick size")
+	default:
+		log.Printf("Unsupported instrument type: %d", instrumentType)
+		return decimal.Decimal{}, errors.New("unsupported instrument type")
 	}
-	return decimal.Decimal{}, nil
 }
 
-func (bom *BinanceOrderManager) CreateBook(symbol string) error {
-	tickSize, err := getTickSize(symbol)
+func (bom *BinanceOrderManager) CreateSpotBook(symbol string, updateSpeed UpdateSpeed) error {
+	tickSize, err := getTickSize(symbol, Spot)
 	if err != nil {
 		log.Printf("Error getting tick size for symbol %s: %v", symbol, err)
 	}
-	if _, exists := bom.OrderBook[symbol]; !exists {
-		bom.OrderBook[symbol] = NewBinanceOrderBook(symbol, tickSize, 1000)
-		go bom.OrderBook[symbol].Run()
+	if _, exists := bom.SpotOrderBook[symbol]; !exists {
+		bom.SpotOrderBook[symbol] = NewBinanceOrderBook(symbol, tickSize, 500)
+		go bom.SpotOrderBook[symbol].Run(updateSpeed)
 	}
 	return nil
 }
 
-func (bom *BinanceOrderManager) CloseBook(symbol string) {
-	if ob, exists := bom.OrderBook[symbol]; exists {
+func (bom *BinanceOrderManager) CloseSpotBook(symbol string) {
+	if ob, exists := bom.SpotOrderBook[symbol]; exists {
 		ob.Close()
-		delete(bom.OrderBook, symbol)
+		delete(bom.SpotOrderBook, symbol)
 	}
 }
 
-func (bom *BinanceOrderManager) GetOrderBook(symbol string, depth int) (*OrderBook, error) {
-	if ob, exists := bom.OrderBook[symbol]; exists {
+func (bom *BinanceOrderManager) GetSpotOrderBook(symbol string, depth int) (*OrderBook, error) {
+	if ob, exists := bom.SpotOrderBook[symbol]; exists {
+		return &OrderBook{
+			Symbol:       ob.Symbol,
+			Asks:         ob.Asks.GetBook(depth),
+			Bids:         ob.Bids.GetBook(depth),
+			LastUpdateID: ob.lastUpdateID,
+			Timestamp:    ob.timestamp,
+		}, nil
+	}
+	return nil, errors.New("order book not found")
+}
+
+func (bom *BinanceOrderManager) CreatePerpBook(symbol string, updateSpeed UpdateSpeed) error {
+	tickSize, err := getTickSize(symbol, Perpetual)
+	if err != nil {
+		log.Printf("Error getting tick size for symbol %s: %v", symbol, err)
+	}
+	if _, exists := bom.PerpOrderBook[symbol]; !exists {
+		bom.PerpOrderBook[symbol] = NewBinancePerpOrderBook(symbol, tickSize, 500)
+		go bom.PerpOrderBook[symbol].Run(updateSpeed)
+	}
+	return nil
+}
+
+func (bom *BinanceOrderManager) ClosePerpBook(symbol string) {
+	if ob, exists := bom.PerpOrderBook[symbol]; exists {
+		ob.Close()
+		delete(bom.PerpOrderBook, symbol)
+	}
+}
+
+func (bom *BinanceOrderManager) GetPerpOrderBook(symbol string, depth int) (*OrderBook, error) {
+	if ob, exists := bom.PerpOrderBook[symbol]; exists {
 		return &OrderBook{
 			Symbol:       ob.Symbol,
 			Asks:         ob.Asks.GetBook(depth),
