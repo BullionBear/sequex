@@ -4,16 +4,15 @@ import (
 	"context"
 	"errors"
 	"log"
-	"math"
 	"sync"
 	"time"
 
 	"github.com/adshao/go-binance/v2"
 	"github.com/adshao/go-binance/v2/futures"
+	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/shopspring/decimal"
 )
 
-const MaxPriceLevels = 65535 // Request weight = 50 for safe request, max: 5000
 const MaxSpotLayerRequest = 5000
 const MaxPerpLayerRequest = 1000
 
@@ -25,6 +24,12 @@ const (
 	UpdateSpeed500Ms
 	UpdateSpeed1s
 )
+
+func decimalComparator(a, b interface{}) int {
+	d1 := a.(decimal.Decimal)
+	d2 := b.(decimal.Decimal)
+	return d1.Cmp(d2)
+}
 
 type PriceLevel struct {
 	Price decimal.Decimal `json:"price"`
@@ -49,41 +54,32 @@ func (pl *PriceLevel) Set(price, size decimal.Decimal) {
 }
 
 type AskBookArray struct {
-	PriceLevels [MaxPriceLevels]PriceLevel // Static array with a fixed size of 100
-	BestIndex   int
-	tickSize    decimal.Decimal
+	PriceLevels treemap.Map
 }
 
-func NewAskBookArray(tickSize decimal.Decimal) *AskBookArray {
+func NewAskBookArray() *AskBookArray {
 	return &AskBookArray{
-		PriceLevels: [MaxPriceLevels]PriceLevel{},
-		BestIndex:   math.MaxInt,
-		tickSize:    tickSize,
+		PriceLevels: *treemap.NewWith(decimalComparator),
 	}
 }
 
 func (oa *AskBookArray) GetBestLayer() (PriceLevel, error) {
-	if oa.BestIndex >= 0 && oa.BestIndex < MaxPriceLevels {
-		return oa.PriceLevels[oa.BestIndex], nil
+	if oa.PriceLevels.Empty() {
+		return PriceLevel{}, errors.New("best price not available")
 	}
-	return PriceLevel{}, errors.New("best price not available")
+	bestPrice, bestSize := oa.PriceLevels.Min()
+	return NewPriceLevel(bestPrice.(decimal.Decimal), bestSize.(decimal.Decimal)), nil
 }
 
 func (oa *AskBookArray) GetBook(depth int) []PriceLevel {
-	if depth <= 0 || depth > MaxPriceLevels {
-		return nil
-	}
-	if oa.BestIndex == math.MaxInt {
-		return nil
-	}
-
 	book := make([]PriceLevel, 0, depth) // Create a slice with capacity but no length
-	for i := 0; i < MaxPriceLevels; i++ {
-		if !oa.PriceLevels[(oa.BestIndex+i)%MaxPriceLevels].Size.IsZero() {
-			book = append(book, oa.PriceLevels[(oa.BestIndex+i)%MaxPriceLevels]) // Use append to add elements
-			if len(book) == depth {
-				break
-			}
+	it := oa.PriceLevels.Iterator()
+	count := 0
+	for it.Next() {
+		book = append(book, NewPriceLevel(it.Key().(decimal.Decimal), it.Value().(decimal.Decimal))) // Use append to add elements
+		count++
+		if count >= depth {
+			break
 		}
 	}
 	return book
@@ -91,75 +87,53 @@ func (oa *AskBookArray) GetBook(depth int) []PriceLevel {
 
 func (oa *AskBookArray) UpdateDiff(levels []PriceLevel) {
 	for _, level := range levels {
-		index := int(level.Price.Div(oa.tickSize).IntPart())
-		oa.PriceLevels[index%MaxPriceLevels].Set(level.Price, level.Size)
-		oa.BestIndex = min(oa.BestIndex, index)
-		if index-oa.BestIndex >= MaxPriceLevels {
-			log.Print("AskBookArray: UpdateDiff: index is too far from the best index")
-			break
-		} else if level.Size.IsZero() {
-			oa.PriceLevels[index%MaxPriceLevels].Empty()
+		if level.Size.IsZero() {
+			oa.PriceLevels.Remove(level.Price)
 		} else {
-			oa.PriceLevels[index%MaxPriceLevels].Set(level.Price, level.Size)
-		}
-	}
-
-	for i := 0; i < MaxPriceLevels; i++ {
-		if !oa.PriceLevels[(oa.BestIndex+i)%MaxPriceLevels].Size.IsZero() {
-			oa.BestIndex = oa.BestIndex + i
-			break
+			oa.PriceLevels.Put(level.Price, level.Size)
 		}
 	}
 }
 
 func (oa *AskBookArray) UpdateAll(levels []PriceLevel) {
-	for i := 0; i < MaxPriceLevels; i++ {
-		oa.PriceLevels[i].Empty()
+	oa.PriceLevels.Clear()
+	for _, level := range levels {
+		if level.Size.IsZero() {
+			continue
+		}
+		oa.PriceLevels.Put(level.Price, level.Size)
 	}
-	oa.BestIndex = math.MaxInt
-	oa.UpdateDiff(levels)
 }
 
 type BidBookArray struct {
-	PriceLevels [MaxPriceLevels]PriceLevel // Static array with a fixed size of 100
+	PriceLevels treemap.Map
 	BestIndex   int
 	tickSize    decimal.Decimal
 }
 
-func NewBidBookArray(tickSize decimal.Decimal) *BidBookArray {
+func NewBidBookArray() *BidBookArray {
 	return &BidBookArray{
-		PriceLevels: [MaxPriceLevels]PriceLevel{},
-		BestIndex:   math.MinInt,
-		tickSize:    tickSize,
+		PriceLevels: *treemap.NewWith(decimalComparator),
 	}
 }
 
 func (ob *BidBookArray) GetBestLayer() (PriceLevel, error) {
-	if ob.BestIndex >= 0 && ob.BestIndex < MaxPriceLevels {
-		return ob.PriceLevels[ob.BestIndex], nil
+	if ob.PriceLevels.Empty() {
+		return PriceLevel{}, errors.New("best price not available")
 	}
-	return PriceLevel{}, errors.New("best price not available")
+	bestPrice, bestSize := ob.PriceLevels.Max()
+	return NewPriceLevel(bestPrice.(decimal.Decimal), bestSize.(decimal.Decimal)), nil
 }
 
 func (ob *BidBookArray) GetBook(depth int) []PriceLevel {
-	if depth <= 0 || depth > MaxPriceLevels {
-		return nil
-	}
-	if ob.BestIndex == math.MinInt {
-		return nil
-	}
-
 	book := make([]PriceLevel, 0, depth) // Create a slice with capacity but no length
-	for i := 0; i < MaxPriceLevels; i++ {
-		prevPrice := ob.PriceLevels[(ob.BestIndex-i+MaxPriceLevels+1)%MaxPriceLevels].Price
-		currPrice := ob.PriceLevels[(ob.BestIndex-i+MaxPriceLevels)%MaxPriceLevels].Price
-		if i == 0 {
-			book = append(book, ob.PriceLevels[(ob.BestIndex-i+MaxPriceLevels)%MaxPriceLevels]) // Use append to add elements
-		} else if !ob.PriceLevels[(ob.BestIndex-i+MaxPriceLevels)%MaxPriceLevels].Size.IsZero() && prevPrice.Cmp(currPrice) == 1 {
-			book = append(book, ob.PriceLevels[(ob.BestIndex-i+MaxPriceLevels)%MaxPriceLevels]) // Use append to add elements
-			if len(book) == depth {
-				break
-			}
+	it := ob.PriceLevels.Iterator()
+	count := 0
+	for it.End(); it.Prev(); {
+		book = append(book, NewPriceLevel(it.Key().(decimal.Decimal), it.Value().(decimal.Decimal))) // Use append to add elements
+		count++
+		if count >= depth {
+			break
 		}
 	}
 	return book
@@ -167,33 +141,22 @@ func (ob *BidBookArray) GetBook(depth int) []PriceLevel {
 
 func (ob *BidBookArray) UpdateDiff(levels []PriceLevel) {
 	for _, level := range levels {
-		index := int(level.Price.Div(ob.tickSize).IntPart())
-		ob.PriceLevels[index%MaxPriceLevels].Set(level.Price, level.Size)
-		ob.BestIndex = max(ob.BestIndex, index)
-		if ob.BestIndex-index >= MaxPriceLevels {
-			log.Print("BidBookArray: UpdateDiff: index is too far from the best index")
-			break
-		} else if level.Size.IsZero() {
-			ob.PriceLevels[index%MaxPriceLevels].Empty()
+		if level.Size.IsZero() {
+			ob.PriceLevels.Remove(level.Price)
 		} else {
-			ob.PriceLevels[index%MaxPriceLevels].Set(level.Price, level.Size)
-		}
-	}
-
-	for i := 0; i < MaxPriceLevels; i++ {
-		if !ob.PriceLevels[(ob.BestIndex-i)%MaxPriceLevels].Size.IsZero() {
-			ob.BestIndex = ob.BestIndex - i
-			break
+			ob.PriceLevels.Put(level.Price, level.Size)
 		}
 	}
 }
 
 func (ob *BidBookArray) UpdateAll(levels []PriceLevel) {
-	for i := 0; i < MaxPriceLevels; i++ {
-		ob.PriceLevels[i].Empty()
+	ob.PriceLevels.Clear()
+	for _, level := range levels {
+		if level.Size.IsZero() {
+			continue
+		}
+		ob.PriceLevels.Put(level.Price, level.Size)
 	}
-	ob.BestIndex = math.MinInt
-	ob.UpdateDiff(levels)
 }
 
 type BinanceOrderBook struct {
@@ -212,11 +175,11 @@ type BinanceOrderBook struct {
 	NumSnapshotCall int
 }
 
-func NewBinanceOrderBook(symbol string, tickSize decimal.Decimal, bufferSize int) *BinanceOrderBook {
+func NewBinanceOrderBook(symbol string, bufferSize int) *BinanceOrderBook {
 	return &BinanceOrderBook{
 		Symbol:       symbol,
-		Asks:         *NewAskBookArray(tickSize),
-		Bids:         *NewBidBookArray(tickSize),
+		Asks:         *NewAskBookArray(),
+		Bids:         *NewBidBookArray(),
 		timestamp:    0,
 		lastUpdateID: 0,
 		createdAt:    time.Now().UnixMilli(),
@@ -319,9 +282,6 @@ func (ob *BinanceOrderBook) Close() {
 }
 
 func (ob *BinanceOrderBook) GetDepth(depth int) ([]PriceLevel, []PriceLevel, error) {
-	if depth <= 0 || depth > MaxPriceLevels {
-		return nil, nil, errors.New("depth must be between 1 and 1000")
-	}
 	asks := ob.Asks.GetBook(depth)
 	bids := ob.Bids.GetBook(depth)
 	return asks, bids, nil
@@ -403,11 +363,11 @@ type BinancePerpOrderBook struct {
 	NumSnapshotCall int
 }
 
-func NewBinancePerpOrderBook(symbol string, tickSize decimal.Decimal, bufferSize int) *BinancePerpOrderBook {
+func NewBinancePerpOrderBook(symbol string, bufferSize int) *BinancePerpOrderBook {
 	return &BinancePerpOrderBook{
 		Symbol:       symbol,
-		Asks:         *NewAskBookArray(tickSize),
-		Bids:         *NewBidBookArray(tickSize),
+		Asks:         *NewAskBookArray(),
+		Bids:         *NewBidBookArray(),
 		timestamp:    0,
 		lastUpdateID: 0,
 		createdAt:    time.Now().UnixMilli(),
@@ -522,9 +482,6 @@ func (ob *BinancePerpOrderBook) Close() {
 }
 
 func (ob *BinancePerpOrderBook) GetDepth(depth int) ([]PriceLevel, []PriceLevel, error) {
-	if depth <= 0 || depth > MaxPriceLevels {
-		return nil, nil, errors.New("depth must be between 1 and 1000")
-	}
 	asks := ob.Asks.GetBook(depth)
 	bids := ob.Bids.GetBook(depth)
 	return asks, bids, nil
