@@ -17,8 +17,8 @@ import (
 	"github.com/BullionBear/sequex/internal/strategy"
 	"github.com/BullionBear/sequex/internal/strategy/solvexity"
 	"github.com/BullionBear/sequex/pkg/mq"
-	pbSequex "github.com/BullionBear/sequex/pkg/protobuf/sequex"       // Correct import path
-	pbSolvexity "github.com/BullionBear/sequex/pkg/protobuf/solvexity" // Correct import path
+	pbSequex "github.com/BullionBear/sequex/pkg/protobuf/sequex"
+	pbSolvexity "github.com/BullionBear/sequex/pkg/protobuf/solvexity"
 )
 
 // EventServiceServer implements the gRPC service
