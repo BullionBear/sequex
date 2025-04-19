@@ -1,4 +1,4 @@
-package order
+package ordertype
 
 import "fmt"
 
@@ -44,10 +44,15 @@ func (s Side) String() string {
 type OrderType int
 
 const (
+	// Simple order
 	OrderTypeLimit      OrderType = iota // LIMIT
 	OrderTypeMarket                      // MARKET
 	OrderTypeStopMarket                  // STOP_MARKET
 	OrderTypeLimitMaker                  // LIMIT_MAKER
+
+	// Complex order
+	OrderTypeOCO  // OCO (One Cancels Other)
+	OrderTypeIFDO // IFDO (If Done Order)
 )
 
 func (o OrderType) String() string {
@@ -62,5 +67,27 @@ func (o OrderType) String() string {
 		return "LIMIT_MAKER"
 	default:
 		return fmt.Sprintf("Unknown OrderType (%d)", o)
+	}
+}
+
+// TimeInForce represents the time in force for an order
+type TimeInForce int
+
+const (
+	TimeInForceGTC TimeInForce = iota // GTC (Good Till Cancelled)
+	TimeInForceIOC                    // IOC (Immediate Or Cancel)
+	TimeInForceFOK                    // FOK (Fill Or Kill)
+)
+
+func (t TimeInForce) String() string {
+	switch t {
+	case TimeInForceGTC:
+		return "GTC"
+	case TimeInForceIOC:
+		return "IOC"
+	case TimeInForceFOK:
+		return "FOK"
+	default:
+		return fmt.Sprintf("Unknown TimeInForce (%d)", t)
 	}
 }
