@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package orderservice;
+
+option go_package = "orderservicepb";
+
+// === ENUMS ===
+
+enum OrderSide {
+  BUY = 0;
+  SELL = 1;
+}
+
+enum TimeInForce {
+  GTC = 0; // Good Till Canceled
+  IOC = 1; // Immediate or Cancel
+  FOK = 2; // Fill or Kill
+}
+
+// === BASIC ORDER TYPES ===
+
+message LimitOrder {
+  double price = 1;
+  TimeInForce time_in_force = 2;
+}
+
+message MarketOrder {
+  TimeInForce time_in_force = 1;
+}
+
+message StopOrder {
+  double stop_price = 1;
+  double price = 2; // price to execute at once triggered
+  TimeInForce time_in_force = 3;
+}
+
+// === COMPOSITE ORDER TYPES ===
+
+message OCOOrder {
+  OrderRequest order1 = 1;
+  OrderRequest order2 = 2;
+}
+
+message IFDOrder {
+  OrderRequest primary = 1;
+  repeated OrderRequest secondaries = 2;
+}
+
+// === ROOT ORDER REQUEST ===
+
+message OrderRequest {
+  string symbol = 1;
+  OrderSide side = 2;
+  double quantity = 3;
+  optional string client_order_id = 4;
+  optional int64 time_to_live = 5;
+
+  oneof order_type {
+    LimitOrder limit = 4;
+    MarketOrder market = 5;
+    StopOrder stop = 6;
+    OCOOrder oco = 7;
+    IFDOrder ifd = 8;
+  }
+}
+
+// === SUBMISSION AND RESPONSE ===
+
+message SubmitOrderRequest {
+  OrderRequest order = 1;
+  string client_id = 2;
+}
+
+message OrderResponse {
+  string order_id = 1;
+  string status = 2;
+  string message = 3;
+}
+
+// === ORDER SERVICE ===
+
+service OrderService {
+  rpc SubmitOrder(SubmitOrderRequest) returns (OrderResponse);
+}
