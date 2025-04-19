@@ -9,6 +9,9 @@ type Order interface {
 var _ Order = (*MarketOrder)(nil)
 var _ Order = (*LimitOrder)(nil)
 var _ Order = (*StopMarketOrder)(nil)
+var _ Order = (*TrailingStopMarketOrder)(nil)
+var _ Order = (*OneCancelsOtherOrder)(nil)
+var _ Order = (*IfDoneOrder)(nil)
 
 type MarketOrder struct {
 	ID         string          `json:"id"`
@@ -46,6 +49,18 @@ type StopMarketOrder struct {
 
 func (s StopMarketOrder) GetType() OrderType {
 	return OrderTypeStopMarket
+}
+
+type TrailingStopMarketOrder struct {
+	Instrument   Instrument      `json:"instrument"`
+	Symbol       string          `json:"symbol"`
+	Side         Side            `json:"side"`
+	Quantity     decimal.Decimal `json:"quantity"`
+	TrailingStop decimal.Decimal `json:"trailing_stop"`
+}
+
+func (t TrailingStopMarketOrder) GetType() OrderType {
+	return OrderTypeTrailingStopMarket
 }
 
 type OneCancelsOtherOrder struct {

@@ -45,10 +45,11 @@ type OrderType int
 
 const (
 	// Simple order
-	OrderTypeLimit      OrderType = iota // LIMIT
-	OrderTypeMarket                      // MARKET
-	OrderTypeStopMarket                  // STOP_MARKET
-	OrderTypeLimitMaker                  // LIMIT_MAKER
+	OrderTypeLimit              OrderType = iota // LIMIT
+	OrderTypeMarket                              // MARKET
+	OrderTypeStopMarket                          // STOP_MARKET
+	OrderTypeLimitMaker                          // LIMIT_MAKER
+	OrderTypeTrailingStopMarket                  // TRAILING_STOP_MARKET
 
 	// Complex order
 	OrderTypeOCO  // OCO (One Cancels Other)
