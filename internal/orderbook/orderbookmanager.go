@@ -36,7 +36,7 @@ func (bom *BinanceOrderBookManager) CreateOrderBook(symbol string, instrumentTyp
 	if _, exists := bom.OrderBooks[instrumentType][symbol]; !exists {
 		if instrumentType == Spot {
 			bom.OrderBooks[instrumentType][symbol] = NewBinanceOrderBook(symbol, 500)
-			go bom.OrderBooks[instrumentType][symbol].(*BinanceOrderBook).Run(updateSpeed)
+			go bom.OrderBooks[instrumentType][symbol].(*BinanceOrderBook).Start(updateSpeed)
 		} else if instrumentType == Perpetual {
 			bom.OrderBooks[instrumentType][symbol] = NewBinancePerpOrderBook(symbol, 500)
 			go bom.OrderBooks[instrumentType][symbol].(*BinancePerpOrderBook).Run(updateSpeed)

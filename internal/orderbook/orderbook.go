@@ -3,8 +3,10 @@ package orderbook
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/adshao/go-binance/v2"
@@ -140,126 +142,187 @@ func NewBidBookArray() *BidBookArray {
 	}
 }
 
+// BinanceOrderBook implements io.Closer so callers can defer ob.Close().
 type BinanceOrderBook struct {
-	Symbol       string
-	Asks         AskBookArray
-	Bids         BidBookArray
+	/* ======= public, read‑only fields ======= */
+	Symbol string
+	Asks   AskBookArray
+	Bids   BidBookArray
+
+	/* ======= metadata ======= */
 	timestamp    int64
 	lastUpdateID int64
 	createdAt    int64
-	// eventChan is used to send events to the order book
-	eventChan chan *binance.WsDepthEvent
-	stopChan  chan struct{}
-	doneChan  chan struct{}
 
-	NumUpdateCall   int
-	NumSnapshotCall int
+	/* ======= streaming internals ======= */
+	eventCh chan *binance.WsDepthEvent // buffered, never nil
+	stopC   chan struct{}              // <- signal to underlying WS service
+	doneC   chan struct{}              // <- closed by WS service on exit
+
+	/* ======= coordination ======= */
+	ctx    context.Context    // global cancel point for all goroutines
+	cancel context.CancelFunc // paired with ctx
+	wg     sync.WaitGroup     // waits for internal goroutines
+
+	/* ======= optional metrics ======= */
+	numUpdateCall   int64 // accessed atomically
+	numSnapshotCall int64 // accessed atomically
 }
 
+/*
+NewBinanceOrderBook allocates every resource the instance owns.
+Nothing is started yet, so it’s safe to create many instances cheaply.
+*/
 func NewBinanceOrderBook(symbol string, bufferSize int) *BinanceOrderBook {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &BinanceOrderBook{
-		Symbol:       symbol,
-		Asks:         *NewAskBookArray(),
-		Bids:         *NewBidBookArray(),
-		timestamp:    0,
-		lastUpdateID: 0,
-		createdAt:    time.Now().UnixMilli(),
-
-		eventChan: make(chan *binance.WsDepthEvent, bufferSize),
-		stopChan:  nil,
-
-		NumUpdateCall:   0,
-		NumSnapshotCall: 0,
+		Symbol:    symbol,
+		Asks:      *NewAskBookArray(),
+		Bids:      *NewBidBookArray(),
+		createdAt: time.Now().UnixMilli(),
+		eventCh:   make(chan *binance.WsDepthEvent, bufferSize),
+		ctx:       ctx,
+		cancel:    cancel,
 	}
 }
 
-func (ob *BinanceOrderBook) Summary() {
-	log.Printf("NumUpdateCall: %d", ob.NumUpdateCall)
-	log.Printf("NumSnapshotCall: %d", ob.NumSnapshotCall)
-}
+/*
+Start dials the Binance stream and launches exactly one listener goroutine.
+It can be called once; subsequent calls return an error.
+*/
+func (ob *BinanceOrderBook) Start(spd UpdateSpeed) error {
+	if ob.stopC != nil {
+		return errors.New("orderbook already started")
+	}
 
-func (ob *BinanceOrderBook) Run(updateSpeed UpdateSpeed) error { // blocking call
-	wsDepthHandler := func(event *binance.WsDepthEvent) {
-		if len(ob.eventChan) < cap(ob.eventChan) {
-			ob.eventChan <- event
-		} else {
-			log.Printf("Event channel is full, dropping event")
+	// ----- 1. wire handlers -----
+	wsDepthHandler := func(ev *binance.WsDepthEvent) {
+		select {
+		case ob.eventCh <- ev:
+		default:
+			log.Printf("[%s] depth‑event dropped (buffer full)", ob.Symbol)
 		}
 	}
-	errHandler := func(err error) {
-		log.Printf("Error in WebSocket: %+v", err)
-	}
+	errHandler := func(err error) { log.Printf("[%s] WS error: %+v", ob.Symbol, err) }
 
-	// Initialize stopChan and doneChan properly
-	stopChan := make(chan struct{})
-	doneChan := make(chan struct{})
-	ob.stopChan = stopChan
-	ob.doneChan = doneChan
-
-	doneC := make(chan struct{})
+	// ----- 2. start WS -----
 	var err error
-
-	// Start the WebSocket connection
-	switch updateSpeed {
+	switch spd {
 	case UpdateSpeed100Ms:
-		doneC, ob.stopChan, err = binance.WsDepthServe100Ms(ob.Symbol, wsDepthHandler, errHandler)
+		ob.doneC, ob.stopC, err = binance.WsDepthServe100Ms(ob.Symbol, wsDepthHandler, errHandler)
 	case UpdateSpeed1s:
-		doneC, ob.stopChan, err = binance.WsDepthServe(ob.Symbol, wsDepthHandler, errHandler)
+		ob.doneC, ob.stopC, err = binance.WsDepthServe(ob.Symbol, wsDepthHandler, errHandler)
 	default:
-		return errors.New("invalid update speed")
+		return fmt.Errorf("unknown update speed %v", spd)
 	}
-
 	if err != nil {
 		return err
 	}
 
-	// Wait for the WebSocket to finish
-	go func() {
-		<-doneC
-		close(doneChan)
-	}()
-
-	go func() {
-		client := binance.NewClient("", "")
-		for {
-			select {
-			case <-ob.stopChan:
-				log.Printf("Stopping order book")
-				ob.doneChan <- struct{}{}
-				return
-			case event := <-ob.eventChan:
-				log.Printf("FirstUpdateID: %d, localUpdateID: %d, LastUpdateID: %d", event.FirstUpdateID, ob.lastUpdateID, event.LastUpdateID)
-				if event.FirstUpdateID <= ob.lastUpdateID && ob.lastUpdateID <= event.LastUpdateID {
-					ob.partialUpdate(event)
-					ob.NumUpdateCall++
-				} else if event.LastUpdateID < ob.lastUpdateID {
-					// outdated event, ignore
-					continue
-				} else if event.FirstUpdateID > ob.lastUpdateID {
-					snapshot, err := client.NewDepthService().Symbol(ob.Symbol).Limit(MaxSpotLayerRequest).Do(context.Background())
-					ob.NumSnapshotCall++
-					if err != nil {
-						log.Printf("Error getting snapshot: %+v", err)
-						continue
-					}
-					ob.totalUpdate(snapshot)
-					if event.FirstUpdateID <= ob.lastUpdateID && ob.lastUpdateID <= event.LastUpdateID {
-						ob.partialUpdate(event)
-					}
-				} else {
-					log.Printf("Unexpected event state")
-				}
-			}
-		}
-	}()
+	// ----- 3. launch listener -----
+	ob.wg.Add(1)
+	go ob.listen()
 
 	return nil
 }
 
-func (ob *BinanceOrderBook) Close() {
-	if ob.stopChan != nil {
-		close(ob.stopChan)
+/*
+listen consumes the depth events and terminates when:
+  - Binance closes the socket (doneC closed), or
+  - The caller invokes Close() (ctx cancelled).
+
+It is the only place that reads from eventCh, so when it returns we can
+safely close(eventCh) to free memory.
+*/
+func (ob *BinanceOrderBook) listen() {
+	defer ob.wg.Done()
+	defer close(ob.eventCh)
+
+	client := binance.NewClient("", "")
+
+	for {
+		select {
+		case <-ob.ctx.Done():
+			return // caller asked us to quit
+		case <-ob.doneC: // WS layer finished
+			return
+		case ev := <-ob.eventCh: // main path
+			ob.handleDepthEvent(client, ev)
+		}
 	}
+}
+
+func (ob *BinanceOrderBook) handleDepthEvent(cl *binance.Client, ev *binance.WsDepthEvent) {
+	log.Printf("[%s] FUID:%d  localUID:%d  LUID:%d",
+		ob.Symbol, ev.FirstUpdateID, ob.lastUpdateID, ev.LastUpdateID)
+
+	switch {
+	// ──────────────────────────────────────────────────────────────
+	// 1. Normal in‑sequence diff
+	case ev.FirstUpdateID <= ob.lastUpdateID && ob.lastUpdateID <= ev.LastUpdateID:
+		ob.partialUpdate(ev)
+		atomic.AddInt64(&ob.numUpdateCall, 1)
+
+	// ──────────────────────────────────────────────────────────────
+	// 2. Entire message is older than what we already have → drop
+	case ev.LastUpdateID < ob.lastUpdateID:
+		return
+
+	// ──────────────────────────────────────────────────────────────
+	// 3. We missed one or more updates → fetch fresh snapshot, then
+	//    (optionally) re‑apply the current diff if it now fits.
+	case ev.FirstUpdateID > ob.lastUpdateID:
+		snap, err := cl.NewDepthService().
+			Symbol(ob.Symbol).
+			Limit(MaxSpotLayerRequest).
+			Do(context.Background())
+
+		atomic.AddInt64(&ob.numSnapshotCall, 1)
+
+		if err != nil {
+			log.Printf("[%s] snapshot error: %+v", ob.Symbol, err)
+			return
+		}
+
+		ob.totalUpdate(snap)
+
+		if ev.FirstUpdateID <= ob.lastUpdateID && ob.lastUpdateID <= ev.LastUpdateID {
+			ob.partialUpdate(ev)
+			atomic.AddInt64(&ob.numUpdateCall, 1)
+		}
+
+	// ──────────────────────────────────────────────────────────────
+	default:
+		log.Printf("[%s] unexpected depth‑event ordering", ob.Symbol)
+	}
+}
+
+/*
+Close is idempotent and blocks until every goroutine and the underlying
+WebSocket have finished.  After it returns the instance is unusable.
+*/
+func (ob *BinanceOrderBook) Close() error {
+	ob.cancel() // 1. stop internal goroutines
+
+	// 2. tell Binance stream to shut down (non‑blocking if already closed)
+	if ob.stopC != nil {
+		select {
+		case ob.stopC <- struct{}{}:
+		default:
+		}
+	}
+
+	// 3. wait for listener goroutine
+	ob.wg.Wait()
+	return nil
+}
+
+/* ======= utility helpers ======= */
+
+func (ob *BinanceOrderBook) Summary() {
+	log.Printf("NumUpdateCall: %d", atomic.LoadInt64(&ob.numUpdateCall))
+	log.Printf("NumSnapshotCall: %d", atomic.LoadInt64(&ob.numSnapshotCall))
 }
 
 func (ob *BinanceOrderBook) GetDepth(depth int) ([]PriceLevel, []PriceLevel, error) {
