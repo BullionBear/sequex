@@ -11,6 +11,7 @@ var _ Order = (*LimitOrder)(nil)
 var _ Order = (*StopMarketOrder)(nil)
 
 type MarketOrder struct {
+	ID         string          `json:"id"`
 	Instrument Instrument      `json:"instrument"`
 	Symbol     string          `json:"symbol"`
 	Side       Side            `json:"side"`
@@ -22,6 +23,7 @@ func (m MarketOrder) GetType() OrderType {
 }
 
 type LimitOrder struct {
+	ID          string          `json:"id"`
 	Instrument  Instrument      `json:"instrument"`
 	Symbol      string          `json:"symbol"`
 	Side        Side            `json:"side"`
