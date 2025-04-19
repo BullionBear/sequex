@@ -19,12 +19,12 @@ type OrderBook struct {
 	Timestamp    int64        `json:"timestamp"`
 }
 
-type BinanceOrderManager struct {
+type BinanceOrderBookManager struct {
 	OrderBooks map[InstrumentType]map[string]interface{}
 }
 
-func NewBinanceOrderManager() *BinanceOrderManager {
-	return &BinanceOrderManager{
+func NewBinanceOrderBookManager() *BinanceOrderBookManager {
+	return &BinanceOrderBookManager{
 		OrderBooks: map[InstrumentType]map[string]interface{}{
 			Spot:      make(map[string]interface{}),
 			Perpetual: make(map[string]interface{}),
@@ -32,7 +32,7 @@ func NewBinanceOrderManager() *BinanceOrderManager {
 	}
 }
 
-func (bom *BinanceOrderManager) CreateOrderBook(symbol string, instrumentType InstrumentType, updateSpeed UpdateSpeed) error {
+func (bom *BinanceOrderBookManager) CreateOrderBook(symbol string, instrumentType InstrumentType, updateSpeed UpdateSpeed) error {
 	if _, exists := bom.OrderBooks[instrumentType][symbol]; !exists {
 		if instrumentType == Spot {
 			bom.OrderBooks[instrumentType][symbol] = NewBinanceOrderBook(symbol, 500)
@@ -45,7 +45,7 @@ func (bom *BinanceOrderManager) CreateOrderBook(symbol string, instrumentType In
 	return nil
 }
 
-func (bom *BinanceOrderManager) CloseOrderBook(symbol string, instrumentType InstrumentType) {
+func (bom *BinanceOrderBookManager) CloseOrderBook(symbol string, instrumentType InstrumentType) {
 	if ob, exists := bom.OrderBooks[instrumentType][symbol]; exists {
 		if instrumentType == Spot {
 			ob.(*BinanceOrderBook).Close()
@@ -56,7 +56,7 @@ func (bom *BinanceOrderManager) CloseOrderBook(symbol string, instrumentType Ins
 	}
 }
 
-func (bom *BinanceOrderManager) GetOrderBook(symbol string, depth int, instrumentType InstrumentType) (*OrderBook, error) {
+func (bom *BinanceOrderBookManager) GetOrderBook(symbol string, depth int, instrumentType InstrumentType) (*OrderBook, error) {
 	if ob, exists := bom.OrderBooks[instrumentType][symbol]; exists {
 		if instrumentType == Spot {
 			spotBook := ob.(*BinanceOrderBook)
