@@ -2,6 +2,7 @@ package orderbook
 
 import (
 	"errors"
+	"fmt"
 
 	evbus "github.com/asaskevich/EventBus"
 )
@@ -39,6 +40,12 @@ func (bom *BinanceOrderBookManager) CreateOrderBook(symbol string, spd UpdateSpe
 		if err := bom.OrderBooks[symbol].Start(spd); err != nil {
 			return err
 		}
+		fmt.Printf("Registering OrderBook for %s\n", symbol)
+		bom.OrderBooks[symbol].SubscribeBestDepth(func(ask, bid PriceLevel) {
+			fmt.Printf("Publishing Ask: %+v\n", ask)
+			fmt.Printf("Publishing Bid: %+v\n", bid)
+			bom.eventBus.Publish(bom.channelName(symbol), ask, bid)
+		})
 	}
 	return nil
 }
@@ -65,6 +72,26 @@ func (bom *BinanceOrderBookManager) GetOrderBook(symbol string, depth int) (*Ord
 		}, nil
 	}
 	return nil, errors.New("order book not found")
+}
+
+func (bom *BinanceOrderBookManager) SubscribeBestDepth(symbol string, callback func(ask, bid PriceLevel)) error {
+	chName := bom.channelName(symbol)
+	fmt.Printf("Subscribing to channel: %s\n", chName)
+	if err := bom.eventBus.SubscribeAsync(chName, callback, false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (bom *BinanceOrderBookManager) UnsubscribeBestDepth(symbol string, callback func(ask, bid PriceLevel)) error {
+	if err := bom.eventBus.Unsubscribe(bom.channelName(symbol), callback); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (bom *BinanceOrderBookManager) channelName(symbol string) string {
+	return symbol + ":depth1"
 }
 
 type BinancePerpOrderBookManager struct {
