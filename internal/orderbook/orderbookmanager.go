@@ -2,6 +2,8 @@ package orderbook
 
 import (
 	"errors"
+
+	evbus "github.com/asaskevich/EventBus"
 )
 
 type InstrumentType int
@@ -21,11 +23,13 @@ type OrderBook struct {
 
 type BinanceOrderBookManager struct {
 	OrderBooks map[string]*BinanceOrderBook
+	eventBus   evbus.Bus
 }
 
 func NewBinanceOrderBookManager() *BinanceOrderBookManager {
 	return &BinanceOrderBookManager{
 		OrderBooks: make(map[string]*BinanceOrderBook),
+		eventBus:   evbus.New(),
 	}
 }
 
@@ -46,7 +50,7 @@ func (bom *BinanceOrderBookManager) CloseOrderBook(symbol string) {
 	}
 }
 
-func (bom *BinanceOrderBookManager) GetOrderBook(symbol string, depth int, instrumentType InstrumentType) (*OrderBook, error) {
+func (bom *BinanceOrderBookManager) GetOrderBook(symbol string, depth int) (*OrderBook, error) {
 	if ob, exists := bom.OrderBooks[symbol]; exists {
 		ask, bid, err := ob.GetDepth(depth)
 		if err != nil {
