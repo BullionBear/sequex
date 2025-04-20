@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package order;
+
+option go_package = "./protobuf/order";
+
+import "google/protobuf/timestamp.proto";
+import "google/type/decimal.proto";
+
+// BUY or SELL side of an order
+enum Side {
+  SIDE_UNSPECIFIED = 0;
+  BUY  = 1;
+  SELL = 2;
+}
+
+// Optional: how long a Limit Order remains active
+enum TimeInForce {
+  TIF_UNSPECIFIED = 0;
+  GTC = 1; // Good‑Till‑Cancelled
+  IOC = 2; // Immediate‑Or‑Cancel
+  FOK = 3; // Fill‑Or‑Kill
+}
+
+// ----- Order Request Messages -------------------------------------------
+
+message MarketOrderRequest {
+  string symbol  = 1;               // e.g. "BTCUSDT"
+  Side   side    = 2;               // BUY or SELL
+  google.type.Decimal quantity = 3;              // base‑asset size
+}
+
+message LimitOrderRequest {
+  string symbol        = 1;
+  Side   side          = 2;
+  google.type.Decimal quantity      = 3;
+  google.type.Decimal price         = 4;         // limit price
+  TimeInForce tif      = 5;         // time‑in‑force (optional)
+}
+
+message StopMarketOrderRequest {
+  string symbol      = 1;
+  Side   side        = 2;
+  google.type.Decimal quantity    = 3;
+  google.type.Decimal stop_price  = 4;           // trigger price for the stop
+}
+
+// ----- Generic Response ---------------------------------------------------
+
+message OrderResponse {
+  string order_id    = 1;           // exchange‑assigned order ID
+  string client_oid  = 2;           // echoed client‑provided ID (optional)
+  string status      = 3;           // initial status, e.g. "NEW"
+  int64  accepted_at = 4;           // server timestamp (epoch ms)
+}
+
+// ----- Service Definitions -----------------------------------------------
+
+// Spot market orders (e.g. BTC/USDT)
+service BinanceOrderService {
+  rpc PlaceMarketOrder      (MarketOrderRequest)      returns (OrderResponse);
+  rpc PlaceLimitOrder       (LimitOrderRequest)       returns (OrderResponse);
+  rpc PlaceStopMarketOrder  (StopMarketOrderRequest)  returns (OrderResponse);
+}
+
+// Perpetual futures orders (e.g. BTCUSDT‑PERP)
+service BinancePerpOrderService {
+  rpc PlaceMarketOrder      (MarketOrderRequest)      returns (OrderResponse);
+  rpc PlaceLimitOrder       (LimitOrderRequest)       returns (OrderResponse);
+  rpc PlaceStopMarketOrder  (StopMarketOrderRequest)  returns (OrderResponse);
+}
