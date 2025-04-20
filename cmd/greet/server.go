@@ -5,12 +5,12 @@ import (
 	"log"
 	"net"
 
-	pb "github.com/BullionBear/sequex/pkg/protobuf/greet" // Correct import path
+	pb "github.com/BullionBear/sequex/pkg/greet/v1" // Correct import path
 	"google.golang.org/grpc"
 )
 
 type server struct {
-	pb.UnimplementedGreeterServer
+	pb.UnimplementedGreeterServiceServer
 }
 
 func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
@@ -24,7 +24,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	pb.RegisterGreeterServer(s, &server{})
+	pb.RegisterGreeterServiceServer(s, &server{})
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

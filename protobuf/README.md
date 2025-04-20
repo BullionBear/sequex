@@ -49,17 +49,6 @@ Run the following command in the root of your project to create a `buf.yaml` fil
 buf config init
 ```
 
-### 0.6. Generate Code Using `buf`
-
-To generate Go code from your `.proto` files using `buf`, run:
-```bash
-buf generate
-```
-
-Make sure your `buf.gen.yaml` file is configured correctly for Go code generation.
-
----
-
 ## 1. Define the Service in a `.proto` File
 
 Create a file name `greet.proto` in a directory (e.g. `./proto/greet.proto`)

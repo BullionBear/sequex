@@ -8,10 +8,7 @@ LDFLAGS := -X '${PACKAGE}/env.Version=${VERSION}' \
            -X '${PACKAGE}/env.BuildTime=${BUILD_TIMESTAMP}'
 
 codegen:
-	protoc --go_out=pkg/ --go-grpc_out=pkg/ proto/greet.proto
-	protoc --go_out=pkg/ --go-grpc_out=pkg/ proto/sequex.proto
-	protoc --go_out=pkg/ --go-grpc_out=pkg/ proto/solvexity.proto
-	protoc --go_out=pkg/ --go-grpc_out=pkg/ proto/order.proto
+	buf generate
 
 build:
 	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/sequex/server.go

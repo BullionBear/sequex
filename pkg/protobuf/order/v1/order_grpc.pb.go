@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             (unknown)
-// source: protobuf/order/order.proto
+// source: protobuf/order/v1/order.proto
 
-package order
+package v1
 
 import (
 	context "context"
@@ -19,9 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	BinanceOrderService_PlaceMarketOrder_FullMethodName     = "/order.BinanceOrderService/PlaceMarketOrder"
-	BinanceOrderService_PlaceLimitOrder_FullMethodName      = "/order.BinanceOrderService/PlaceLimitOrder"
-	BinanceOrderService_PlaceStopMarketOrder_FullMethodName = "/order.BinanceOrderService/PlaceStopMarketOrder"
+	BinanceOrderService_PlaceMarketOrder_FullMethodName     = "/order.v1.BinanceOrderService/PlaceMarketOrder"
+	BinanceOrderService_PlaceLimitOrder_FullMethodName      = "/order.v1.BinanceOrderService/PlaceLimitOrder"
+	BinanceOrderService_PlaceStopMarketOrder_FullMethodName = "/order.v1.BinanceOrderService/PlaceStopMarketOrder"
 )
 
 // BinanceOrderServiceClient is the client API for BinanceOrderService service.
@@ -30,9 +30,9 @@ const (
 //
 // Spot market orders (e.g. BTC/USDT)
 type BinanceOrderServiceClient interface {
-	PlaceMarketOrder(ctx context.Context, in *MarketOrderRequest, opts ...grpc.CallOption) (*OrderResponse, error)
-	PlaceLimitOrder(ctx context.Context, in *LimitOrderRequest, opts ...grpc.CallOption) (*OrderResponse, error)
-	PlaceStopMarketOrder(ctx context.Context, in *StopMarketOrderRequest, opts ...grpc.CallOption) (*OrderResponse, error)
+	PlaceMarketOrder(ctx context.Context, in *PlaceMarketOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error)
+	PlaceLimitOrder(ctx context.Context, in *PlaceLimitOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error)
+	PlaceStopMarketOrder(ctx context.Context, in *PlaceStopMarketOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error)
 }
 
 type binanceOrderServiceClient struct {
@@ -43,9 +43,9 @@ func NewBinanceOrderServiceClient(cc grpc.ClientConnInterface) BinanceOrderServi
 	return &binanceOrderServiceClient{cc}
 }
 
-func (c *binanceOrderServiceClient) PlaceMarketOrder(ctx context.Context, in *MarketOrderRequest, opts ...grpc.CallOption) (*OrderResponse, error) {
+func (c *binanceOrderServiceClient) PlaceMarketOrder(ctx context.Context, in *PlaceMarketOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(OrderResponse)
+	out := new(PlaceOrderResponse)
 	err := c.cc.Invoke(ctx, BinanceOrderService_PlaceMarketOrder_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -53,9 +53,9 @@ func (c *binanceOrderServiceClient) PlaceMarketOrder(ctx context.Context, in *Ma
 	return out, nil
 }
 
-func (c *binanceOrderServiceClient) PlaceLimitOrder(ctx context.Context, in *LimitOrderRequest, opts ...grpc.CallOption) (*OrderResponse, error) {
+func (c *binanceOrderServiceClient) PlaceLimitOrder(ctx context.Context, in *PlaceLimitOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(OrderResponse)
+	out := new(PlaceOrderResponse)
 	err := c.cc.Invoke(ctx, BinanceOrderService_PlaceLimitOrder_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -63,9 +63,9 @@ func (c *binanceOrderServiceClient) PlaceLimitOrder(ctx context.Context, in *Lim
 	return out, nil
 }
 
-func (c *binanceOrderServiceClient) PlaceStopMarketOrder(ctx context.Context, in *StopMarketOrderRequest, opts ...grpc.CallOption) (*OrderResponse, error) {
+func (c *binanceOrderServiceClient) PlaceStopMarketOrder(ctx context.Context, in *PlaceStopMarketOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(OrderResponse)
+	out := new(PlaceOrderResponse)
 	err := c.cc.Invoke(ctx, BinanceOrderService_PlaceStopMarketOrder_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -79,9 +79,9 @@ func (c *binanceOrderServiceClient) PlaceStopMarketOrder(ctx context.Context, in
 //
 // Spot market orders (e.g. BTC/USDT)
 type BinanceOrderServiceServer interface {
-	PlaceMarketOrder(context.Context, *MarketOrderRequest) (*OrderResponse, error)
-	PlaceLimitOrder(context.Context, *LimitOrderRequest) (*OrderResponse, error)
-	PlaceStopMarketOrder(context.Context, *StopMarketOrderRequest) (*OrderResponse, error)
+	PlaceMarketOrder(context.Context, *PlaceMarketOrderRequest) (*PlaceOrderResponse, error)
+	PlaceLimitOrder(context.Context, *PlaceLimitOrderRequest) (*PlaceOrderResponse, error)
+	PlaceStopMarketOrder(context.Context, *PlaceStopMarketOrderRequest) (*PlaceOrderResponse, error)
 	mustEmbedUnimplementedBinanceOrderServiceServer()
 }
 
@@ -92,13 +92,13 @@ type BinanceOrderServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedBinanceOrderServiceServer struct{}
 
-func (UnimplementedBinanceOrderServiceServer) PlaceMarketOrder(context.Context, *MarketOrderRequest) (*OrderResponse, error) {
+func (UnimplementedBinanceOrderServiceServer) PlaceMarketOrder(context.Context, *PlaceMarketOrderRequest) (*PlaceOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PlaceMarketOrder not implemented")
 }
-func (UnimplementedBinanceOrderServiceServer) PlaceLimitOrder(context.Context, *LimitOrderRequest) (*OrderResponse, error) {
+func (UnimplementedBinanceOrderServiceServer) PlaceLimitOrder(context.Context, *PlaceLimitOrderRequest) (*PlaceOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PlaceLimitOrder not implemented")
 }
-func (UnimplementedBinanceOrderServiceServer) PlaceStopMarketOrder(context.Context, *StopMarketOrderRequest) (*OrderResponse, error) {
+func (UnimplementedBinanceOrderServiceServer) PlaceStopMarketOrder(context.Context, *PlaceStopMarketOrderRequest) (*PlaceOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PlaceStopMarketOrder not implemented")
 }
 func (UnimplementedBinanceOrderServiceServer) mustEmbedUnimplementedBinanceOrderServiceServer() {}
@@ -123,7 +123,7 @@ func RegisterBinanceOrderServiceServer(s grpc.ServiceRegistrar, srv BinanceOrder
 }
 
 func _BinanceOrderService_PlaceMarketOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MarketOrderRequest)
+	in := new(PlaceMarketOrderRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -135,13 +135,13 @@ func _BinanceOrderService_PlaceMarketOrder_Handler(srv interface{}, ctx context.
 		FullMethod: BinanceOrderService_PlaceMarketOrder_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BinanceOrderServiceServer).PlaceMarketOrder(ctx, req.(*MarketOrderRequest))
+		return srv.(BinanceOrderServiceServer).PlaceMarketOrder(ctx, req.(*PlaceMarketOrderRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _BinanceOrderService_PlaceLimitOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LimitOrderRequest)
+	in := new(PlaceLimitOrderRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -153,13 +153,13 @@ func _BinanceOrderService_PlaceLimitOrder_Handler(srv interface{}, ctx context.C
 		FullMethod: BinanceOrderService_PlaceLimitOrder_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BinanceOrderServiceServer).PlaceLimitOrder(ctx, req.(*LimitOrderRequest))
+		return srv.(BinanceOrderServiceServer).PlaceLimitOrder(ctx, req.(*PlaceLimitOrderRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _BinanceOrderService_PlaceStopMarketOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StopMarketOrderRequest)
+	in := new(PlaceStopMarketOrderRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func _BinanceOrderService_PlaceStopMarketOrder_Handler(srv interface{}, ctx cont
 		FullMethod: BinanceOrderService_PlaceStopMarketOrder_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BinanceOrderServiceServer).PlaceStopMarketOrder(ctx, req.(*StopMarketOrderRequest))
+		return srv.(BinanceOrderServiceServer).PlaceStopMarketOrder(ctx, req.(*PlaceStopMarketOrderRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -180,7 +180,7 @@ func _BinanceOrderService_PlaceStopMarketOrder_Handler(srv interface{}, ctx cont
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var BinanceOrderService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "order.BinanceOrderService",
+	ServiceName: "order.v1.BinanceOrderService",
 	HandlerType: (*BinanceOrderServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -197,13 +197,13 @@ var BinanceOrderService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "protobuf/order/order.proto",
+	Metadata: "protobuf/order/v1/order.proto",
 }
 
 const (
-	BinancePerpOrderService_PlaceMarketOrder_FullMethodName     = "/order.BinancePerpOrderService/PlaceMarketOrder"
-	BinancePerpOrderService_PlaceLimitOrder_FullMethodName      = "/order.BinancePerpOrderService/PlaceLimitOrder"
-	BinancePerpOrderService_PlaceStopMarketOrder_FullMethodName = "/order.BinancePerpOrderService/PlaceStopMarketOrder"
+	BinancePerpOrderService_PlaceMarketOrder_FullMethodName     = "/order.v1.BinancePerpOrderService/PlaceMarketOrder"
+	BinancePerpOrderService_PlaceLimitOrder_FullMethodName      = "/order.v1.BinancePerpOrderService/PlaceLimitOrder"
+	BinancePerpOrderService_PlaceStopMarketOrder_FullMethodName = "/order.v1.BinancePerpOrderService/PlaceStopMarketOrder"
 )
 
 // BinancePerpOrderServiceClient is the client API for BinancePerpOrderService service.
@@ -212,9 +212,9 @@ const (
 //
 // Perpetual futures orders (e.g. BTCUSDT‑PERP)
 type BinancePerpOrderServiceClient interface {
-	PlaceMarketOrder(ctx context.Context, in *MarketOrderRequest, opts ...grpc.CallOption) (*OrderResponse, error)
-	PlaceLimitOrder(ctx context.Context, in *LimitOrderRequest, opts ...grpc.CallOption) (*OrderResponse, error)
-	PlaceStopMarketOrder(ctx context.Context, in *StopMarketOrderRequest, opts ...grpc.CallOption) (*OrderResponse, error)
+	PlaceMarketOrder(ctx context.Context, in *PlaceMarketOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error)
+	PlaceLimitOrder(ctx context.Context, in *PlaceLimitOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error)
+	PlaceStopMarketOrder(ctx context.Context, in *PlaceStopMarketOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error)
 }
 
 type binancePerpOrderServiceClient struct {
@@ -225,9 +225,9 @@ func NewBinancePerpOrderServiceClient(cc grpc.ClientConnInterface) BinancePerpOr
 	return &binancePerpOrderServiceClient{cc}
 }
 
-func (c *binancePerpOrderServiceClient) PlaceMarketOrder(ctx context.Context, in *MarketOrderRequest, opts ...grpc.CallOption) (*OrderResponse, error) {
+func (c *binancePerpOrderServiceClient) PlaceMarketOrder(ctx context.Context, in *PlaceMarketOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(OrderResponse)
+	out := new(PlaceOrderResponse)
 	err := c.cc.Invoke(ctx, BinancePerpOrderService_PlaceMarketOrder_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -235,9 +235,9 @@ func (c *binancePerpOrderServiceClient) PlaceMarketOrder(ctx context.Context, in
 	return out, nil
 }
 
-func (c *binancePerpOrderServiceClient) PlaceLimitOrder(ctx context.Context, in *LimitOrderRequest, opts ...grpc.CallOption) (*OrderResponse, error) {
+func (c *binancePerpOrderServiceClient) PlaceLimitOrder(ctx context.Context, in *PlaceLimitOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(OrderResponse)
+	out := new(PlaceOrderResponse)
 	err := c.cc.Invoke(ctx, BinancePerpOrderService_PlaceLimitOrder_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -245,9 +245,9 @@ func (c *binancePerpOrderServiceClient) PlaceLimitOrder(ctx context.Context, in 
 	return out, nil
 }
 
-func (c *binancePerpOrderServiceClient) PlaceStopMarketOrder(ctx context.Context, in *StopMarketOrderRequest, opts ...grpc.CallOption) (*OrderResponse, error) {
+func (c *binancePerpOrderServiceClient) PlaceStopMarketOrder(ctx context.Context, in *PlaceStopMarketOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(OrderResponse)
+	out := new(PlaceOrderResponse)
 	err := c.cc.Invoke(ctx, BinancePerpOrderService_PlaceStopMarketOrder_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -261,9 +261,9 @@ func (c *binancePerpOrderServiceClient) PlaceStopMarketOrder(ctx context.Context
 //
 // Perpetual futures orders (e.g. BTCUSDT‑PERP)
 type BinancePerpOrderServiceServer interface {
-	PlaceMarketOrder(context.Context, *MarketOrderRequest) (*OrderResponse, error)
-	PlaceLimitOrder(context.Context, *LimitOrderRequest) (*OrderResponse, error)
-	PlaceStopMarketOrder(context.Context, *StopMarketOrderRequest) (*OrderResponse, error)
+	PlaceMarketOrder(context.Context, *PlaceMarketOrderRequest) (*PlaceOrderResponse, error)
+	PlaceLimitOrder(context.Context, *PlaceLimitOrderRequest) (*PlaceOrderResponse, error)
+	PlaceStopMarketOrder(context.Context, *PlaceStopMarketOrderRequest) (*PlaceOrderResponse, error)
 	mustEmbedUnimplementedBinancePerpOrderServiceServer()
 }
 
@@ -274,13 +274,13 @@ type BinancePerpOrderServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedBinancePerpOrderServiceServer struct{}
 
-func (UnimplementedBinancePerpOrderServiceServer) PlaceMarketOrder(context.Context, *MarketOrderRequest) (*OrderResponse, error) {
+func (UnimplementedBinancePerpOrderServiceServer) PlaceMarketOrder(context.Context, *PlaceMarketOrderRequest) (*PlaceOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PlaceMarketOrder not implemented")
 }
-func (UnimplementedBinancePerpOrderServiceServer) PlaceLimitOrder(context.Context, *LimitOrderRequest) (*OrderResponse, error) {
+func (UnimplementedBinancePerpOrderServiceServer) PlaceLimitOrder(context.Context, *PlaceLimitOrderRequest) (*PlaceOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PlaceLimitOrder not implemented")
 }
-func (UnimplementedBinancePerpOrderServiceServer) PlaceStopMarketOrder(context.Context, *StopMarketOrderRequest) (*OrderResponse, error) {
+func (UnimplementedBinancePerpOrderServiceServer) PlaceStopMarketOrder(context.Context, *PlaceStopMarketOrderRequest) (*PlaceOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PlaceStopMarketOrder not implemented")
 }
 func (UnimplementedBinancePerpOrderServiceServer) mustEmbedUnimplementedBinancePerpOrderServiceServer() {
@@ -306,7 +306,7 @@ func RegisterBinancePerpOrderServiceServer(s grpc.ServiceRegistrar, srv BinanceP
 }
 
 func _BinancePerpOrderService_PlaceMarketOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MarketOrderRequest)
+	in := new(PlaceMarketOrderRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -318,13 +318,13 @@ func _BinancePerpOrderService_PlaceMarketOrder_Handler(srv interface{}, ctx cont
 		FullMethod: BinancePerpOrderService_PlaceMarketOrder_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BinancePerpOrderServiceServer).PlaceMarketOrder(ctx, req.(*MarketOrderRequest))
+		return srv.(BinancePerpOrderServiceServer).PlaceMarketOrder(ctx, req.(*PlaceMarketOrderRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _BinancePerpOrderService_PlaceLimitOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LimitOrderRequest)
+	in := new(PlaceLimitOrderRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -336,13 +336,13 @@ func _BinancePerpOrderService_PlaceLimitOrder_Handler(srv interface{}, ctx conte
 		FullMethod: BinancePerpOrderService_PlaceLimitOrder_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BinancePerpOrderServiceServer).PlaceLimitOrder(ctx, req.(*LimitOrderRequest))
+		return srv.(BinancePerpOrderServiceServer).PlaceLimitOrder(ctx, req.(*PlaceLimitOrderRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _BinancePerpOrderService_PlaceStopMarketOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StopMarketOrderRequest)
+	in := new(PlaceStopMarketOrderRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -354,7 +354,7 @@ func _BinancePerpOrderService_PlaceStopMarketOrder_Handler(srv interface{}, ctx 
 		FullMethod: BinancePerpOrderService_PlaceStopMarketOrder_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BinancePerpOrderServiceServer).PlaceStopMarketOrder(ctx, req.(*StopMarketOrderRequest))
+		return srv.(BinancePerpOrderServiceServer).PlaceStopMarketOrder(ctx, req.(*PlaceStopMarketOrderRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -363,7 +363,7 @@ func _BinancePerpOrderService_PlaceStopMarketOrder_Handler(srv interface{}, ctx 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var BinancePerpOrderService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "order.BinancePerpOrderService",
+	ServiceName: "order.v1.BinancePerpOrderService",
 	HandlerType: (*BinancePerpOrderServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -380,5 +380,5 @@ var BinancePerpOrderService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "protobuf/order/order.proto",
+	Metadata: "protobuf/order/v1/order.proto",
 }

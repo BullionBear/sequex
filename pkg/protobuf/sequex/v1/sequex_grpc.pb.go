@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             (unknown)
-// source: protobuf/sequex/sequex.proto
+// source: protobuf/sequex/v1/sequex.proto
 
 package sequex
 
@@ -115,5 +115,5 @@ var SequexService_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "protobuf/sequex/sequex.proto",
+	Metadata: "protobuf/sequex/v1/sequex.proto",
 }

@@ -1,35 +1,35 @@
 syntax = "proto3";
 
-package order;
+package order.v1;
 
-option go_package = "./protobuf/order";
+option go_package = "./protobuf/order/v1";
 
 import "google/protobuf/timestamp.proto";
 
 // BUY or SELL side of an order
 enum Side {
   SIDE_UNSPECIFIED = 0;
-  BUY  = 1;
-  SELL = 2;
+  SIDE_BUY  = 1;
+  SIDE_SELL = 2;
 }
 
 // Optional: how long a Limit Order remains active
 enum TimeInForce {
-  TIF_UNSPECIFIED = 0;
-  GTC = 1; // Good‑Till‑Cancelled
-  IOC = 2; // Immediate‑Or‑Cancel
-  FOK = 3; // Fill‑Or‑Kill
+  TIME_IN_FORCE_UNSPECIFIED = 0;
+  TIME_IN_FORCE_GTC = 1; // Good‑Till‑Cancelled
+  TIME_IN_FORCE_IOC = 2; // Immediate‑Or‑Cancel
+  TIME_IN_FORCE_FOK = 3; // Fill‑Or‑Kill
 }
 
 // ----- Order Request Messages -------------------------------------------
 
-message MarketOrderRequest {
+message PlaceMarketOrderRequest {
   string symbol  = 1;               // e.g. "BTCUSDT"
   Side   side    = 2;               // BUY or SELL
   string quantity = 3;              // base‑asset size
 }
 
-message LimitOrderRequest {
+message PlaceLimitOrderRequest {
   string symbol        = 1;
   Side   side          = 2;
   string quantity      = 3;
@@ -37,7 +37,7 @@ message LimitOrderRequest {
   TimeInForce tif      = 5;         // time‑in‑force (optional)
 }
 
-message StopMarketOrderRequest {
+message PlaceStopMarketOrderRequest {
   string symbol      = 1;
   Side   side        = 2;
   string quantity    = 3;
@@ -46,7 +46,7 @@ message StopMarketOrderRequest {
 
 // ----- Generic Response ---------------------------------------------------
 
-message OrderResponse {
+message PlaceOrderResponse {
   string order_id    = 1;           // exchange‑assigned order ID
   string client_oid  = 2;           // echoed client‑provided ID (optional)
   string status      = 3;           // initial status, e.g. "NEW"
@@ -57,14 +57,14 @@ message OrderResponse {
 
 // Spot market orders (e.g. BTC/USDT)
 service BinanceOrderService {
-  rpc PlaceMarketOrder      (MarketOrderRequest)      returns (OrderResponse);
-  rpc PlaceLimitOrder       (LimitOrderRequest)       returns (OrderResponse);
-  rpc PlaceStopMarketOrder  (StopMarketOrderRequest)  returns (OrderResponse);
+  rpc PlaceMarketOrder      (PlaceMarketOrderRequest)      returns (PlaceOrderResponse);
+  rpc PlaceLimitOrder       (PlaceLimitOrderRequest)       returns (PlaceOrderResponse);
+  rpc PlaceStopMarketOrder  (PlaceStopMarketOrderRequest)  returns (PlaceOrderResponse);
 }
 
 // Perpetual futures orders (e.g. BTCUSDT‑PERP)
 service BinancePerpOrderService {
-  rpc PlaceMarketOrder      (MarketOrderRequest)      returns (OrderResponse);
-  rpc PlaceLimitOrder       (LimitOrderRequest)       returns (OrderResponse);
-  rpc PlaceStopMarketOrder  (StopMarketOrderRequest)  returns (OrderResponse);
+  rpc PlaceMarketOrder      (PlaceMarketOrderRequest)      returns (PlaceOrderResponse);
+  rpc PlaceLimitOrder       (PlaceLimitOrderRequest)       returns (PlaceOrderResponse);
+  rpc PlaceStopMarketOrder  (PlaceStopMarketOrderRequest)  returns (PlaceOrderResponse);
 }
