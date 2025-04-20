@@ -5,7 +5,6 @@ package order;
 option go_package = "./protobuf/order";
 
 import "google/protobuf/timestamp.proto";
-import "google/type/decimal.proto";
 
 // BUY or SELL side of an order
 enum Side {
@@ -27,22 +26,22 @@ enum TimeInForce {
 message MarketOrderRequest {
   string symbol  = 1;               // e.g. "BTCUSDT"
   Side   side    = 2;               // BUY or SELL
-  google.type.Decimal quantity = 3;              // base‑asset size
+  string quantity = 3;              // base‑asset size
 }
 
 message LimitOrderRequest {
   string symbol        = 1;
   Side   side          = 2;
-  google.type.Decimal quantity      = 3;
-  google.type.Decimal price         = 4;         // limit price
+  string quantity      = 3;
+  string price         = 4;         // limit price
   TimeInForce tif      = 5;         // time‑in‑force (optional)
 }
 
 message StopMarketOrderRequest {
   string symbol      = 1;
   Side   side        = 2;
-  google.type.Decimal quantity    = 3;
-  google.type.Decimal stop_price  = 4;           // trigger price for the stop
+  string quantity    = 3;
+  string stop_price  = 4;           // trigger price for the stop
 }
 
 // ----- Generic Response ---------------------------------------------------
