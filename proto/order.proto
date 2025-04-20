@@ -1,84 +1,71 @@
 syntax = "proto3";
 
-package orderservice;
+package order;
 
-option go_package = "orderservicepb";
+option go_package = "./protobuf/order";
 
-// === ENUMS ===
+import "google/protobuf/timestamp.proto";
+import "google/type/decimal.proto";
 
-enum OrderSide {
-  BUY = 0;
-  SELL = 1;
+// BUY or SELL side of an order
+enum Side {
+  SIDE_UNSPECIFIED = 0;
+  BUY  = 1;
+  SELL = 2;
 }
 
+// Optional: how long a Limit Order remains active
 enum TimeInForce {
-  GTC = 0; // Good Till Canceled
-  IOC = 1; // Immediate or Cancel
-  FOK = 2; // Fill or Kill
+  TIF_UNSPECIFIED = 0;
+  GTC = 1; // Good‑Till‑Cancelled
+  IOC = 2; // Immediate‑Or‑Cancel
+  FOK = 3; // Fill‑Or‑Kill
 }
 
-// === BASIC ORDER TYPES ===
+// ----- Order Request Messages -------------------------------------------
 
-message LimitOrder {
-  double price = 1;
-  TimeInForce time_in_force = 2;
+message MarketOrderRequest {
+  string symbol  = 1;               // e.g. "BTCUSDT"
+  Side   side    = 2;               // BUY or SELL
+  google.type.Decimal quantity = 3;              // base‑asset size
 }
 
-message MarketOrder {
-  TimeInForce time_in_force = 1;
+message LimitOrderRequest {
+  string symbol        = 1;
+  Side   side          = 2;
+  google.type.Decimal quantity      = 3;
+  google.type.Decimal price         = 4;         // limit price
+  TimeInForce tif      = 5;         // time‑in‑force (optional)
 }
 
-message StopOrder {
-  double stop_price = 1;
-  double price = 2; // price to execute at once triggered
-  TimeInForce time_in_force = 3;
+message StopMarketOrderRequest {
+  string symbol      = 1;
+  Side   side        = 2;
+  google.type.Decimal quantity    = 3;
+  google.type.Decimal stop_price  = 4;           // trigger price for the stop
 }
 
-// === COMPOSITE ORDER TYPES ===
-
-message OCOOrder {
-  OrderRequest order1 = 1;
-  OrderRequest order2 = 2;
-}
-
-message IFDOrder {
-  OrderRequest primary = 1;
-  repeated OrderRequest secondaries = 2;
-}
-
-// === ROOT ORDER REQUEST ===
-
-message OrderRequest {
-  string symbol = 1;
-  OrderSide side = 2;
-  double quantity = 3;
-  optional string client_order_id = 4;
-  optional int64 time_to_live = 5;
-
-  oneof order_type {
-    LimitOrder limit = 4;
-    MarketOrder market = 5;
-    StopOrder stop = 6;
-    OCOOrder oco = 7;
-    IFDOrder ifd = 8;
-  }
-}
-
-// === SUBMISSION AND RESPONSE ===
-
-message SubmitOrderRequest {
-  OrderRequest order = 1;
-  string client_id = 2;
-}
+// ----- Generic Response ---------------------------------------------------
 
 message OrderResponse {
-  string order_id = 1;
-  string status = 2;
-  string message = 3;
+  string order_id    = 1;           // exchange‑assigned order ID
+  string client_oid  = 2;           // echoed client‑provided ID (optional)
+  string status      = 3;           // initial status, e.g. "NEW"
+  int64  accepted_at = 4;           // server timestamp (epoch ms)
 }
 
-// === ORDER SERVICE ===
+// ----- Service Definitions -----------------------------------------------
 
-service OrderService {
-  rpc SubmitOrder(SubmitOrderRequest) returns (OrderResponse);
+// Spot market orders (e.g. BTC/USDT)
+service BinanceOrderService {
+  rpc PlaceMarketOrder      (MarketOrderRequest)      returns (OrderResponse);
+  rpc PlaceLimitOrder       (LimitOrderRequest)       returns (OrderResponse);
+  rpc PlaceStopMarketOrder  (StopMarketOrderRequest)  returns (OrderResponse);
+}
+
+// Perpetual futures orders (e.g. BTCUSDT‑PERP)
+service BinancePerpOrderService {
+  rpc PlaceMarketOrder      (MarketOrderRequest)      returns (OrderResponse);
+  rpc PlaceLimitOrder       (LimitOrderRequest)       returns (OrderResponse);
+  rpc PlaceStopMarketOrder  (StopMarketOrderRequest)  returns (OrderResponse);
 }
