@@ -1,4 +1,4 @@
-package ordertype
+package order
 
 import "fmt"
 

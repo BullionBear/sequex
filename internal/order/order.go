@@ -1,4 +1,4 @@
-package ordertype
+package order
 
 import "github.com/shopspring/decimal"
 
@@ -14,11 +14,10 @@ var _ Order = (*OneCancelsOtherOrder)(nil)
 var _ Order = (*IfDoneOrder)(nil)
 
 type MarketOrder struct {
-	ID         string          `json:"id"`
-	Instrument Instrument      `json:"instrument"`
-	Symbol     string          `json:"symbol"`
-	Side       Side            `json:"side"`
-	Quantity   decimal.Decimal `json:"quantity"`
+	ClientOrderID string          `json:"client_order_id"`
+	Symbol        string          `json:"symbol"`
+	Side          Side            `json:"side"`
+	Quantity      decimal.Decimal `json:"quantity"`
 }
 
 func (m MarketOrder) GetType() OrderType {
@@ -26,13 +25,12 @@ func (m MarketOrder) GetType() OrderType {
 }
 
 type LimitOrder struct {
-	ID          string          `json:"id"`
-	Instrument  Instrument      `json:"instrument"`
-	Symbol      string          `json:"symbol"`
-	Side        Side            `json:"side"`
-	Quantity    decimal.Decimal `json:"quantity"`
-	Price       decimal.Decimal `json:"price"`
-	TimeInForce TimeInForce     `json:"time_in_force"`
+	ClientOrderID string          `json:"client_order_id"`
+	Symbol        string          `json:"symbol"`
+	Side          Side            `json:"side"`
+	Quantity      decimal.Decimal `json:"quantity"`
+	Price         decimal.Decimal `json:"price"`
+	TimeInForce   TimeInForce     `json:"time_in_force"`
 }
 
 func (l LimitOrder) GetType() OrderType {
@@ -40,11 +38,11 @@ func (l LimitOrder) GetType() OrderType {
 }
 
 type StopMarketOrder struct {
-	Instrument Instrument      `json:"instrument"`
-	Symbol     string          `json:"symbol"`
-	Side       Side            `json:"side"`
-	Quantity   decimal.Decimal `json:"quantity"`
-	StopPrice  decimal.Decimal `json:"stop_price"`
+	ClientOrderID string          `json:"client_order_id"`
+	Symbol        string          `json:"symbol"`
+	Side          Side            `json:"side"`
+	Quantity      decimal.Decimal `json:"quantity"`
+	StopPrice     decimal.Decimal `json:"stop_price"`
 }
 
 func (s StopMarketOrder) GetType() OrderType {
@@ -52,11 +50,11 @@ func (s StopMarketOrder) GetType() OrderType {
 }
 
 type TrailingStopMarketOrder struct {
-	Instrument   Instrument      `json:"instrument"`
-	Symbol       string          `json:"symbol"`
-	Side         Side            `json:"side"`
-	Quantity     decimal.Decimal `json:"quantity"`
-	TrailingStop decimal.Decimal `json:"trailing_stop"`
+	ClientOrderID string          `json:"client_order_id"`
+	Symbol        string          `json:"symbol"`
+	Side          Side            `json:"side"`
+	Quantity      decimal.Decimal `json:"quantity"`
+	TrailingStop  decimal.Decimal `json:"trailing_stop"`
 }
 
 func (t TrailingStopMarketOrder) GetType() OrderType {

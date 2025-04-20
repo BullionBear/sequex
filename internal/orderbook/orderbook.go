@@ -12,6 +12,7 @@ import (
 	"github.com/adshao/go-binance/v2"
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/emirpasic/gods/maps/treemap"
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -159,6 +160,8 @@ type BinanceOrderBook struct {
 	stopC   chan struct{}              // <- signal to underlying WS service
 	doneC   chan struct{}              // <- closed by WS service on exit
 
+	subscriber sync.Map // map[depth int]func(ask, bid []PriceLevel)
+
 	/* ======= coordination ======= */
 	ctx    context.Context    // global cancel point for all goroutines
 	cancel context.CancelFunc // paired with ctx
@@ -249,6 +252,19 @@ func (ob *BinanceOrderBook) listen() {
 			return
 		case ev := <-ob.eventCh: // main path
 			ob.handleDepthEvent(client, ev)
+			bestAskLayer, err := ob.Asks.GetBestLayer(true)
+			// get best ask layer
+			if err != nil {
+				log.Printf("[%s] error getting best ask layer: %v", ob.Symbol, err)
+				continue
+			}
+			bestBidLayer, err := ob.Bids.GetBestLayer(false)
+			if err != nil {
+				log.Printf("[%s] error getting best bid layer: %v", ob.Symbol, err)
+				continue
+			}
+			ob.Bids.GetBestLayer(false)
+			ob.publishBestDepth(bestAskLayer, bestBidLayer)
 		}
 	}
 }
@@ -296,6 +312,23 @@ func (ob *BinanceOrderBook) handleDepthEvent(cl *binance.Client, ev *binance.WsD
 	default:
 		log.Printf("[%s] unexpected depth‑event ordering", ob.Symbol)
 	}
+}
+
+func (ob *BinanceOrderBook) SubscribeBestDepth(handler func(ask, bid PriceLevel)) func() {
+	id := uuid.New().String()
+	ob.subscriber.Store(id, handler)
+	return func() {
+		ob.subscriber.Delete(id)
+	}
+}
+
+func (ob *BinanceOrderBook) publishBestDepth(ask, bid PriceLevel) {
+	ob.subscriber.Range(func(key, value interface{}) bool {
+		if handler, ok := value.(func(ask, bid PriceLevel)); ok {
+			handler(ask, bid)
+		}
+		return true
+	})
 }
 
 /*
