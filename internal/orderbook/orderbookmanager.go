@@ -74,13 +74,17 @@ func (bom *BinanceOrderBookManager) GetOrderBook(symbol string, depth int) (*Ord
 	return nil, errors.New("order book not found")
 }
 
-func (bom *BinanceOrderBookManager) SubscribeBestDepth(symbol string, callback func(ask, bid PriceLevel)) error {
+func (bom *BinanceOrderBookManager) SubscribeBestDepth(symbol string, callback func(ask, bid PriceLevel)) (func(), error) {
 	chName := bom.channelName(symbol)
 	fmt.Printf("Subscribing to channel: %s\n", chName)
 	if err := bom.eventBus.SubscribeAsync(chName, callback, false); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return func() {
+		if err := bom.eventBus.Unsubscribe(chName, callback); err != nil {
+			fmt.Printf("Failed to unsubscribe from channel: %s\n", chName)
+		}
+	}, nil
 }
 
 func (bom *BinanceOrderBookManager) UnsubscribeBestDepth(symbol string, callback func(ask, bid PriceLevel)) error {
