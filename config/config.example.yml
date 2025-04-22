@@ -14,15 +14,11 @@ accounts:
       api_key: "your_api_key_here"
       api_secret: "your_api_secret_here
 
-orderbook:
+market:
   binance:
-    - symbol: "BTCUSDT"
-      depth: 5
-    - symbol: "ETHUSDT"
-      depth: 5
+    - "BTCUSDT"
+    - "ETHUSDT"
   binanceperp:
-    - symbol: "BTCUSDT"
-      depth: 5
-    - symbol: "ETHUSDT"
-      depth: 5
+    - "BTCUSDT"
+    - "ETHUSDT"
 
