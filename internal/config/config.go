@@ -1,56 +1,33 @@
 package config
 
 import (
-	"encoding/json"
 	"os"
-	"sync"
+
+	"gopkg.in/yaml.v3"
 )
 
+type Account struct {
+	Name      string `yaml:"name"`
+	APIKey    string `yaml:"api_key"`
+	APISecret string `yaml:"api_secret"`
+}
+
 type Config struct {
-	Sequex struct {
-		Host string `json:"host"`
-		Port int    `json:"port"`
-	} `json:"sequex"`
-	Solvexity struct {
-		Host string `json:"host"`
-		Port int    `json:"port"`
-	} `json:"solvexity"`
+	Accounts map[string][]Account `yaml:"accounts"`
+	Market   map[string][]string  `yaml:"market"`
 }
 
-type Domain struct {
-	rwMux sync.RWMutex
-	c     *Config
-}
+func LoadConfig(path string) (*Config, error) {
+	cfg := &Config{}
 
-func NewDomain(path string) *Domain {
-	config, err := loadConfig(path)
-	if err != nil {
-		panic(err) // Handle the error
-	}
-	return &Domain{
-		c: config,
-	}
-}
-
-func loadConfig(path string) (*Config, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var config Config
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&config)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	return &config, nil
-}
+	if err := yaml.Unmarshal(data, cfg); err != nil {
+		return nil, err
+	}
 
-func (d *Domain) GetConfig() *Config {
-	d.rwMux.RLock()
-	defer d.rwMux.RUnlock()
-	return d.c
+	return cfg, nil
 }

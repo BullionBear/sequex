@@ -4,13 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/BullionBear/sequex/internal/config"
 	"github.com/BullionBear/sequex/pkg/mq"
 	pbSequex "github.com/BullionBear/sequex/pkg/protobuf/sequex"
 )
@@ -74,26 +70,28 @@ func main() {
 
 	// Use the flag value
 	fmt.Println("Config file:", *path)
-	conf := config.NewDomain(*path)
-	// Resource
+	/*
+		conf := config.NewDomain(*path)
+		// Resource
 
-	// Set up trading pipeline.
-	conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", conf.GetConfig().Solvexity.Host, conf.GetConfig().Solvexity.Port),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
-	}
-	defer conn.Close()
+		// Set up trading pipeline.
+		conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", conf.GetConfig().Solvexity.Host, conf.GetConfig().Solvexity.Port),
+			grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Fatalf("did not connect: %v", err)
+		}
+		defer conn.Close()
 
-	// Start the gRPC server
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GetConfig().Sequex.Port))
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-	grpcServer := grpc.NewServer()
-	pbSequex.RegisterSequexServiceServer(grpcServer, &SequexServer{})
-	log.Println("Server is running on port 50051")
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
-	}
+		// Start the gRPC server
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GetConfig().Sequex.Port))
+		if err != nil {
+			log.Fatalf("Failed to listen: %v", err)
+		}
+		grpcServer := grpc.NewServer()
+		pbSequex.RegisterSequexServiceServer(grpcServer, &SequexServer{})
+		log.Println("Server is running on port 50051")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve: %v", err)
+		}
+	*/
 }
