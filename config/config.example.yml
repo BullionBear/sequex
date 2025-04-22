@@ -1,0 +1,28 @@
+accounts:
+  binance:
+    - name: "account1"
+      api_key: "your_api_key_here"
+      api_secret: "your_api_secret_here"
+    - name: "account2"
+      api_key: "your_api_key_here"
+      api_secret: "your_api_secret_here"
+  binanceperp:
+    - name: "account1"
+      api_key: "your_api_key_here"
+      api_secret: "your_api_secret_here"
+    - name: "account2"
+      api_key: "your_api_key_here"
+      api_secret: "your_api_secret_here
+
+orderbook:
+  binance:
+    - symbol: "BTCUSDT"
+      depth: 5
+    - symbol: "ETHUSDT"
+      depth: 5
+  binanceperp:
+    - symbol: "BTCUSDT"
+      depth: 5
+    - symbol: "ETHUSDT"
+      depth: 5
+
