@@ -58,6 +58,7 @@ func (s *BinaceOrderService) PlaceLimitOrder(ctx context.Context, req *pb.LimitO
 }
 
 func (s *BinaceOrderService) PlaceStopMarketOrder(ctx context.Context, req *pb.StopMarketOrderRequest) (*pb.OrderResponse, error) {
+
 	qty, _ := decimal.NewFromString(req.Quantity.String())
 	stopPrice, _ := decimal.NewFromString(req.StopPrice.String())
 	order := order.StopMarketOrder{
@@ -71,6 +72,7 @@ func (s *BinaceOrderService) PlaceStopMarketOrder(ctx context.Context, req *pb.S
 	if err != nil {
 		return nil, err
 	}
+
 	return &pb.OrderResponse{
 		OrderId: orderID,
 	}, nil

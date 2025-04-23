@@ -15,13 +15,13 @@ type BinanceOrderManager struct {
 	orders  sync.Map
 }
 
-func NewBinanceOrderManager(apiKey, apiSecret string, ordbookManager *orderbook.BinanceOrderBookManager) *BinanceOrderManager {
+func NewBinanceOrderManager(apiKey, apiSecret string, orderbookManager *orderbook.BinanceOrderBookManager) *BinanceOrderManager {
 	svc, err := binance.NewOrderCreateWsService(apiKey, apiSecret)
 	if err != nil {
 		panic(err)
 	}
 	return &BinanceOrderManager{
-		ordbook: ordbookManager,
+		ordbook: orderbookManager,
 		svc:     svc,
 		orders:  sync.Map{},
 	}
