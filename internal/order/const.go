@@ -25,8 +25,9 @@ func (i Instrument) String() string {
 type Side int
 
 const (
-	SideBuy  Side = iota // BUY
-	SideSell             // SELL
+	SideUnknown Side = iota // Unknown
+	SideBuy                 // BUY
+	SideSell                // SELL
 )
 
 func (s Side) String() string {
@@ -75,9 +76,10 @@ func (o OrderType) String() string {
 type TimeInForce int
 
 const (
-	TimeInForceGTC TimeInForce = iota // GTC (Good Till Cancelled)
-	TimeInForceIOC                    // IOC (Immediate Or Cancel)
-	TimeInForceFOK                    // FOK (Fill Or Kill)
+	TimeInForceUnknown TimeInForce = iota // Unknown
+	TimeInForceGTC                        // GTC (Good Till Cancelled)
+	TimeInForceIOC                        // IOC (Immediate Or Cancel)
+	TimeInForceFOK                        // FOK (Fill Or Kill)
 )
 
 func (t TimeInForce) String() string {

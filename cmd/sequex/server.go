@@ -4,33 +4,20 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"encoding/json"
-
-	"github.com/BullionBear/sequex/internal/config"
-	"github.com/BullionBear/sequex/internal/payload"
-	"github.com/BullionBear/sequex/internal/strategy"
-	"github.com/BullionBear/sequex/internal/strategy/solvexity"
 	"github.com/BullionBear/sequex/pkg/mq"
 	pbSequex "github.com/BullionBear/sequex/pkg/protobuf/sequex"
-	pbSolvexity "github.com/BullionBear/sequex/pkg/protobuf/solvexity"
 )
 
 // EventServiceServer implements the gRPC service
 type SequexServer struct {
 	pbSequex.UnimplementedSequexServiceServer
-	st strategy.Strategy
 }
 
-func NewSequexServer(q mq.MessageQueue, st strategy.Strategy) *SequexServer {
-	return &SequexServer{
-		st: st,
-	}
+func NewSequexServer(q mq.MessageQueue) *SequexServer {
+	return &SequexServer{}
 }
 
 // StreamEvents streams mock events to the client
@@ -54,39 +41,6 @@ func (s *SequexServer) OnEvent(stream pbSequex.SequexService_OnEventServer) erro
 
 		log.Printf("Received event: %s (%s) from %s", event.Type, event.Id, event.Source)
 		switch event.Type {
-		case pbSequex.EventType_KLINE_UPDATE:
-			sendChan <- &pbSequex.Event{
-				Id:        event.Id,
-				Type:      pbSequex.EventType_KLINE_ACK,
-				Source:    pbSequex.EventSource_SEQUEX,
-				CreatedAt: timestamppb.Now(),
-				Payload:   []byte("Kline update received"),
-			}
-			var payload payload.KLineUpdate
-			err := json.Unmarshal(event.Payload, &payload)
-			if err != nil {
-				log.Printf("Error unmarshalling payload: %v\n", err)
-				continue
-			}
-			err = s.st.OnKLineUpdate(payload.Symbol, payload.EventTime)
-			if err != nil {
-				log.Printf("Error processing KlineUpdate: %v\n", err)
-				sendChan <- &pbSequex.Event{
-					Id:        event.Id,
-					Type:      pbSequex.EventType_KLINE_FAILED,
-					Source:    pbSequex.EventSource_SEQUEX,
-					CreatedAt: timestamppb.Now(),
-					Payload:   []byte(err.Error()),
-				}
-				continue
-			}
-			sendChan <- &pbSequex.Event{
-				Id:        event.Id,
-				Type:      pbSequex.EventType_KLINE_FINISHED,
-				Source:    pbSequex.EventSource_SEQUEX,
-				CreatedAt: timestamppb.Now(),
-				Payload:   []byte("Kline update processed"),
-			}
 		case pbSequex.EventType_ORDER_UPDATE:
 			sendChan <- &pbSequex.Event{
 				Id:        event.Id,
@@ -116,30 +70,28 @@ func main() {
 
 	// Use the flag value
 	fmt.Println("Config file:", *path)
-	conf := config.NewDomain(*path)
-	// Resource
+	/*
+		conf := config.NewDomain(*path)
+		// Resource
 
-	// Set up trading pipeline.
-	conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", conf.GetConfig().Solvexity.Host, conf.GetConfig().Solvexity.Port),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
-	}
-	defer conn.Close()
-	client := pbSolvexity.NewSolvexityClient(conn)
-	strategy := solvexity.NewSolvexity(client)
+		// Set up trading pipeline.
+		conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", conf.GetConfig().Solvexity.Host, conf.GetConfig().Solvexity.Port),
+			grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Fatalf("did not connect: %v", err)
+		}
+		defer conn.Close()
 
-	// Start the gRPC server
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GetConfig().Sequex.Port))
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-	grpcServer := grpc.NewServer()
-	pbSequex.RegisterSequexServiceServer(grpcServer, &SequexServer{
-		st: strategy,
-	})
-	log.Println("Server is running on port 50051")
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
-	}
+		// Start the gRPC server
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GetConfig().Sequex.Port))
+		if err != nil {
+			log.Fatalf("Failed to listen: %v", err)
+		}
+		grpcServer := grpc.NewServer()
+		pbSequex.RegisterSequexServiceServer(grpcServer, &SequexServer{})
+		log.Println("Server is running on port 50051")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve: %v", err)
+		}
+	*/
 }

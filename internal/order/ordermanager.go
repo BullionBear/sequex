@@ -14,13 +14,14 @@ type BinanceOrderManager struct {
 	orders  sync.Map
 }
 
-func NewBinanceOrderManager(apiKey, apiSecret string) *BinanceOrderManager {
+func NewBinanceOrderManager(apiKey, apiSecret string, orderbookManager *orderbook.BinanceOrderBookManager) *BinanceOrderManager {
 	svc, err := binance.NewOrderCreateWsService(apiKey, apiSecret)
 	if err != nil {
 		panic(err)
 	}
 	return &BinanceOrderManager{
-		ordbook: orderbook.NewBinanceOrderBookManager(),
+
+		ordbook: orderbookManager,
 		svc:     svc,
 		orders:  sync.Map{},
 	}
@@ -54,4 +55,41 @@ func (bom *BinanceOrderManager) LimitOrder(o LimitOrder) (string, error) {
 		return "", err
 	}
 	return resp.Result.ClientOrderID, nil
+}
+
+func (bom *BinanceOrderManager) StopMarketOrder(o StopMarketOrder) (string, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	bom.orders.Store(o.ClientOrderID, cancel)
+	go func() {
+		doneC := make(chan struct{})
+		unsubscribe, err := bom.ordbook.SubscribeBestDepth(o.Symbol, func(ask, bid orderbook.PriceLevel) {
+			if o.OnBestDepth(ask, bid) {
+				close(doneC)
+			}
+		})
+		if err != nil {
+			return
+		}
+		select {
+		case <-doneC:
+			unsubscribe()
+			bom.orders.Delete(o.ClientOrderID)
+			_, err = bom.MarketOrder(MarketOrder{
+				Symbol:        o.Symbol,
+				ClientOrderID: o.ClientOrderID,
+				Side:          o.Side,
+				Quantity:      o.Quantity,
+			})
+			if err != nil {
+				return
+			}
+			return
+		case <-ctx.Done():
+			unsubscribe()
+			bom.orders.Delete(o.ClientOrderID)
+			return
+		}
+	}()
+
+	return o.ClientOrderID, nil
 }

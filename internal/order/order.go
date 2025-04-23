@@ -1,6 +1,12 @@
 package order
 
-import "github.com/shopspring/decimal"
+import (
+	"log"
+
+	"github.com/BullionBear/sequex/internal/orderbook"
+
+	"github.com/shopspring/decimal"
+)
 
 type Order interface {
 	GetType() OrderType
@@ -47,6 +53,18 @@ type StopMarketOrder struct {
 
 func (s StopMarketOrder) GetType() OrderType {
 	return OrderTypeStopMarket
+}
+
+func (s StopMarketOrder) OnBestDepth(ask, bid orderbook.PriceLevel) bool {
+	switch s.Side {
+	case SideBuy:
+		return ask.Price.GreaterThanOrEqual(s.StopPrice)
+	case SideSell:
+		return bid.Price.LessThanOrEqual(s.StopPrice)
+	default:
+		log.Printf("Invalid side: %s", s.Side)
+		return false
+	}
 }
 
 type TrailingStopMarketOrder struct {
