@@ -6,54 +6,55 @@ import (
 
 	"github.com/BullionBear/sequex/internal/orderbook"
 	"github.com/adshao/go-binance/v2"
-	evbus "github.com/asaskevich/EventBus"
+	"github.com/google/uuid"
 )
 
 type BinanceOrderManager struct {
-	ordbook  *orderbook.BinanceOrderBookManager
-	client   *binance.Client
-	orders   sync.Map
-	eventBus evbus.Bus
+	ordbook *orderbook.BinanceOrderBookManager
+	svc     *binance.OrderCreateWsService
+	orders  sync.Map
 }
 
 func NewBinanceOrderManager(apiKey, apiSecret string, ordbookManager *orderbook.BinanceOrderBookManager) *BinanceOrderManager {
-	client := binance.NewClient(apiKey, apiSecret)
+	svc, err := binance.NewOrderCreateWsService(apiKey, apiSecret)
+	if err != nil {
+		panic(err)
+	}
 	return &BinanceOrderManager{
-		ordbook:  ordbookManager,
-		client:   client,
-		orders:   sync.Map{},
-		eventBus: evbus.New(),
+		ordbook: ordbookManager,
+		svc:     svc,
+		orders:  sync.Map{},
 	}
 }
 
 func (bom *BinanceOrderManager) MarketOrder(o MarketOrder) (string, error) {
-	_, err := bom.client.NewCreateOrderService().
+	req := binance.NewOrderCreateWsRequest().
 		Symbol(o.Symbol).
 		Side(binance.SideType(o.Side.String())).
 		NewClientOrderID(o.ClientOrderID).
 		Type(binance.OrderTypeMarket).
-		Quantity(o.Quantity.String()).
-		Do(context.Background())
+		Quantity(o.Quantity.String())
+	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
 	if err != nil {
 		return "", err
 	}
-	return o.ClientOrderID, nil
+	return resp.Result.ClientOrderID, nil
 }
 
 func (bom *BinanceOrderManager) LimitOrder(o LimitOrder) (string, error) {
-	_, err := bom.client.NewCreateOrderService().
+	req := binance.NewOrderCreateWsRequest().
 		Symbol(o.Symbol).
 		Side(binance.SideType(o.Side.String())).
 		NewClientOrderID(o.ClientOrderID).
 		Type(binance.OrderTypeLimit).
 		Quantity(o.Quantity.String()).
 		Price(o.Price.String()).
-		TimeInForce(binance.TimeInForceType(o.TimeInForce.String())).
-		Do(context.Background())
+		TimeInForce(binance.TimeInForceType(o.TimeInForce.String()))
+	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
 	if err != nil {
 		return "", err
 	}
-	return o.ClientOrderID, nil
+	return resp.Result.ClientOrderID, nil
 }
 
 func (bom *BinanceOrderManager) StopMarketOrder(o StopMarketOrder) (string, error) {
