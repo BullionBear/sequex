@@ -1,4 +1,4 @@
-package api
+package orderapi
 
 import (
 	"github.com/BullionBear/sequex/internal/order"

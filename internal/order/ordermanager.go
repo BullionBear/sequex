@@ -16,10 +16,10 @@ type BinanceOrderManager struct {
 	eventBus evbus.Bus
 }
 
-func NewBinanceOrderManager(apiKey, apiSecret string) *BinanceOrderManager {
+func NewBinanceOrderManager(apiKey, apiSecret string, ordbookManager *orderbook.BinanceOrderBookManager) *BinanceOrderManager {
 	client := binance.NewClient(apiKey, apiSecret)
 	return &BinanceOrderManager{
-		ordbook:  orderbook.NewBinanceOrderBookManager(),
+		ordbook:  ordbookManager,
 		client:   client,
 		orders:   sync.Map{},
 		eventBus: evbus.New(),
