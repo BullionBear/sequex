@@ -1,7 +1,6 @@
 package order
 
 import (
-	"context"
 	"sync"
 
 	"github.com/BullionBear/sequex/internal/orderbook"
@@ -21,6 +20,7 @@ func NewBinanceOrderManager(apiKey, apiSecret string, orderbookManager *orderboo
 		panic(err)
 	}
 	return &BinanceOrderManager{
+
 		ordbook: orderbookManager,
 		svc:     svc,
 		orders:  sync.Map{},
