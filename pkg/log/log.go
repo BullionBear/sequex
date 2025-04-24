@@ -1,7 +1,8 @@
-package main
+package log
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -42,6 +43,7 @@ type logEntry struct {
 	file      string
 	line      int
 	msg       string
+	fields    map[string]interface{}
 }
 
 func NewLogger(level Level, outputs ...string) (*Logger, error) {
@@ -135,7 +137,7 @@ func (l *Logger) formatEntry(entry *logEntry) []byte {
 	return buf.Bytes()
 }
 
-func (l *Logger) log(level Level, msg string) {
+func (l *Logger) log(level Level, format string, args ...interface{}) {
 	if level < l.level {
 		return
 	}
@@ -147,31 +149,38 @@ func (l *Logger) log(level Level, msg string) {
 	}
 	file = path.Base(file)
 
-	select {
-	case l.entryChan <- &logEntry{
+	msg := format
+	if len(args) > 0 {
+		msg = fmt.Sprintf(format, args...)
+	}
+
+	entry := &logEntry{
 		timestamp: time.Now(),
 		level:     level,
-		file:      file,
+		file:      path.Base(file),
 		line:      line,
 		msg:       msg,
-	}:
+	}
+
+	select {
+	case l.entryChan <- entry:
 	case <-l.done:
 	}
 }
 
-func (l *Logger) Info(msg string) {
-	l.log(InfoLevel, msg)
+func (l *Logger) Info(format string, args ...interface{}) {
+	l.log(InfoLevel, format, args...)
 }
 
-func (l *Logger) Warn(msg string) {
-	l.log(WarnLevel, msg)
+func (l *Logger) Warn(format string, args ...interface{}) {
+	l.log(WarnLevel, format, args...)
 }
 
-func (l *Logger) Error(msg string) {
-	l.log(ErrorLevel, msg)
+func (l *Logger) Error(format string, args ...interface{}) {
+	l.log(ErrorLevel, format, args...)
 }
 
-func (l *Logger) Fatal(msg string) {
+func (l *Logger) Fatal(format string, args ...interface{}) {
 	if FatalLevel < l.level {
 		return
 	}
@@ -182,6 +191,11 @@ func (l *Logger) Fatal(msg string) {
 		line = 0
 	}
 	file = path.Base(file)
+
+	msg := format
+	if len(args) > 0 {
+		msg = fmt.Sprintf(format, args...)
+	}
 
 	buf := l.formatEntry(&logEntry{
 		timestamp: time.Now(),
