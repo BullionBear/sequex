@@ -20,6 +20,7 @@
 # Go workspace file
 go.work
 
-# experimental code
+# experimental
 experiment/
 bin
+config.yml

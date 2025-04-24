@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/adshao/go-binance/v2"
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/emirpasic/gods/maps/treemap"
@@ -168,15 +169,16 @@ type BinanceOrderBook struct {
 	wg     sync.WaitGroup     // waits for internal goroutines
 
 	/* ======= optional metrics ======= */
-	numUpdateCall   int64 // accessed atomically
-	numSnapshotCall int64 // accessed atomically
+	logger          *log.Logger // optional logger
+	numUpdateCall   int64       // accessed atomically
+	numSnapshotCall int64       // accessed atomically
 }
 
 /*
 NewBinanceOrderBook allocates every resource the instance owns.
 Nothing is started yet, so it’s safe to create many instances cheaply.
 */
-func NewBinanceOrderBook(symbol string, bufferSize int) *BinanceOrderBook {
+func NewBinanceOrderBook(symbol string, bufferSize int, logger *log.Logger) *BinanceOrderBook {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &BinanceOrderBook{
@@ -187,6 +189,7 @@ func NewBinanceOrderBook(symbol string, bufferSize int) *BinanceOrderBook {
 		eventCh:   make(chan *binance.WsDepthEvent, bufferSize),
 		ctx:       ctx,
 		cancel:    cancel,
+		logger:    logger,
 	}
 }
 
@@ -204,10 +207,10 @@ func (ob *BinanceOrderBook) Start(spd UpdateSpeed) error {
 		select {
 		case ob.eventCh <- ev:
 		default:
-			log.Printf("[%s] depth‑event dropped (buffer full)", ob.Symbol)
+			ob.logger.Warn("depth‑event dropped (buffer full)")
 		}
 	}
-	errHandler := func(err error) { log.Printf("[%s] WS error: %+v", ob.Symbol, err) }
+	errHandler := func(err error) { ob.logger.Error("WS error: %s", err.Error()) }
 
 	// ----- 2. start WS -----
 	var err error
@@ -255,12 +258,10 @@ func (ob *BinanceOrderBook) listen() {
 			bestAskLayer, err := ob.Asks.GetBestLayer(true)
 			// get best ask layer
 			if err != nil {
-				log.Printf("[%s] error getting best ask layer: %v", ob.Symbol, err)
 				continue
 			}
 			bestBidLayer, err := ob.Bids.GetBestLayer(false)
 			if err != nil {
-				log.Printf("[%s] error getting best bid layer: %v", ob.Symbol, err)
 				continue
 			}
 			ob.Bids.GetBestLayer(false)
@@ -270,8 +271,7 @@ func (ob *BinanceOrderBook) listen() {
 }
 
 func (ob *BinanceOrderBook) handleDepthEvent(cl *binance.Client, ev *binance.WsDepthEvent) {
-	log.Printf("[%s] FUID:%d  localUID:%d  LUID:%d",
-		ob.Symbol, ev.FirstUpdateID, ob.lastUpdateID, ev.LastUpdateID)
+	ob.logger.Info("FUID:%d  localUID:%d  LUID:%d", ev.FirstUpdateID, ob.lastUpdateID, ev.LastUpdateID)
 
 	switch {
 	// ──────────────────────────────────────────────────────────────
@@ -297,7 +297,7 @@ func (ob *BinanceOrderBook) handleDepthEvent(cl *binance.Client, ev *binance.WsD
 		atomic.AddInt64(&ob.numSnapshotCall, 1)
 
 		if err != nil {
-			log.Printf("[%s] snapshot error: %+v", ob.Symbol, err)
+			ob.logger.Error("snapshot error: %s", err.Error())
 			return
 		}
 
@@ -310,7 +310,7 @@ func (ob *BinanceOrderBook) handleDepthEvent(cl *binance.Client, ev *binance.WsD
 
 	// ──────────────────────────────────────────────────────────────
 	default:
-		log.Printf("[%s] unexpected depth‑event ordering", ob.Symbol)
+		ob.logger.Error("unexpected depth‑event ordering")
 	}
 }
 
@@ -354,8 +354,8 @@ func (ob *BinanceOrderBook) Close() error {
 /* ======= utility helpers ======= */
 
 func (ob *BinanceOrderBook) Summary() {
-	log.Printf("NumUpdateCall: %d", atomic.LoadInt64(&ob.numUpdateCall))
-	log.Printf("NumSnapshotCall: %d", atomic.LoadInt64(&ob.numSnapshotCall))
+	ob.logger.Info("NumUpdateCall: %d", atomic.LoadInt64(&ob.numUpdateCall))
+	ob.logger.Info("NumSnapshotCall: %d", atomic.LoadInt64(&ob.numSnapshotCall))
 }
 
 func (ob *BinanceOrderBook) GetDepth(depth int) ([]PriceLevel, []PriceLevel, error) {
@@ -445,11 +445,12 @@ type BinancePerpOrderBook struct {
 	cancel context.CancelFunc // paired with ctx
 	wg     sync.WaitGroup     // waits for internal goroutines
 
+	logger          *log.Logger // optional logger
 	NumUpdateCall   int
 	NumSnapshotCall int
 }
 
-func NewBinancePerpOrderBook(symbol string, bufferSize int) *BinancePerpOrderBook {
+func NewBinancePerpOrderBook(symbol string, bufferSize int, logger *log.Logger) *BinancePerpOrderBook {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &BinancePerpOrderBook{
 		Symbol:       symbol,
@@ -465,6 +466,7 @@ func NewBinancePerpOrderBook(symbol string, bufferSize int) *BinancePerpOrderBoo
 
 		ctx:    ctx,
 		cancel: cancel,
+		logger: logger,
 
 		NumUpdateCall:   0,
 		NumSnapshotCall: 0,
@@ -479,10 +481,10 @@ func (ob *BinancePerpOrderBook) Start(spd UpdateSpeed) error { // blocking call
 		select {
 		case ob.eventCh <- ev:
 		default:
-			log.Printf("[%s-PERP] depth‑event dropped (buffer full)", ob.Symbol)
+			ob.logger.Info("[%s-PERP] depth‑event dropped (buffer full)", ob.Symbol)
 		}
 	}
-	errHandler := func(err error) { log.Printf("[%s-PERP] WS error: %+v", ob.Symbol, err) }
+	errHandler := func(err error) { ob.logger.Error("WS error: %+v", err) }
 
 	var err error
 
@@ -553,7 +555,7 @@ func (ob *BinancePerpOrderBook) handleDepthEvent(cl *futures.Client, ev *futures
 			Do(context.Background())
 		ob.NumSnapshotCall++
 		if err != nil {
-			log.Printf("[%s-PERP] Error getting snapshot: %+v", ob.Symbol, err)
+			ob.logger.Error("Error getting snapshot: %s", err.Error())
 			return
 		}
 		ob.totalUpdate(snapshot)
@@ -565,7 +567,7 @@ func (ob *BinancePerpOrderBook) handleDepthEvent(cl *futures.Client, ev *futures
 			} else if event.LastUpdateID < ob.lastUpdateID {
 				return
 			} else {
-				log.Printf("Unexpected event state")
+				ob.logger.Error("Unexpected event state")
 				return
 			}
 		}
@@ -573,8 +575,8 @@ func (ob *BinancePerpOrderBook) handleDepthEvent(cl *futures.Client, ev *futures
 }
 
 func (ob *BinancePerpOrderBook) Summary() {
-	log.Printf("NumUpdateCall: %d", ob.NumUpdateCall)
-	log.Printf("NumSnapshotCall: %d", ob.NumSnapshotCall)
+	ob.logger.Info("NumUpdateCall: %d", ob.NumUpdateCall)
+	ob.logger.Info("NumSnapshotCall: %d", ob.NumSnapshotCall)
 }
 
 /*
@@ -636,7 +638,7 @@ func (ob *BinancePerpOrderBook) partialUpdate(event *futures.WsDepthEvent) {
 func (ob *BinancePerpOrderBook) totalUpdate(response *futures.DepthResponse) {
 	ob.timestamp = response.TradeTime
 	ob.lastUpdateID = response.LastUpdateID
-	log.Printf("Snapshot LastUpdateID: %d", ob.lastUpdateID)
+	ob.logger.Info("Snapshot LastUpdateID: %d", ob.lastUpdateID)
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {

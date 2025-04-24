@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	address = "localhost:50051"
+	address = "localhost:50052"
 )
 
 func main() {
@@ -29,9 +29,9 @@ func main() {
 	defer cancel()
 	r, err := c.PlaceLimitOrder(ctx, &pb.LimitOrderRequest{
 		Symbol:   "BTCUSDT",
-		Side:     pb.Side_BUY,
-		Quantity: &pbdecimal.Decimal{Value: "0.01"},
-		Price:    &pbdecimal.Decimal{Value: "80000"},
+		Side:     pb.Side_SELL,
+		Quantity: &pbdecimal.Decimal{Value: "0.0001"},
+		Price:    &pbdecimal.Decimal{Value: "95000"},
 		Tif:      pb.TimeInForce_GTC,
 	})
 	if err != nil {
