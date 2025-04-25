@@ -20,6 +20,7 @@ var _ Order = (*OneCancelsOtherOrder)(nil)
 var _ Order = (*IfDoneOrder)(nil)
 
 type MarketOrder struct {
+	OrderID       string          `json:"order_id"`
 	ClientOrderID string          `json:"client_order_id"`
 	Symbol        string          `json:"symbol"`
 	Side          Side            `json:"side"`
@@ -31,6 +32,7 @@ func (m MarketOrder) GetType() OrderType {
 }
 
 type LimitOrder struct {
+	OrderID       string          `json:"order_id"`
 	ClientOrderID string          `json:"client_order_id"`
 	Symbol        string          `json:"symbol"`
 	Side          Side            `json:"side"`

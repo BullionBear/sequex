@@ -3,9 +3,11 @@ package order
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/BullionBear/sequex/pkg/log"
+	"github.com/shopspring/decimal"
 
 	"github.com/BullionBear/sequex/internal/orderbook"
 	"github.com/adshao/go-binance/v2"
@@ -32,83 +34,93 @@ func NewBinanceOrderExecutor(apiKey, apiSecret string, orderbookManager *orderbo
 	}
 }
 
-func (bom *BinanceOrderExecutor) MarketOrder(o MarketOrder) (string, error) {
+func (bom *BinanceOrderExecutor) PlaceOrder(o *Order) (*OrderResponse, error) {
+	switch o.GetType() {
+	case OrderTypeMarket:
+		marketOrder, ok := o.(*MarketOrder)
+		if !ok {
+			return nil, errors.New("invalid order type")
+		}
+		return bom.PlaceMarketOrder(marketOrder)
+	case OrderTypeLimit:
+		limitOrder, ok := o.(*LimitOrder)
+		if !ok {
+			return nil, errors.New("invalid order type")
+		}
+		return bom.PlaceLimitOrder(limitOrder)
+}
+
+func (bom *BinanceOrderExecutor) MarketOrder(o *MarketOrder) (*OrderResponse, error) {
+	clientID := uuid.NewString()
 	req := binance.NewOrderCreateWsRequest().
-		Symbol(o.Symbol).
-		Side(binance.SideType(o.Side.String())).
-		NewClientOrderID(o.ClientOrderID).
+		Symbol(symbol).
+		Side(binance.SideType(side.String())).
+		NewClientOrderID(clientID).
 		Type(binance.OrderTypeMarket).
-		Quantity(o.Quantity.String())
+		Quantity(quantity.String())
 	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
 	bom.logger.Info("Market order response: %v", resp)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
-	return resp.Result.ClientOrderID, nil
+	if resp.Error != nil {
+		return nil, errors.New(resp.Error.Message)
+	}
+	orderID := fmt.Sprintf("%d", resp.Result.OrderID)
+	return &OrderResponse{
+		OrderID:        func(s string) *string { return &s }(orderID),
+		CliendtOrderID: &resp.Result.ClientOrderID,
+		Status:         toOrderStatus(resp.Result.Status),
+		Symbol:         resp.Result.Symbol,
+	}, nil
 }
 
-func (bom *BinanceOrderExecutor) LimitOrder(o LimitOrder) (string, error) {
+func (bom *BinanceOrderExecutor) PlaceLimitOrder(o *LimitOrder) (*OrderResponse, error) {
+	clientID := uuid.NewString()
 	req := binance.NewOrderCreateWsRequest().
-		Symbol(o.Symbol).
-		Side(binance.SideType(o.Side.String())).
-		NewClientOrderID(o.ClientOrderID).
+		Symbol(symbol).
+		Side(binance.SideType(side.String())).
+		NewClientOrderID(clientID).
 		Type(binance.OrderTypeLimit).
-		Quantity(o.Quantity.String()).
-		Price(o.Price.String()).
-		TimeInForce(binance.TimeInForceType(o.TimeInForce.String())).
+		Quantity(quantity.String()).
+		Price(price.String()).
+		TimeInForce(binance.TimeInForceType(tif.String())).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT)
 	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
 	bom.logger.Info("Limit order response: %+v", resp)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if resp.Error != nil {
-		return "", errors.New(resp.Error.Message)
+		return nil, errors.New(resp.Error.Message)
 	}
-	return resp.Result.ClientOrderID, nil
+	orderID := fmt.Sprintf("%d", resp.Result.OrderID)
+	return &OrderResponse{
+		OrderID:        func(s string) *string { return &s }(orderID),
+		CliendtOrderID: &resp.Result.ClientOrderID,
+		Status:         toOrderStatus(resp.Result.Status),
+		Symbol:         resp.Result.Symbol,
+	}, nil
 }
 
-func (bom *BinanceOrderExecutor) StopMarketOrder(o StopMarketOrder) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	bom.orders.Store(o.ClientOrderID, cancel)
-	go func() {
-		doneC := make(chan struct{})
-		unsubscribe, err := bom.ordbook.SubscribeBestDepth(o.Symbol, func(ask, bid orderbook.PriceLevel) {
-			if o.OnBestDepth(ask, bid) {
-				close(doneC)
-			}
-		})
-		if err != nil {
-			return
-		}
-		select {
-		case <-doneC:
-			unsubscribe()
-			bom.orders.Delete(o.ClientOrderID)
-			_, err = bom.MarketOrder(MarketOrder{
-				Symbol:        o.Symbol,
-				ClientOrderID: o.ClientOrderID,
-				Side:          o.Side,
-				Quantity:      o.Quantity,
-			})
-			if err != nil {
-				return
-			}
-			return
-		case <-ctx.Done():
-			unsubscribe()
-			bom.orders.Delete(o.ClientOrderID)
-			return
-		}
-	}()
-
-	return o.ClientOrderID, nil
+func (bom *BinanceOrderExecutor) CancelOrder(symbol, clientID string) error {
+	req := binance.NewOrderCancelWsRequest().
+		Symbol(symbol).
+		NewClientOrderID(clientID)
+	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
+	if err != nil {
+		return err
+	}
+	if resp.Error != nil {
+		return errors.New(resp.Error.Message)
+	}
+	return nil
 }
+
 
 type OrderResponse struct {
-	OrderID        *string `json:"order_id"`
-	CliendtOrderID *string `json:"client_order_id"`
-	Status         string  `json:"status"`
-	Symbol         string  `json:"symbol"`
+	OrderID        *string     `json:"order_id"`
+	CliendtOrderID *string     `json:"client_order_id"`
+	Status         OrderStatus `json:"status"`
+	Symbol         string      `json:"symbol"`
 }
