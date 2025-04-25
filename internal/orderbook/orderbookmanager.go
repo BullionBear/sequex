@@ -2,8 +2,8 @@ package orderbook
 
 import (
 	"errors"
-	"fmt"
 
+	"github.com/BullionBear/sequex/pkg/log"
 	evbus "github.com/asaskevich/EventBus"
 )
 
@@ -25,25 +25,26 @@ type OrderBook struct {
 type BinanceOrderBookManager struct {
 	OrderBooks map[string]*BinanceOrderBook
 	eventBus   evbus.Bus
+	logger     *log.Logger
 }
 
-func NewBinanceOrderBookManager() *BinanceOrderBookManager {
+func NewBinanceOrderBookManager(logger *log.Logger) *BinanceOrderBookManager {
 	return &BinanceOrderBookManager{
 		OrderBooks: make(map[string]*BinanceOrderBook),
 		eventBus:   evbus.New(),
+		logger:     logger,
 	}
 }
 
 func (bom *BinanceOrderBookManager) CreateOrderBook(symbol string, spd UpdateSpeed) error {
 	if _, exists := bom.OrderBooks[symbol]; !exists {
-		bom.OrderBooks[symbol] = NewBinanceOrderBook(symbol, 500)
+		bom.OrderBooks[symbol] = NewBinanceOrderBook(symbol, 500, bom.logger.WithKV(log.KV{Key: "orderbook", Value: symbol}))
 		if err := bom.OrderBooks[symbol].Start(spd); err != nil {
 			return err
 		}
-		fmt.Printf("Registering OrderBook for %s\n", symbol)
+		bom.logger.Info("Registering OrderBook for %s", symbol)
 		bom.OrderBooks[symbol].SubscribeBestDepth(func(ask, bid PriceLevel) {
-			fmt.Printf("Publishing Ask: %+v\n", ask)
-			fmt.Printf("Publishing Bid: %+v\n", bid)
+			bom.logger.Info("Publishing Ask(%v)/Bid(%v)", ask, bid)
 			bom.eventBus.Publish(bom.channelName(symbol), ask, bid)
 		})
 	}
@@ -76,13 +77,13 @@ func (bom *BinanceOrderBookManager) GetOrderBook(symbol string, depth int) (*Ord
 
 func (bom *BinanceOrderBookManager) SubscribeBestDepth(symbol string, callback func(ask, bid PriceLevel)) (func(), error) {
 	chName := bom.channelName(symbol)
-	fmt.Printf("Subscribing to channel: %s\n", chName)
+	bom.logger.Info("Subscribing to channel: %s\n", chName)
 	if err := bom.eventBus.SubscribeAsync(chName, callback, false); err != nil {
 		return nil, err
 	}
 	return func() {
 		if err := bom.eventBus.Unsubscribe(chName, callback); err != nil {
-			fmt.Printf("Failed to unsubscribe from channel: %s\n", chName)
+			bom.logger.Info("Failed to unsubscribe from channel: %s\n", chName)
 		}
 	}, nil
 }
@@ -100,17 +101,19 @@ func (bom *BinanceOrderBookManager) channelName(symbol string) string {
 
 type BinancePerpOrderBookManager struct {
 	OrderBooks map[string]*BinancePerpOrderBook
+	logger     *log.Logger
 }
 
-func NewBinancePerpOrderBookManager() *BinancePerpOrderBookManager {
+func NewBinancePerpOrderBookManager(logger *log.Logger) *BinancePerpOrderBookManager {
 	return &BinancePerpOrderBookManager{
 		OrderBooks: make(map[string]*BinancePerpOrderBook),
+		logger:     logger,
 	}
 }
 
 func (bom *BinancePerpOrderBookManager) CreateOrderBook(symbol string, spd UpdateSpeed) error {
 	if _, exists := bom.OrderBooks[symbol]; !exists {
-		bom.OrderBooks[symbol] = NewBinancePerpOrderBook(symbol, 500)
+		bom.OrderBooks[symbol] = NewBinancePerpOrderBook(symbol, 500, bom.logger.WithKV(log.KV{Key: "orderbookperp", Value: symbol}))
 		if err := bom.OrderBooks[symbol].Start(spd); err != nil {
 			return err
 		}

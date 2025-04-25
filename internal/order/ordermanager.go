@@ -2,7 +2,10 @@ package order
 
 import (
 	"context"
+	"errors"
 	"sync"
+
+	"github.com/BullionBear/sequex/pkg/log"
 
 	"github.com/BullionBear/sequex/internal/orderbook"
 	"github.com/adshao/go-binance/v2"
@@ -13,18 +16,19 @@ type BinanceOrderManager struct {
 	ordbook *orderbook.BinanceOrderBookManager
 	svc     *binance.OrderCreateWsService
 	orders  sync.Map
+	logger  *log.Logger
 }
 
-func NewBinanceOrderManager(apiKey, apiSecret string, orderbookManager *orderbook.BinanceOrderBookManager) *BinanceOrderManager {
+func NewBinanceOrderManager(apiKey, apiSecret string, orderbookManager *orderbook.BinanceOrderBookManager, logger *log.Logger) *BinanceOrderManager {
 	svc, err := binance.NewOrderCreateWsService(apiKey, apiSecret)
 	if err != nil {
-		panic(err)
+		logger.Fatal("Error creating Binance OrderCreateWsService: %v", err)
 	}
 	return &BinanceOrderManager{
-
 		ordbook: orderbookManager,
 		svc:     svc,
 		orders:  sync.Map{},
+		logger:  logger,
 	}
 }
 
@@ -36,9 +40,11 @@ func (bom *BinanceOrderManager) MarketOrder(o MarketOrder) (string, error) {
 		Type(binance.OrderTypeMarket).
 		Quantity(o.Quantity.String())
 	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
+	bom.logger.Info("Market order response: %v", resp)
 	if err != nil {
 		return "", err
 	}
+
 	return resp.Result.ClientOrderID, nil
 }
 
@@ -50,10 +56,15 @@ func (bom *BinanceOrderManager) LimitOrder(o LimitOrder) (string, error) {
 		Type(binance.OrderTypeLimit).
 		Quantity(o.Quantity.String()).
 		Price(o.Price.String()).
-		TimeInForce(binance.TimeInForceType(o.TimeInForce.String()))
+		TimeInForce(binance.TimeInForceType(o.TimeInForce.String())).
+		NewOrderRespType(binance.NewOrderRespTypeRESULT)
 	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
+	bom.logger.Info("Limit order response: %+v", resp)
 	if err != nil {
 		return "", err
+	}
+	if resp.Error != nil {
+		return "", errors.New(resp.Error.Message)
 	}
 	return resp.Result.ClientOrderID, nil
 }
