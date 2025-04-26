@@ -41,6 +41,41 @@ func (s Side) String() string {
 	}
 }
 
+type OrderStatus int
+
+const (
+	OrderStatusUnknown         OrderStatus = iota // Unknown
+	OrderStatusLocalPending                       // LOCAL_PENDING
+	OrderStatusNew                                // NEW
+	OrderStatusPartiallyFilled                    // PARTIALLY_FILLED
+	OrderStatusFilled                             // FILLED
+	OrderStatusPendingCancel                      // PENDING_CANCEL
+	OrderStatusCanceled                           // CANCELED
+	OrderStatusRejected                           // REJECTED
+	OrderStatusExpired                            // EXPIRED
+)
+
+func (s OrderStatus) String() string {
+	switch s {
+	case OrderStatusLocalPending:
+		return "LOCAL_PENDING"
+	case OrderStatusNew:
+		return "NEW"
+	case OrderStatusPartiallyFilled:
+		return "PARTIALLY_FILLED"
+	case OrderStatusFilled:
+		return "FILLED"
+	case OrderStatusCanceled:
+		return "CANCELED"
+	case OrderStatusRejected:
+		return "REJECTED"
+	case OrderStatusExpired:
+		return "EXPIRED"
+	default:
+		return fmt.Sprintf("Unknown OrderStatus (%d)", s)
+	}
+}
+
 // OrderType represents the type of an order
 type OrderType int
 

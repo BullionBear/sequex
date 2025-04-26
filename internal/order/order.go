@@ -110,3 +110,9 @@ func (o *IfDoneOrder) ToNext() int {
 	}
 	return o.currentOrderIndex
 }
+
+type OrderResponse struct {
+	SequexID string      `json:"sequex_id"`
+	Status   OrderStatus `json:"status"`
+	Symbol   string      `json:"symbol"`
+}

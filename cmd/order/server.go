@@ -36,13 +36,12 @@ func main() {
 		orderbookManager.CreateOrderBook(symbol, orderbook.UpdateSpeed1s)
 		defer orderbookManager.CloseOrderBook(symbol)
 	}
-	orderManagers := make(map[string]*order.BinanceOrderManager)
+	orderManager := order.NewBinanceOrderManager(orderbookManager, logger.WithKV(log.KV{Key: "ordermanger", Value: "binance"}))
 	for _, account := range conf.Accounts["binance"] {
 		logger.Info("Creating order manager for account %s, %s", account.APIKey, account.APISecret)
-		orderManager := order.NewBinanceOrderManager(account.APIKey, account.APISecret, orderbookManager, logger.WithKV(log.KV{Key: "account", Value: account.Name}))
-		orderManagers[account.Name] = orderManager
+		orderManager.Register(account.Name, account.APIKey, account.APISecret)
 	}
-	orderService := orderapi.NewBinanceOrderService(orderManagers["scylla"], logger.WithKV(log.KV{Key: "orderapi", Value: "scylla"}))
+	orderService := orderapi.NewBinanceOrderService(orderManager, logger.WithKV(log.KV{Key: "orderapi", Value: "scylla"}))
 	lis, err := net.Listen("tcp", ":50052")
 	if err != nil {
 		logger.Fatal("failed to listen: %v", err)

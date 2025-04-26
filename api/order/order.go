@@ -7,7 +7,6 @@ import (
 
 	"github.com/BullionBear/sequex/internal/order"
 	pb "github.com/BullionBear/sequex/pkg/protobuf/order" // Correct import path
-	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -25,20 +24,19 @@ func NewBinanceOrderService(orderManager *order.BinanceOrderManager, logger *log
 }
 
 func (s *BinaceOrderService) PlaceMarketOrder(ctx context.Context, req *pb.MarketOrderRequest) (*pb.OrderResponse, error) {
-	qty, _ := decimal.NewFromString(req.Quantity.String())
-	order := order.MarketOrder{
-		ClientOrderID: uuid.New().String(),
-		Symbol:        req.Symbol,
-		Side:          convertSide(req.Side),
-		Quantity:      qty,
+	s.logger.Info("Receive MarketOrderRequest %+v", req)
+	qty, err := decimal.NewFromString(req.Quantity.String())
+	if err != nil {
+		s.logger.Error("Error parsing quantity '%s': %s", req.Quantity.String(), err)
+		return nil, err
 	}
-	s.logger.Info("Placing market order %v", order)
-	orderID, err := s.orderManger.MarketOrder(order)
+	orderResp, err := s.orderManger.PlaceMarketOrder(req.Account, req.Symbol, qty)
 	if err != nil {
 		return nil, err
 	}
 	return &pb.OrderResponse{
-		OrderId: orderID,
+		SequexId: orderResp.SequexID,
+		Status:   orderResp.Status.String(),
 	}, nil
 }
 
@@ -56,41 +54,33 @@ func (s *BinaceOrderService) PlaceLimitOrder(ctx context.Context, req *pb.LimitO
 		s.logger.Error("Error parsing price '%s': %s", priceStr, err)
 		return nil, err
 	}
-	order := order.LimitOrder{
-		ClientOrderID: uuid.New().String(),
-		Symbol:        req.Symbol,
-		Side:          order.Side(req.Side),
-		Quantity:      qty,
-		Price:         price,
-		TimeInForce:   convertTimeInForce(req.Tif),
-	}
-	s.logger.Info("Placing limit order %+v", order)
-	orderID, err := s.orderManger.LimitOrder(order)
+	orderResp, err := s.orderManger.PlaceLimitOrder(req.Account, req.Symbol, qty, price)
 	if err != nil {
 		return nil, err
 	}
 	return &pb.OrderResponse{
-		OrderId: orderID,
+		SequexId: orderResp.SequexID,
+		Status:   orderResp.Status.String(),
 	}, nil
 }
 
 func (s *BinaceOrderService) PlaceStopMarketOrder(ctx context.Context, req *pb.StopMarketOrderRequest) (*pb.OrderResponse, error) {
-
-	qty, _ := decimal.NewFromString(req.Quantity.String())
-	stopPrice, _ := decimal.NewFromString(req.StopPrice.String())
-	order := order.StopMarketOrder{
-		ClientOrderID: uuid.New().String(),
-		Symbol:        req.Symbol,
-		Side:          convertSide(req.Side),
-		Quantity:      qty,
-		StopPrice:     stopPrice,
+	s.logger.Info("Receive StopMarketOrderRequest %+v", req)
+	qtyStr := req.Quantity.GetValue()
+	qty, err := decimal.NewFromString(qtyStr)
+	if err != nil {
+		s.logger.Error("Error parsing quantity '%s': %s", qtyStr, err)
+		return nil, err
 	}
-	orderID, err := s.orderManger.StopMarketOrder(order)
+	stopPriceStr := req.StopPrice.GetValue()
+	stopPrice, err := decimal.NewFromString(stopPriceStr)
+	orderID, err := s.orderManger.PlaceStopMarketOrder(req.Account, req.Symbol, qty, stopPrice)
 	if err != nil {
 		return nil, err
 	}
 
 	return &pb.OrderResponse{
-		OrderId: orderID,
+		SequexId: orderID.SequexID,
+		Status:   orderID.Status.String(),
 	}, nil
 }

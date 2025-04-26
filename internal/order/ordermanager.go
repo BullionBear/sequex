@@ -1,107 +1,80 @@
 package order
 
 import (
-	"context"
-	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/BullionBear/sequex/pkg/log"
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 
 	"github.com/BullionBear/sequex/internal/orderbook"
-	"github.com/adshao/go-binance/v2"
-	"github.com/google/uuid"
 )
 
 type BinanceOrderManager struct {
-	ordbook *orderbook.BinanceOrderBookManager
-	svc     *binance.OrderCreateWsService
-	orders  sync.Map
-	logger  *log.Logger
+	binanceOrderManagerMap sync.Map
+	ordbookManager         *orderbook.BinanceOrderBookManager
+	logger                 *log.Logger
 }
 
-func NewBinanceOrderManager(apiKey, apiSecret string, orderbookManager *orderbook.BinanceOrderBookManager, logger *log.Logger) *BinanceOrderManager {
-	svc, err := binance.NewOrderCreateWsService(apiKey, apiSecret)
-	if err != nil {
-		logger.Fatal("Error creating Binance OrderCreateWsService: %v", err)
-	}
+func NewBinanceOrderManager(ordbookManager *orderbook.BinanceOrderBookManager, logger *log.Logger) *BinanceOrderManager {
 	return &BinanceOrderManager{
-		ordbook: orderbookManager,
-		svc:     svc,
-		orders:  sync.Map{},
-		logger:  logger,
+		binanceOrderManagerMap: sync.Map{},
+		ordbookManager:         ordbookManager,
+		logger:                 logger,
 	}
 }
 
-func (bom *BinanceOrderManager) MarketOrder(o MarketOrder) (string, error) {
-	req := binance.NewOrderCreateWsRequest().
-		Symbol(o.Symbol).
-		Side(binance.SideType(o.Side.String())).
-		NewClientOrderID(o.ClientOrderID).
-		Type(binance.OrderTypeMarket).
-		Quantity(o.Quantity.String())
-	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
-	bom.logger.Info("Market order response: %v", resp)
-	if err != nil {
-		return "", err
+func (bom *BinanceOrderManager) Register(accountName, apiKey, apiSecret string) error {
+	if _, exists := bom.binanceOrderManagerMap.Load(accountName); exists {
+		return fmt.Errorf("account %s already registered", accountName)
 	}
-
-	return resp.Result.ClientOrderID, nil
+	orderExecutor := NewBinanceOrderExecutor(apiKey, apiSecret, bom.ordbookManager, bom.logger.WithKV(log.KV{Key: "account", Value: accountName}))
+	bom.binanceOrderManagerMap.Store(accountName, orderExecutor)
+	return nil
 }
 
-func (bom *BinanceOrderManager) LimitOrder(o LimitOrder) (string, error) {
-	req := binance.NewOrderCreateWsRequest().
-		Symbol(o.Symbol).
-		Side(binance.SideType(o.Side.String())).
-		NewClientOrderID(o.ClientOrderID).
-		Type(binance.OrderTypeLimit).
-		Quantity(o.Quantity.String()).
-		Price(o.Price.String()).
-		TimeInForce(binance.TimeInForceType(o.TimeInForce.String())).
-		NewOrderRespType(binance.NewOrderRespTypeRESULT)
-	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
-	bom.logger.Info("Limit order response: %+v", resp)
-	if err != nil {
-		return "", err
+func (bom *BinanceOrderManager) PlaceMarketOrder(accountName string, symbol string, qty decimal.Decimal) (*OrderResponse, error) {
+	orderExecutor, ok := bom.binanceOrderManagerMap.Load(accountName)
+	if !ok {
+		return nil, fmt.Errorf("account %s not registered", accountName)
 	}
-	if resp.Error != nil {
-		return "", errors.New(resp.Error.Message)
+	order := MarketOrder{
+		ClientOrderID: uuid.New().String(),
+		Symbol:        symbol,
+		Side:          SideBuy,
+		Quantity:      qty,
 	}
-	return resp.Result.ClientOrderID, nil
+	return orderExecutor.(*BinanceOrderExecutor).PlaceOrder(order)
 }
 
-func (bom *BinanceOrderManager) StopMarketOrder(o StopMarketOrder) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	bom.orders.Store(o.ClientOrderID, cancel)
-	go func() {
-		doneC := make(chan struct{})
-		unsubscribe, err := bom.ordbook.SubscribeBestDepth(o.Symbol, func(ask, bid orderbook.PriceLevel) {
-			if o.OnBestDepth(ask, bid) {
-				close(doneC)
-			}
-		})
-		if err != nil {
-			return
-		}
-		select {
-		case <-doneC:
-			unsubscribe()
-			bom.orders.Delete(o.ClientOrderID)
-			_, err = bom.MarketOrder(MarketOrder{
-				Symbol:        o.Symbol,
-				ClientOrderID: o.ClientOrderID,
-				Side:          o.Side,
-				Quantity:      o.Quantity,
-			})
-			if err != nil {
-				return
-			}
-			return
-		case <-ctx.Done():
-			unsubscribe()
-			bom.orders.Delete(o.ClientOrderID)
-			return
-		}
-	}()
+func (bom *BinanceOrderManager) PlaceLimitOrder(accountName string, symbol string, qty decimal.Decimal, price decimal.Decimal) (*OrderResponse, error) {
+	orderExecutor, ok := bom.binanceOrderManagerMap.Load(accountName)
+	if !ok {
+		return nil, fmt.Errorf("account %s not registered", accountName)
+	}
+	order := LimitOrder{
+		ClientOrderID: uuid.New().String(),
+		Symbol:        symbol,
+		Side:          SideBuy,
+		Quantity:      qty,
+		Price:         price,
+		TimeInForce:   TimeInForceGTC,
+	}
+	return orderExecutor.(*BinanceOrderExecutor).PlaceOrder(order)
+}
 
-	return o.ClientOrderID, nil
+func (bom *BinanceOrderManager) PlaceStopMarketOrder(accountName string, symbol string, qty decimal.Decimal, stopPrice decimal.Decimal) (*OrderResponse, error) {
+	orderExecutor, ok := bom.binanceOrderManagerMap.Load(accountName)
+	if !ok {
+		return nil, fmt.Errorf("account %s not registered", accountName)
+	}
+	order := StopMarketOrder{
+		ClientOrderID: uuid.New().String(),
+		Symbol:        symbol,
+		Side:          SideBuy,
+		Quantity:      qty,
+		StopPrice:     stopPrice,
+	}
+	return orderExecutor.(*BinanceOrderExecutor).PlaceOrder(order)
 }
