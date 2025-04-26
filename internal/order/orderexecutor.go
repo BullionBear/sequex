@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/BullionBear/sequex/pkg/log"
-	"github.com/shopspring/decimal"
 
 	"github.com/BullionBear/sequex/internal/orderbook"
 	"github.com/adshao/go-binance/v2"
@@ -34,7 +33,7 @@ func NewBinanceOrderExecutor(apiKey, apiSecret string, orderbookManager *orderbo
 	}
 }
 
-func (bom *BinanceOrderExecutor) PlaceOrder(o *Order) (*OrderResponse, error) {
+func (bom *BinanceOrderExecutor) PlaceOrder(o Order) (*OrderResponse, error) {
 	switch o.GetType() {
 	case OrderTypeMarket:
 		marketOrder, ok := o.(*MarketOrder)
@@ -48,16 +47,25 @@ func (bom *BinanceOrderExecutor) PlaceOrder(o *Order) (*OrderResponse, error) {
 			return nil, errors.New("invalid order type")
 		}
 		return bom.PlaceLimitOrder(limitOrder)
+	case OrderTypeStopMarket:
+		stopMarketOrder, ok := o.(*StopMarketOrder)
+		if !ok {
+			return nil, errors.New("invalid order type")
+		}
+		return bom.PlaceStopMarketOrder(stopMarketOrder)
+	default:
+		return nil, errors.New("unsupported order type")
+	}
 }
 
-func (bom *BinanceOrderExecutor) MarketOrder(o *MarketOrder) (*OrderResponse, error) {
+func (bom *BinanceOrderExecutor) PlaceMarketOrder(o *MarketOrder) (*OrderResponse, error) {
 	clientID := uuid.NewString()
 	req := binance.NewOrderCreateWsRequest().
-		Symbol(symbol).
-		Side(binance.SideType(side.String())).
+		Symbol(o.Symbol).
+		Side(binance.SideType(o.Side.String())).
 		NewClientOrderID(clientID).
 		Type(binance.OrderTypeMarket).
-		Quantity(quantity.String())
+		Quantity(o.Quantity.String())
 	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
 	bom.logger.Info("Market order response: %v", resp)
 	if err != nil {
@@ -78,13 +86,13 @@ func (bom *BinanceOrderExecutor) MarketOrder(o *MarketOrder) (*OrderResponse, er
 func (bom *BinanceOrderExecutor) PlaceLimitOrder(o *LimitOrder) (*OrderResponse, error) {
 	clientID := uuid.NewString()
 	req := binance.NewOrderCreateWsRequest().
-		Symbol(symbol).
-		Side(binance.SideType(side.String())).
+		Symbol(o.Symbol).
+		Side(binance.SideType(o.Side.String())).
 		NewClientOrderID(clientID).
 		Type(binance.OrderTypeLimit).
-		Quantity(quantity.String()).
-		Price(price.String()).
-		TimeInForce(binance.TimeInForceType(tif.String())).
+		Quantity(o.Quantity.String()).
+		Price(o.Price.String()).
+		TimeInForce(binance.TimeInForceType(o.TimeInForce.String())).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT)
 	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
 	bom.logger.Info("Limit order response: %+v", resp)
@@ -103,24 +111,7 @@ func (bom *BinanceOrderExecutor) PlaceLimitOrder(o *LimitOrder) (*OrderResponse,
 	}, nil
 }
 
-func (bom *BinanceOrderExecutor) CancelOrder(symbol, clientID string) error {
-	req := binance.NewOrderCancelWsRequest().
-		Symbol(symbol).
-		NewClientOrderID(clientID)
-	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
-	if err != nil {
-		return err
-	}
-	if resp.Error != nil {
-		return errors.New(resp.Error.Message)
-	}
-	return nil
-}
-
-
-type OrderResponse struct {
-	OrderID        *string     `json:"order_id"`
-	CliendtOrderID *string     `json:"client_order_id"`
-	Status         OrderStatus `json:"status"`
-	Symbol         string      `json:"symbol"`
+func (bom *BinanceOrderExecutor) PlaceStopMarketOrder(o *StopMarketOrder) (*OrderResponse, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	bom.orders.Store(o.ClientOrderID, unsubscribe)
 }

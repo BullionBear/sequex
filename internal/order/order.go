@@ -112,3 +112,10 @@ func (o *IfDoneOrder) ToNext() int {
 	}
 	return o.currentOrderIndex
 }
+
+type OrderResponse struct {
+	OrderID        *string     `json:"order_id"`
+	CliendtOrderID *string     `json:"client_order_id"`
+	Status         OrderStatus `json:"status"`
+	Symbol         string      `json:"symbol"`
+}
