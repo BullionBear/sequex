@@ -28,10 +28,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	r, err := c.PlaceLimitOrder(ctx, &pb.LimitOrderRequest{
-		Symbol:   "BTCUSDT",
+		Account:  "scylla",
+		Symbol:   "ADAUSDT",
 		Side:     pb.Side_SELL,
-		Quantity: &pbdecimal.Decimal{Value: "0.0001"},
-		Price:    &pbdecimal.Decimal{Value: "95000"},
+		Quantity: &pbdecimal.Decimal{Value: "20"},
+		Price:    &pbdecimal.Decimal{Value: "0.8"},
 		Tif:      pb.TimeInForce_GTC,
 	})
 	if err != nil {

@@ -24,12 +24,7 @@ func NewBinanceOrderExecutor(apiKey, apiSecret string, orderbookManager *orderbo
 	if err != nil {
 		logger.Fatal("Error creating Binance OrderCreateWsService: %v", err)
 	}
-	go func() {
-		logger.Info("Starting OrderCreateWsService")
-		for msg := range tradeSvc.GetReadChannel() {
-			logger.Info("Read channal OrderCreateWsService: %v", string(msg))
-		}
-	}()
+
 	return &BinanceOrderExecutor{
 		ordbook:  orderbookManager,
 		tradeSvc: tradeSvc,

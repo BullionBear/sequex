@@ -61,7 +61,7 @@ func (bom *BinanceOrderManager) PlaceLimitOrder(accountName string, symbol strin
 		Price:         price,
 		TimeInForce:   TimeInForceGTC,
 	}
-	return orderExecutor.(*BinanceOrderExecutor).PlaceOrder(order)
+	return orderExecutor.(*BinanceOrderExecutor).PlaceOrder(&order)
 }
 
 func (bom *BinanceOrderManager) PlaceStopMarketOrder(accountName string, symbol string, qty decimal.Decimal, stopPrice decimal.Decimal) (*OrderResponse, error) {
