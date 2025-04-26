@@ -30,7 +30,7 @@ func (s *BinaceOrderService) PlaceMarketOrder(ctx context.Context, req *pb.Marke
 		s.logger.Error("Error parsing quantity '%s': %s", req.Quantity.String(), err)
 		return nil, err
 	}
-	orderResp, err := s.orderManger.PlaceMarketOrder(req.Account, req.Symbol, qty)
+	orderResp, err := s.orderManger.PlaceMarketOrder(req.Account, req.Symbol, toSide(req.Side), qty)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (s *BinaceOrderService) PlaceLimitOrder(ctx context.Context, req *pb.LimitO
 		s.logger.Error("Error parsing price '%s': %s", priceStr, err)
 		return nil, err
 	}
-	orderResp, err := s.orderManger.PlaceLimitOrder(req.Account, req.Symbol, qty, price)
+	orderResp, err := s.orderManger.PlaceLimitOrder(req.Account, req.Symbol, toSide(req.Side), qty, price)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (s *BinaceOrderService) PlaceStopMarketOrder(ctx context.Context, req *pb.S
 	}
 	stopPriceStr := req.StopPrice.GetValue()
 	stopPrice, err := decimal.NewFromString(stopPriceStr)
-	orderID, err := s.orderManger.PlaceStopMarketOrder(req.Account, req.Symbol, qty, stopPrice)
+	orderID, err := s.orderManger.PlaceStopMarketOrder(req.Account, req.Symbol, toSide(req.Side), qty, stopPrice)
 	if err != nil {
 		return nil, err
 	}

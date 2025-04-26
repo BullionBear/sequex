@@ -34,7 +34,7 @@ func (bom *BinanceOrderManager) Register(accountName, apiKey, apiSecret string) 
 	return nil
 }
 
-func (bom *BinanceOrderManager) PlaceMarketOrder(accountName string, symbol string, qty decimal.Decimal) (*OrderResponse, error) {
+func (bom *BinanceOrderManager) PlaceMarketOrder(accountName string, symbol string, side Side, qty decimal.Decimal) (*OrderResponse, error) {
 	orderExecutor, ok := bom.binanceOrderManagerMap.Load(accountName)
 	if !ok {
 		return nil, fmt.Errorf("account %s not registered", accountName)
@@ -42,21 +42,22 @@ func (bom *BinanceOrderManager) PlaceMarketOrder(accountName string, symbol stri
 	order := MarketOrder{
 		ClientOrderID: uuid.New().String(),
 		Symbol:        symbol,
-		Side:          SideBuy,
+		Side:          side,
 		Quantity:      qty,
 	}
 	return orderExecutor.(*BinanceOrderExecutor).PlaceOrder(order)
 }
 
-func (bom *BinanceOrderManager) PlaceLimitOrder(accountName string, symbol string, qty decimal.Decimal, price decimal.Decimal) (*OrderResponse, error) {
+func (bom *BinanceOrderManager) PlaceLimitOrder(accountName string, symbol string, side Side, qty decimal.Decimal, price decimal.Decimal) (*OrderResponse, error) {
 	orderExecutor, ok := bom.binanceOrderManagerMap.Load(accountName)
 	if !ok {
 		return nil, fmt.Errorf("account %s not registered", accountName)
 	}
+
 	order := LimitOrder{
 		ClientOrderID: uuid.New().String(),
 		Symbol:        symbol,
-		Side:          SideBuy,
+		Side:          side,
 		Quantity:      qty,
 		Price:         price,
 		TimeInForce:   TimeInForceGTC,
@@ -64,7 +65,7 @@ func (bom *BinanceOrderManager) PlaceLimitOrder(accountName string, symbol strin
 	return orderExecutor.(*BinanceOrderExecutor).PlaceOrder(&order)
 }
 
-func (bom *BinanceOrderManager) PlaceStopMarketOrder(accountName string, symbol string, qty decimal.Decimal, stopPrice decimal.Decimal) (*OrderResponse, error) {
+func (bom *BinanceOrderManager) PlaceStopMarketOrder(accountName string, symbol string, side Side, qty decimal.Decimal, stopPrice decimal.Decimal) (*OrderResponse, error) {
 	orderExecutor, ok := bom.binanceOrderManagerMap.Load(accountName)
 	if !ok {
 		return nil, fmt.Errorf("account %s not registered", accountName)
@@ -72,7 +73,7 @@ func (bom *BinanceOrderManager) PlaceStopMarketOrder(accountName string, symbol 
 	order := StopMarketOrder{
 		ClientOrderID: uuid.New().String(),
 		Symbol:        symbol,
-		Side:          SideBuy,
+		Side:          side,
 		Quantity:      qty,
 		StopPrice:     stopPrice,
 	}

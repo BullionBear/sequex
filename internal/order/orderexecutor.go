@@ -92,6 +92,7 @@ func (bom *BinanceOrderExecutor) PlaceLimitOrder(o *LimitOrder) (*OrderResponse,
 		Price(o.Price.String()).
 		TimeInForce(binance.TimeInForceType(o.TimeInForce.String())).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT)
+	bom.logger.Info("Request params %+v", req.GetParams())
 	resp, err := bom.tradeSvc.SyncDo(uuid.NewString(), req)
 	bom.logger.Info("Limit order response: %+v", resp)
 	if err != nil {

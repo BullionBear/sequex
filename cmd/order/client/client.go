@@ -31,7 +31,7 @@ func main() {
 		Account:  "scylla",
 		Symbol:   "ADAUSDT",
 		Side:     pb.Side_SELL,
-		Quantity: &pbdecimal.Decimal{Value: "20"},
+		Quantity: &pbdecimal.Decimal{Value: "15"},
 		Price:    &pbdecimal.Decimal{Value: "0.8"},
 		Tif:      pb.TimeInForce_GTC,
 	})

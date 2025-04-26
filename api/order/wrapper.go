@@ -5,7 +5,7 @@ import (
 	pb "github.com/BullionBear/sequex/pkg/protobuf/order" // Correct import path
 )
 
-func convertSide(side pb.Side) order.Side {
+func toSide(side pb.Side) order.Side {
 	switch side {
 	case pb.Side_BUY:
 		return order.SideBuy
@@ -16,7 +16,7 @@ func convertSide(side pb.Side) order.Side {
 	}
 }
 
-func convertTimeInForce(tif pb.TimeInForce) order.TimeInForce {
+func toTimeInForce(tif pb.TimeInForce) order.TimeInForce {
 	switch tif {
 	case pb.TimeInForce_GTC:
 		return order.TimeInForceGTC
