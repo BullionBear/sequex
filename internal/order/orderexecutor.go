@@ -3,7 +3,6 @@ package order
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/BullionBear/sequex/pkg/log"
@@ -14,22 +13,28 @@ import (
 )
 
 type BinanceOrderExecutor struct {
-	ordbook *orderbook.BinanceOrderBookManager
-	svc     *binance.OrderCreateWsService
-	orders  sync.Map
-	logger  *log.Logger
+	ordbook  *orderbook.BinanceOrderBookManager
+	tradeSvc *binance.OrderCreateWsService
+	orders   sync.Map
+	logger   *log.Logger
 }
 
 func NewBinanceOrderExecutor(apiKey, apiSecret string, orderbookManager *orderbook.BinanceOrderBookManager, logger *log.Logger) *BinanceOrderExecutor {
-	svc, err := binance.NewOrderCreateWsService(apiKey, apiSecret)
+	tradeSvc, err := binance.NewOrderCreateWsService(apiKey, apiSecret)
 	if err != nil {
 		logger.Fatal("Error creating Binance OrderCreateWsService: %v", err)
 	}
+	go func() {
+		logger.Info("Starting OrderCreateWsService")
+		for msg := range tradeSvc.GetReadChannel() {
+			logger.Info("Read channal OrderCreateWsService: %v", string(msg))
+		}
+	}()
 	return &BinanceOrderExecutor{
-		ordbook: orderbookManager,
-		svc:     svc,
-		orders:  sync.Map{},
-		logger:  logger,
+		ordbook:  orderbookManager,
+		tradeSvc: tradeSvc,
+		orders:   sync.Map{},
+		logger:   logger,
 	}
 }
 
@@ -59,14 +64,14 @@ func (bom *BinanceOrderExecutor) PlaceOrder(o Order) (*OrderResponse, error) {
 }
 
 func (bom *BinanceOrderExecutor) PlaceMarketOrder(o *MarketOrder) (*OrderResponse, error) {
-	clientID := uuid.NewString()
+	localID := uuid.NewString()
 	req := binance.NewOrderCreateWsRequest().
 		Symbol(o.Symbol).
 		Side(binance.SideType(o.Side.String())).
-		NewClientOrderID(clientID).
+		NewClientOrderID(localID).
 		Type(binance.OrderTypeMarket).
 		Quantity(o.Quantity.String())
-	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
+	resp, err := bom.tradeSvc.SyncDo(uuid.NewString(), req)
 	bom.logger.Info("Market order response: %v", resp)
 	if err != nil {
 		return nil, err
@@ -74,27 +79,25 @@ func (bom *BinanceOrderExecutor) PlaceMarketOrder(o *MarketOrder) (*OrderRespons
 	if resp.Error != nil {
 		return nil, errors.New(resp.Error.Message)
 	}
-	orderID := fmt.Sprintf("%d", resp.Result.OrderID)
 	return &OrderResponse{
-		OrderID:        func(s string) *string { return &s }(orderID),
-		CliendtOrderID: &resp.Result.ClientOrderID,
-		Status:         toOrderStatus(resp.Result.Status),
-		Symbol:         resp.Result.Symbol,
+		SequexID: resp.Result.ClientOrderID,
+		Status:   toOrderStatus(resp.Result.Status),
+		Symbol:   resp.Result.Symbol,
 	}, nil
 }
 
 func (bom *BinanceOrderExecutor) PlaceLimitOrder(o *LimitOrder) (*OrderResponse, error) {
-	clientID := uuid.NewString()
+	localID := uuid.NewString()
 	req := binance.NewOrderCreateWsRequest().
 		Symbol(o.Symbol).
 		Side(binance.SideType(o.Side.String())).
-		NewClientOrderID(clientID).
+		NewClientOrderID(localID).
 		Type(binance.OrderTypeLimit).
 		Quantity(o.Quantity.String()).
 		Price(o.Price.String()).
 		TimeInForce(binance.TimeInForceType(o.TimeInForce.String())).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT)
-	resp, err := bom.svc.SyncDo(uuid.NewString(), req)
+	resp, err := bom.tradeSvc.SyncDo(uuid.NewString(), req)
 	bom.logger.Info("Limit order response: %+v", resp)
 	if err != nil {
 		return nil, err
@@ -102,16 +105,40 @@ func (bom *BinanceOrderExecutor) PlaceLimitOrder(o *LimitOrder) (*OrderResponse,
 	if resp.Error != nil {
 		return nil, errors.New(resp.Error.Message)
 	}
-	orderID := fmt.Sprintf("%d", resp.Result.OrderID)
 	return &OrderResponse{
-		OrderID:        func(s string) *string { return &s }(orderID),
-		CliendtOrderID: &resp.Result.ClientOrderID,
-		Status:         toOrderStatus(resp.Result.Status),
-		Symbol:         resp.Result.Symbol,
+		SequexID: localID,
+		Status:   toOrderStatus(resp.Result.Status),
+		Symbol:   resp.Result.Symbol,
 	}, nil
 }
 
 func (bom *BinanceOrderExecutor) PlaceStopMarketOrder(o *StopMarketOrder) (*OrderResponse, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	bom.orders.Store(o.ClientOrderID, unsubscribe)
+	localID := uuid.NewString()
+	once := &sync.Once{}
+	unsubscribe, err := bom.ordbook.SubscribeBestDepth(o.Symbol, func(ask, bid orderbook.PriceLevel) {
+		if o.OnBestDepth(ask, bid) {
+			once.Do(func() {
+				cancel()
+				bom.PlaceMarketOrder(&MarketOrder{
+					Symbol:        o.Symbol,
+					Side:          o.Side,
+					Quantity:      o.Quantity,
+					ClientOrderID: o.ClientOrderID,
+				})
+			})
+		}
+	})
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		<-ctx.Done()
+		unsubscribe()
+	}()
+	return &OrderResponse{
+		SequexID: localID,
+		Status:   OrderStatusLocalPending,
+		Symbol:   o.Symbol,
+	}, nil
 }
