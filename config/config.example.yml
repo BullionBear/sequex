@@ -21,3 +21,10 @@ market:
   binanceperp:
     - "BTCUSDT"
     - "ETHUSDT"
+  
+influxdb:
+  host: "localhost"
+  port: 8086
+  token: "your access token here"
+  bucket: "examplebucket"
+  org: "solvexity"
