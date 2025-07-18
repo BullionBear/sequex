@@ -7,11 +7,8 @@ LDFLAGS := -X '${PACKAGE}/env.Version=${VERSION}' \
            -X '${PACKAGE}/env.CommitHash=${COMMIT_HASH}' \
            -X '${PACKAGE}/env.BuildTime=${BUILD_TIMESTAMP}'
 
-codegen:
-	buf generate
-
 build:
-	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/sequex/server.go
+	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/main.go
 
 test:
 	go test -v ./...
@@ -21,4 +18,4 @@ clean:
 	rm -rf logs/*
 
 
-.PHONY: codegen, build, clean
+.PHONY: build, clean
