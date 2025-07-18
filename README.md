@@ -15,16 +15,11 @@
 ├── internal        # Core logic
 ├── Makefile        # Automation command
 ├── pkg             # Shared utilities
-├── proto           # gRPC service definitions
 └── README.md
 ```
 
 ## ⚙️ Make command
 
-Generate pb code
-```
-make codegen
-```
 
 Build binaries to bin/
 ```
