@@ -1,27 +1,31 @@
 package binance
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
 	"sync"
+	"time"
 )
 
 // WSStreamClient represents a high-level WebSocket stream client
 type WSStreamClient struct {
-	config    *Config
-	clients   map[string]*WSClient
-	mu        sync.RWMutex
-	callbacks map[string]WebSocketCallback
+	config     *Config
+	clients    map[string]*WSClient
+	mu         sync.RWMutex
+	callbacks  map[string]WebSocketCallback
+	restClient *Client // For creating listen keys
 }
 
 // NewWSStreamClient creates a new WebSocket stream client
 func NewWSStreamClient(config *Config) *WSStreamClient {
 	return &WSStreamClient{
-		config:    config,
-		clients:   make(map[string]*WSClient),
-		callbacks: make(map[string]WebSocketCallback),
+		config:     config,
+		clients:    make(map[string]*WSClient),
+		callbacks:  make(map[string]WebSocketCallback),
+		restClient: NewClient(config),
 	}
 }
 
@@ -269,14 +273,48 @@ func (c *WSStreamClient) SubscribeToUserDataStream(listenKey string, callback We
 	return c.subscribeToStream(streamName, callback)
 }
 
-// SubscribeToUserDataStreamWithCallbacks subscribes to user data stream with type-specific callbacks
+// SubscribeToUserDataStreamWithCallbacks subscribes to user data stream with automatic listen key management
 func (c *WSStreamClient) SubscribeToUserDataStreamWithCallbacks(
-	listenKey string,
 	accountPositionCallback OutboundAccountPositionCallback,
 	balanceUpdateCallback BalanceUpdateCallback,
 	executionReportCallback ExecutionReportCallback,
 ) (func() error, error) {
-	streamName := listenKey
+	// Create initial listen key
+	userDataStream, err := c.restClient.CreateUserDataStream(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user data stream: %w", err)
+	}
+
+	listenKey := userDataStream.ListenKey
+	log.Printf("Created user data stream with listen key: %s...", listenKey[:8])
+
+	// Create a channel to signal when we need to reconnect
+	reconnectChan := make(chan struct{}, 1)
+
+	// Start keep-alive goroutine
+	go func() {
+		ticker := time.NewTicker(30 * time.Minute) // Keep alive every 30 minutes
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				if err := c.restClient.KeepAliveUserDataStream(context.Background(), listenKey); err != nil {
+					log.Printf("Failed to keep alive user data stream: %v", err)
+					// Signal reconnect
+					select {
+					case reconnectChan <- struct{}{}:
+					default:
+					}
+				}
+			case <-reconnectChan:
+				// Handle reconnection
+				if err := c.handleUserDataStreamReconnect(&listenKey, reconnectChan); err != nil {
+					log.Printf("Failed to reconnect user data stream: %v", err)
+				}
+			}
+		}
+	}()
 
 	wsCallback := func(data []byte) error {
 		// Try to parse as different user data event types
@@ -303,7 +341,82 @@ func (c *WSStreamClient) SubscribeToUserDataStreamWithCallbacks(
 		return nil
 	}
 
-	return c.subscribeToStream(streamName, wsCallback)
+	// Subscribe to the stream
+	unsubscribe, err := c.subscribeToStreamWithReconnect(listenKey, wsCallback, reconnectChan)
+	if err != nil {
+		return nil, fmt.Errorf("failed to subscribe to user data stream: %w", err)
+	}
+
+	// Return unsubscription function that also closes the stream
+	return func() error {
+		// Close the user data stream
+		if err := c.restClient.CloseUserDataStream(context.Background(), listenKey); err != nil {
+			log.Printf("Failed to close user data stream: %v", err)
+		}
+		// Unsubscribe from WebSocket
+		return unsubscribe()
+	}, nil
+}
+
+// SubscribeToUserDataStreamWithCallbacksAndListenKey subscribes to user data stream with a provided listen key
+// This allows users to manage the listen key manually if needed
+func (c *WSStreamClient) SubscribeToUserDataStreamWithCallbacksAndListenKey(
+	listenKey string,
+	accountPositionCallback OutboundAccountPositionCallback,
+	balanceUpdateCallback BalanceUpdateCallback,
+	executionReportCallback ExecutionReportCallback,
+) (func() error, error) {
+	wsCallback := func(data []byte) error {
+		// Try to parse as different user data event types
+		if accountPositionCallback != nil {
+			if accountPosition, err := ParseOutboundAccountPosition(data); err == nil {
+				return accountPositionCallback(accountPosition)
+			}
+		}
+
+		if balanceUpdateCallback != nil {
+			if balanceUpdate, err := ParseBalanceUpdate(data); err == nil {
+				return balanceUpdateCallback(balanceUpdate)
+			}
+		}
+
+		if executionReportCallback != nil {
+			if executionReport, err := ParseExecutionReport(data); err == nil {
+				return executionReportCallback(executionReport)
+			}
+		}
+
+		// If none of the callbacks matched, log the raw data
+		log.Printf("Unhandled user data stream event: %s", string(data))
+		return nil
+	}
+
+	return c.subscribeToStream(listenKey, wsCallback)
+}
+
+// handleUserDataStreamReconnect handles reconnection logic for user data stream
+func (c *WSStreamClient) handleUserDataStreamReconnect(listenKey *string, reconnectChan chan struct{}) error {
+	// Close old stream
+	if err := c.restClient.CloseUserDataStream(context.Background(), *listenKey); err != nil {
+		log.Printf("Failed to close old user data stream: %v", err)
+	}
+
+	// Create new listen key
+	userDataStream, err := c.restClient.CreateUserDataStream(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to create new user data stream: %w", err)
+	}
+
+	*listenKey = userDataStream.ListenKey
+	log.Printf("Reconnected user data stream with new listen key: %s...", (*listenKey)[:8])
+
+	// Signal reconnect to update WebSocket connection
+	select {
+	case reconnectChan <- struct{}{}:
+	default:
+	}
+
+	return nil
 }
 
 // subscribeToStream is the internal method to subscribe to any stream
@@ -334,6 +447,72 @@ func (c *WSStreamClient) subscribeToStream(streamName string, callback WebSocket
 		}),
 		WithOnDisconnect(func() {
 			log.Printf("Disconnected from stream: %s", streamName)
+		}),
+	)
+
+	// Store the client and callback
+	c.clients[streamName] = wsClient
+	c.callbacks[streamName] = callback
+
+	// Connect to the stream
+	err := wsClient.SubscribeToStream(streamName)
+	if err != nil {
+		// Clean up on error
+		delete(c.clients, streamName)
+		delete(c.callbacks, streamName)
+		return nil, fmt.Errorf("failed to subscribe to stream %s: %w", streamName, err)
+	}
+
+	// Return unsubscription function
+	unsubscribe := func() error {
+		return c.unsubscribeFromStream(streamName)
+	}
+
+	return unsubscribe, nil
+}
+
+// subscribeToStreamWithReconnect is a helper to subscribe to a stream with automatic reconnect logic
+func (c *WSStreamClient) subscribeToStreamWithReconnect(streamName string, callback WebSocketCallback, reconnectChan chan struct{}) (func() error, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Check if already subscribed
+	if _, exists := c.clients[streamName]; exists {
+		return nil, fmt.Errorf("already subscribed to stream: %s", streamName)
+	}
+
+	// Create WebSocket client with reconnection logic
+	wsClient := NewWSClient(c.config,
+		WithOnMessage(func(data []byte) {
+			// Call the user's callback
+			if callback != nil {
+				if err := callback(data); err != nil {
+					log.Printf("Error in stream callback for %s: %v", streamName, err)
+				}
+			}
+		}),
+		WithOnError(func(err error) {
+			log.Printf("WebSocket error for stream %s: %v", streamName, err)
+			// Signal reconnect for user data streams
+			if strings.Contains(streamName, "listenKey") {
+				select {
+				case reconnectChan <- struct{}{}:
+				default:
+				}
+			}
+		}),
+		WithOnConnect(func() {
+			log.Printf("Connected to stream: %s", streamName)
+		}),
+		WithOnDisconnect(func() {
+			log.Printf("Disconnected from stream: %s", streamName)
+			// Signal reconnect for user data streams
+			if strings.Contains(streamName, "listenKey") {
+				select {
+				case reconnectChan <- struct{}{}:
+				default:
+				}
+			}
 		}),
 	)
 

@@ -130,7 +130,6 @@ func TestWSStreamClient_SubscribeToKline(t *testing.T) {
 	}
 
 	// Check if the stream was attempted to be created
-	// (the actual connection will fail in test environment)
 }
 
 func TestWSStreamClient_SubscribeToTicker(t *testing.T) {
@@ -537,9 +536,7 @@ func TestWSStreamClient_SubscribeToUserDataStreamWithCallbacks(t *testing.T) {
 		return nil
 	}
 
-	listenKey := "test-listen-key"
 	unsubscribe, err := client.SubscribeToUserDataStreamWithCallbacks(
-		listenKey,
 		accountPositionCallback,
 		balanceUpdateCallback,
 		executionReportCallback,
