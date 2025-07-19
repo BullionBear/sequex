@@ -317,27 +317,45 @@ func (c *WSStreamClient) SubscribeToUserDataStreamWithCallbacks(
 	}()
 
 	wsCallback := func(data []byte) error {
-		// Try to parse as different user data event types
-		if accountPositionCallback != nil {
-			if accountPosition, err := ParseOutboundAccountPosition(data); err == nil {
-				return accountPositionCallback(accountPosition)
-			}
+		// First parse as generic map to check event type
+		var eventMap map[string]interface{}
+		if err := json.Unmarshal(data, &eventMap); err != nil {
+			log.Printf("Failed to parse user data stream event: %v", err)
+			return err
 		}
 
-		if balanceUpdateCallback != nil {
-			if balanceUpdate, err := ParseBalanceUpdate(data); err == nil {
-				return balanceUpdateCallback(balanceUpdate)
-			}
+		// Get event type from 'e' field
+		eventType, ok := eventMap["e"].(string)
+		if !ok {
+			log.Printf("Missing or invalid event type in user data stream event: %s", string(data))
+			return nil
 		}
 
-		if executionReportCallback != nil {
-			if executionReport, err := ParseExecutionReport(data); err == nil {
-				return executionReportCallback(executionReport)
+		// Route to appropriate callback based on event type
+		switch eventType {
+		case "outboundAccountPosition":
+			if accountPositionCallback != nil {
+				if accountPosition, err := ParseOutboundAccountPosition(data); err == nil {
+					return accountPositionCallback(accountPosition)
+				}
 			}
+		case "balanceUpdate":
+			if balanceUpdateCallback != nil {
+				if balanceUpdate, err := ParseBalanceUpdate(data); err == nil {
+					return balanceUpdateCallback(balanceUpdate)
+				}
+			}
+		case "executionReport":
+			if executionReportCallback != nil {
+				if executionReport, err := ParseExecutionReport(data); err == nil {
+					return executionReportCallback(executionReport)
+				}
+			}
+		default:
+			// If none of the callbacks matched, log the raw data
+			log.Printf("Unhandled user data stream event type '%s': %s", eventType, string(data))
 		}
 
-		// If none of the callbacks matched, log the raw data
-		log.Printf("Unhandled user data stream event: %s", string(data))
 		return nil
 	}
 
