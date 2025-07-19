@@ -111,6 +111,20 @@ if err != nil {
 }
 fmt.Printf("Found %d position risk entries\n", len(positionRisks))
 
+// Get and change position side mode
+positionSide, err := client.GetPositionSide(ctx)
+if err != nil {
+    log.Fatalf("Failed to get position side: %v", err)
+}
+fmt.Printf("Current position side mode: dualSidePosition=%t\n", positionSide.DualSidePosition)
+
+// Get and change leverage
+leverage, err := client.GetLeverage(ctx, "BTCUSDT")
+if err != nil {
+    log.Fatalf("Failed to get leverage: %v", err)
+}
+fmt.Printf("Current leverage for BTCUSDT: %dx\n", leverage.Leverage)
+
 ## Configuration
 
 ### Testnet Configuration
@@ -155,6 +169,10 @@ client := binancefuture.NewClient(config)
 ### Account & Trading (Signed Endpoints)
 - `GetAccount(ctx)` - Get account information and positions
 - `GetPositionRisk(ctx, symbol)` - Get position risk information
+- `GetPositionSide(ctx)` - Get current position side mode
+- `ChangePositionSide(ctx, dualSidePosition)` - Change position side mode
+- `GetLeverage(ctx, symbol)` - Get current leverage for a symbol
+- `ChangeLeverage(ctx, symbol, leverage)` - Change leverage for a symbol
 - `PlaceOrder(ctx, req)` - Place a new order
 - `GetOrder(ctx, symbol, orderID)` - Get order information
 - `CancelOrder(ctx, symbol, orderID)` - Cancel an order

@@ -297,3 +297,89 @@ func ExampleClient_GetPositionRisk() {
 		}
 	}
 }
+
+func ExampleClient_GetPositionSide() {
+	config := TestnetConfig()
+	// Set API credentials for signed endpoints
+	config.APIKey = "your-api-key"
+	config.APISecret = "your-api-secret"
+
+	client := NewClient(config)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Get current position side mode
+	positionSide, err := client.GetPositionSide(ctx)
+	if err != nil {
+		log.Fatalf("Failed to get position side: %v", err)
+	}
+
+	if positionSide.DualSidePosition {
+		fmt.Println("Position side mode: Dual Side (can hold both long and short positions)")
+	} else {
+		fmt.Println("Position side mode: Single Side (can only hold one position side)")
+	}
+}
+
+func ExampleClient_ChangePositionSide() {
+	config := TestnetConfig()
+	// Set API credentials for signed endpoints
+	config.APIKey = "your-api-key"
+	config.APISecret = "your-api-secret"
+
+	client := NewClient(config)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Change to dual side position mode
+	positionSide, err := client.ChangePositionSide(ctx, true)
+	if err != nil {
+		log.Fatalf("Failed to change position side: %v", err)
+	}
+
+	fmt.Printf("Position side changed to: dualSidePosition=%t\n", positionSide.DualSidePosition)
+}
+
+func ExampleClient_GetLeverage() {
+	config := TestnetConfig()
+	// Set API credentials for signed endpoints
+	config.APIKey = "your-api-key"
+	config.APISecret = "your-api-secret"
+
+	client := NewClient(config)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Get current leverage for BTCUSDT
+	leverage, err := client.GetLeverage(ctx, "BTCUSDT")
+	if err != nil {
+		log.Fatalf("Failed to get leverage: %v", err)
+	}
+
+	fmt.Printf("Current leverage for %s: %dx (Max notional: %s)\n",
+		leverage.Symbol, leverage.Leverage, leverage.MaxNotionalValue)
+}
+
+func ExampleClient_ChangeLeverage() {
+	config := TestnetConfig()
+	// Set API credentials for signed endpoints
+	config.APIKey = "your-api-key"
+	config.APISecret = "your-api-secret"
+
+	client := NewClient(config)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Change leverage to 10x for BTCUSDT
+	leverage, err := client.ChangeLeverage(ctx, "BTCUSDT", 10)
+	if err != nil {
+		log.Fatalf("Failed to change leverage: %v", err)
+	}
+
+	fmt.Printf("Leverage changed for %s: %dx (Max notional: %s)\n",
+		leverage.Symbol, leverage.Leverage, leverage.MaxNotionalValue)
+}

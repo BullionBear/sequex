@@ -461,6 +461,18 @@ func (p *PositionRiskResponse) GetUpdateTime() time.Time {
 	return time.Unix(0, p.UpdateTime*int64(time.Millisecond))
 }
 
+// PositionSideResponse represents the response from /fapi/v1/positionSide/dual endpoint
+type PositionSideResponse struct {
+	DualSidePosition bool `json:"dualSidePosition"`
+}
+
+// LeverageResponse represents the response from /fapi/v1/leverage endpoint
+type LeverageResponse struct {
+	Leverage         int    `json:"leverage"`
+	MaxNotionalValue string `json:"maxNotionalValue"`
+	Symbol           string `json:"symbol"`
+}
+
 // Helper methods for TickerPriceResult
 func (t *TickerPriceResult) IsSingle() bool {
 	return t.Single != nil

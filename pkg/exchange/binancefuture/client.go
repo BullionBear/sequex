@@ -612,6 +612,116 @@ func (c *Client) GetPositionRisk(ctx context.Context, symbol string) ([]Position
 	return positionRisks, nil
 }
 
+// GetPositionSide gets current position side mode
+func (c *Client) GetPositionSide(ctx context.Context) (*PositionSideResponse, error) {
+	c.logger.Debug("getting position side mode")
+
+	respBody, err := c.requestService.DoSignedRequest(
+		ctx,
+		MethodGET,
+		EndpointPositionSide,
+		nil,
+	)
+	if err != nil {
+		c.logger.Error("failed to get position side", "error", err)
+		return nil, fmt.Errorf("failed to get position side: %w", err)
+	}
+
+	var positionSide PositionSideResponse
+	if err := json.Unmarshal(respBody, &positionSide); err != nil {
+		c.logger.Error("failed to parse position side response", "error", err)
+		return nil, fmt.Errorf("failed to parse position side response: %w", err)
+	}
+
+	c.logger.Debug("position side retrieved successfully", "dualSidePosition", positionSide.DualSidePosition)
+	return &positionSide, nil
+}
+
+// ChangePositionSide changes position side mode
+func (c *Client) ChangePositionSide(ctx context.Context, dualSidePosition bool) (*PositionSideResponse, error) {
+	c.logger.Debug("changing position side mode", "dualSidePosition", dualSidePosition)
+
+	params := url.Values{}
+	params.Set("dualSidePosition", strconv.FormatBool(dualSidePosition))
+
+	respBody, err := c.requestService.DoSignedRequest(
+		ctx,
+		MethodPOST,
+		EndpointPositionSide,
+		params,
+	)
+	if err != nil {
+		c.logger.Error("failed to change position side", "error", err)
+		return nil, fmt.Errorf("failed to change position side: %w", err)
+	}
+
+	var positionSide PositionSideResponse
+	if err := json.Unmarshal(respBody, &positionSide); err != nil {
+		c.logger.Error("failed to parse position side response", "error", err)
+		return nil, fmt.Errorf("failed to parse position side response: %w", err)
+	}
+
+	c.logger.Debug("position side changed successfully", "dualSidePosition", positionSide.DualSidePosition)
+	return &positionSide, nil
+}
+
+// GetLeverage gets current leverage for a symbol
+func (c *Client) GetLeverage(ctx context.Context, symbol string) (*LeverageResponse, error) {
+	c.logger.Debug("getting leverage", "symbol", symbol)
+
+	params := url.Values{}
+	params.Set("symbol", symbol)
+
+	respBody, err := c.requestService.DoSignedRequest(
+		ctx,
+		MethodGET,
+		EndpointLeverage,
+		params,
+	)
+	if err != nil {
+		c.logger.Error("failed to get leverage", "error", err, "symbol", symbol)
+		return nil, fmt.Errorf("failed to get leverage: %w", err)
+	}
+
+	var leverage LeverageResponse
+	if err := json.Unmarshal(respBody, &leverage); err != nil {
+		c.logger.Error("failed to parse leverage response", "error", err)
+		return nil, fmt.Errorf("failed to parse leverage response: %w", err)
+	}
+
+	c.logger.Debug("leverage retrieved successfully", "symbol", leverage.Symbol, "leverage", leverage.Leverage)
+	return &leverage, nil
+}
+
+// ChangeLeverage changes leverage for a symbol
+func (c *Client) ChangeLeverage(ctx context.Context, symbol string, leverage int) (*LeverageResponse, error) {
+	c.logger.Debug("changing leverage", "symbol", symbol, "leverage", leverage)
+
+	params := url.Values{}
+	params.Set("symbol", symbol)
+	params.Set("leverage", strconv.Itoa(leverage))
+
+	respBody, err := c.requestService.DoSignedRequest(
+		ctx,
+		MethodPOST,
+		EndpointLeverage,
+		params,
+	)
+	if err != nil {
+		c.logger.Error("failed to change leverage", "error", err, "symbol", symbol, "leverage", leverage)
+		return nil, fmt.Errorf("failed to change leverage: %w", err)
+	}
+
+	var leverageResp LeverageResponse
+	if err := json.Unmarshal(respBody, &leverageResp); err != nil {
+		c.logger.Error("failed to parse leverage response", "error", err)
+		return nil, fmt.Errorf("failed to parse leverage response: %w", err)
+	}
+
+	c.logger.Debug("leverage changed successfully", "symbol", leverageResp.Symbol, "leverage", leverageResp.Leverage)
+	return &leverageResp, nil
+}
+
 // validateOrderRequest validates the order request parameters
 func (c *Client) validateOrderRequest(req *NewOrderRequest) error {
 	if req.Symbol == "" {

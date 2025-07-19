@@ -307,3 +307,157 @@ func TestGetPositionRisk(t *testing.T) {
 		}
 	}
 }
+
+func TestGetPositionSide(t *testing.T) {
+	config := getSignedTestConfig()
+	if config == nil {
+		t.Skip("Skipping signed endpoint test: BINANCE_FUTURES_API_KEY and BINANCE_FUTURES_API_SECRET environment variables not set")
+	}
+
+	client := NewClient(config)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Get current position side mode
+	positionSide, err := client.GetPositionSide(ctx)
+	if err != nil {
+		t.Fatalf("failed to get position side: %v", err)
+	}
+
+	if positionSide == nil {
+		t.Fatal("position side response should not be nil")
+	}
+
+	t.Logf("Current position side mode: dualSidePosition=%t", positionSide.DualSidePosition)
+}
+
+func TestChangePositionSide(t *testing.T) {
+	config := getSignedTestConfig()
+	if config == nil {
+		t.Skip("Skipping signed endpoint test: BINANCE_FUTURES_API_KEY and BINANCE_FUTURES_API_SECRET environment variables not set")
+	}
+
+	client := NewClient(config)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// First get current position side mode
+	currentPositionSide, err := client.GetPositionSide(ctx)
+	if err != nil {
+		t.Fatalf("failed to get current position side: %v", err)
+	}
+
+	// Change to opposite mode
+	newDualSidePosition := !currentPositionSide.DualSidePosition
+	changedPositionSide, err := client.ChangePositionSide(ctx, newDualSidePosition)
+	if err != nil {
+		t.Fatalf("failed to change position side: %v", err)
+	}
+
+	if changedPositionSide == nil {
+		t.Fatal("changed position side response should not be nil")
+	}
+
+	if changedPositionSide.DualSidePosition != newDualSidePosition {
+		t.Errorf("expected dualSidePosition %t, got %t", newDualSidePosition, changedPositionSide.DualSidePosition)
+	}
+
+	t.Logf("Position side changed successfully: dualSidePosition=%t", changedPositionSide.DualSidePosition)
+
+	// Change back to original mode
+	originalPositionSide, err := client.ChangePositionSide(ctx, currentPositionSide.DualSidePosition)
+	if err != nil {
+		t.Fatalf("failed to change position side back: %v", err)
+	}
+
+	if originalPositionSide.DualSidePosition != currentPositionSide.DualSidePosition {
+		t.Errorf("expected dualSidePosition %t, got %t", currentPositionSide.DualSidePosition, originalPositionSide.DualSidePosition)
+	}
+
+	t.Logf("Position side restored: dualSidePosition=%t", originalPositionSide.DualSidePosition)
+}
+
+func TestGetLeverage(t *testing.T) {
+	config := getSignedTestConfig()
+	if config == nil {
+		t.Skip("Skipping signed endpoint test: BINANCE_FUTURES_API_KEY and BINANCE_FUTURES_API_SECRET environment variables not set")
+	}
+
+	client := NewClient(config)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Get current leverage for BTCUSDT
+	leverage, err := client.GetLeverage(ctx, "BTCUSDT")
+	if err != nil {
+		t.Fatalf("failed to get leverage: %v", err)
+	}
+
+	if leverage == nil {
+		t.Fatal("leverage response should not be nil")
+	}
+
+	if leverage.Symbol != "BTCUSDT" {
+		t.Errorf("expected symbol BTCUSDT, got %s", leverage.Symbol)
+	}
+
+	if leverage.Leverage <= 0 {
+		t.Error("leverage should be positive")
+	}
+
+	t.Logf("Current leverage for %s: %d", leverage.Symbol, leverage.Leverage)
+}
+
+func TestChangeLeverage(t *testing.T) {
+	config := getSignedTestConfig()
+	if config == nil {
+		t.Skip("Skipping signed endpoint test: BINANCE_FUTURES_API_KEY and BINANCE_FUTURES_API_SECRET environment variables not set")
+	}
+
+	client := NewClient(config)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// First get current leverage
+	currentLeverage, err := client.GetLeverage(ctx, "BTCUSDT")
+	if err != nil {
+		t.Fatalf("failed to get current leverage: %v", err)
+	}
+
+	// Change to a different leverage (use 10 if current is not 10, otherwise use 20)
+	newLeverage := 10
+	if currentLeverage.Leverage == 10 {
+		newLeverage = 20
+	}
+
+	changedLeverage, err := client.ChangeLeverage(ctx, "BTCUSDT", newLeverage)
+	if err != nil {
+		t.Fatalf("failed to change leverage: %v", err)
+	}
+
+	if changedLeverage == nil {
+		t.Fatal("changed leverage response should not be nil")
+	}
+
+	if changedLeverage.Symbol != "BTCUSDT" {
+		t.Errorf("expected symbol BTCUSDT, got %s", changedLeverage.Symbol)
+	}
+
+	if changedLeverage.Leverage != newLeverage {
+		t.Errorf("expected leverage %d, got %d", newLeverage, changedLeverage.Leverage)
+	}
+
+	t.Logf("Leverage changed successfully: %s -> %d", changedLeverage.Symbol, changedLeverage.Leverage)
+
+	// Change back to original leverage
+	originalLeverage, err := client.ChangeLeverage(ctx, "BTCUSDT", currentLeverage.Leverage)
+	if err != nil {
+		t.Fatalf("failed to change leverage back: %v", err)
+	}
+
+	if originalLeverage.Leverage != currentLeverage.Leverage {
+		t.Errorf("expected leverage %d, got %d", currentLeverage.Leverage, originalLeverage.Leverage)
+	}
+
+	t.Logf("Leverage restored: %s -> %d", originalLeverage.Symbol, originalLeverage.Leverage)
+}

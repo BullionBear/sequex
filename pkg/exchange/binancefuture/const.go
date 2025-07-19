@@ -29,6 +29,8 @@ const (
 	// Account endpoints (signed)
 	EndpointAccount      = "/fapi/v2/account"
 	EndpointPositionRisk = "/fapi/v3/positionRisk"
+	EndpointPositionSide = "/fapi/v1/positionSide/dual"
+	EndpointLeverage     = "/fapi/v1/leverage"
 	EndpointOrder        = "/fapi/v1/order"
 	EndpointOrders       = "/fapi/v1/allOrders"
 	EndpointOpenOrders   = "/fapi/v1/openOrders"
@@ -144,10 +146,10 @@ const (
 // WebSocket URLs
 const (
 	// Production WebSocket endpoints
-	WSBaseURL = "wss://fstream.binance.com"
+	WSBaseURL = "wss://fstream.binance.com/ws"
 
 	// Testnet WebSocket endpoints
-	WSBaseURLTestnet = "wss://stream.binancefuture.com"
+	WSBaseURLTestnet = "wss://dstream.binancefuture.com/ws"
 )
 
 // WebSocket Stream Names
