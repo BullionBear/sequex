@@ -9,16 +9,11 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
-	c := binance.NewClient(&binance.Config{
-		APIKey:    "NapwpjlsGTEgmc4cMgj8oA7zHzuUeAgRRj5hu0ZAKXA6XFYl3KYgiQd3YV9eVYrb",
-		APISecret: "x3zyS1epGBKsz7KT4TqzIGFCKPLmsdFnEkt5EUioTgasgGaj8uXzhqDXIsRrXDMc",
-		BaseURL:   "https://testnet.binance.vision",
-	})
-	// Single symbol
-	price, err := c.GetTickerPrice(ctx, "BTCUSDT")
+	fmt.Println("Hello, World!")
+	c := binance.NewClient(binance.DefaultConfig())
+	res, err := c.GetServerTime(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("BTC price: %+v\n", price)
+	fmt.Println(res)
 }
