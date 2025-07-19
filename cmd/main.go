@@ -1,19 +1,18 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"log"
+	"time"
 
 	"github.com/BullionBear/sequex/pkg/exchange/binance"
 )
 
 func main() {
-	fmt.Println("Hello, World!")
-	c := binance.NewClient(binance.DefaultConfig())
-	res, err := c.GetServerTime(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(res)
+	c := binance.NewWSStreamClient(binance.DefaultConfig())
+	unsubscribe, _ := c.SubscribeToDiffDepthWithCallback("ETHUSDT", "@100ms", func(data *binance.WSDiffDepthData) error {
+		fmt.Println(data)
+		return nil
+	})
+	time.Sleep(10 * time.Second)
+	unsubscribe()
 }
