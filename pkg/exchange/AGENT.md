@@ -30,7 +30,7 @@ Each exchange implementation should cover, **at minimum**, the following structu
 
 - `config.go` — Configures API parameters (e.g., `API_KEY`, `API_SECRET`, `BASE_URL`).
 - `utils.go` — Utilities such as signing HTTP headers or timestamp generation.
-- `const.go` — Constants such as base URLs, endpoint paths, and header keys.
+- `const.go` — Constants such as base URLs, endpoint paths, and header keys, enums.
 - `error.go` — Exchange-specific API error code parsing and mapping.
 - `request.go` — Low-level HTTP requests, session management, and signed/unsigned requests.
 - `models.go` — Models for HTTP requests/responses, enabling `json.Marshal` and `json.Unmarshal` to Go types.
@@ -45,6 +45,7 @@ Each exchange implementation should cover, **at minimum**, the following structu
   - Subscription interfaces
   - Event dispatching
   - Topic-specific data handlers
+- `utils.go` — Miscellaneous helper function can be re-use under the corresponding exchanges
 
 ---
 
