@@ -113,3 +113,39 @@ const (
 	Interval1w  = "1w"
 	Interval1M  = "1M"
 )
+
+// WebSocket URLs
+const (
+	// Production WebSocket endpoints
+	WSBaseURL = "wss://stream.binance.com:9443"
+
+	// Testnet WebSocket endpoints
+	WSBaseURLTestnet = "wss://testnet.binance.vision"
+)
+
+// WebSocket Stream Names
+const (
+	WSStreamKline      = "kline"
+	WSStreamTicker     = "ticker"
+	WSStreamMiniTicker = "miniTicker"
+	WSStreamBookTicker = "bookTicker"
+	WSStreamDepth      = "depth"
+	WSStreamTrade      = "trade"
+	WSStreamAggTrade   = "aggTrade"
+)
+
+// WebSocket Methods
+const (
+	WSMethodSubscribe         = "SUBSCRIBE"
+	WSMethodUnsubscribe       = "UNSUBSCRIBE"
+	WSMethodListSubscriptions = "LIST_SUBSCRIPTIONS"
+)
+
+// WebSocket Message Types
+const (
+	WSMsgTypeSubscribe   = "subscribe"
+	WSMsgTypeUnsubscribe = "unsubscribe"
+	WSMsgTypeResult      = "result"
+	WSMsgTypeError       = "error"
+	WSMsgTypeStream      = "stream"
+)

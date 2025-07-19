@@ -23,33 +23,59 @@ I don't expect you implement all the stuff at once. The plan to finish the modul
 3. Integrate the API path you want to implement in client.go, without implementation (skip if you already done)
     3.1. If the path is not defined, go to define it in const.go
     3.2. If the enum is not defined, go to define it in enum.go
-    3.3. Writing the unittest of it
-    3.4. Implement the public API
-    3.5 Run the unittest
+    3.3. If the model is not defines, go to define it in models.go
+    3.4. Define the function to send public request in request.go, without implementation
+    3.5. Writing the unittest of it
+    3.6. Implement the public API
+    3.7. Run the unittest
 
 # Steps to Implement signed APIs 
 1. Define the const.go, error.go and enum.go, if it's already defined, go to the next (no need to defined all stuff in the begining because you need to make sure the coverage is over 80%)
 2. Prepare the basic function of sending signed request 
-    2.1  Define the function to send signed request in request.go, without implementation
+    2.1. Define the function to send signed request in request.go, without implementation
     2.2. Writing unittest of it
-    2.3 Implement the function to send signed request in request.go
-    2.4 Run the unittest to make sure it works
+    2.3. Implement the function to send signed request in request.go
+    2.4. Run the unittest to make sure it works
 3. Integrate the API path you want to implement in client.go, without implementation (skip if you already done)
     3.1. If the path is not defined, go to define it in const.go
     3.2. If the enum is not defined, go to define it in enum.go
-    3.3. Writing the unittest of it
-    3.4. Implement the signed API
-    3.5. Run the unittest
+    3.3. If the model is not defines, go to define it in models.go
+    3.4. Define the function to send signed request in request.go, without implementation
+    3.5. Writing the unittest of it
+    3.6. Implement the signed API
+    3.7. Run the unittest
 
 # Steps to implement unsigned websocket subscription/resubscription/unsubscription
-```
-Not ready to plan, ignore it first
-```
+
+1. Prepare the const.go, error.go and enum.go, if it's already defined, go to the next (no need to defined all stuff in the begining because you need to make sure the coverage is over 80%)
+2. Prepare the basic function to subscribe a raw websocket stream (skip if you already done)
+    2.1. Define the websocket client include, establish connection, ping/pong, exponential backoff retry if disconnected, graceful disconnet, error handling
+    2.2. Writing unittest of it
+    2.3. Implement the function to subscribe public stream
+    2.4. Run the unittest to make sure it works
+3. Integrate the API path you want to implement in client.go, without implementation (skip if you already done)
+    3.1. If the model is not defined, go to define it in ws_models.go
+    3.2. Define the function to subscribe, without implementation
+    3.3. Writing the unittest of it
+    3.4. Implement the public subscription
+    3.5. Run the unittest
+
 
 # Steps to implement signed websocket subscription/resubscription/unsubscription
-```
-Not ready to plan, ignore it first
-```
+
+1. Prepare the const.go, error.go and enum.go, if it's already defined, go to the next (no need to defined all stuff in the begining because you need to make sure the coverage is over 80%)
+2. Prepare the basic function to subscribe a signed websocket stream (skip if you already done)
+    2.0. Implement a function to get a listen key
+    2.1. Define the websocket client include, establish connection, ping/pong, exponential backoff retry if disconnected, graceful disconnet, error handling
+    2.2. Writing unittest of it
+    2.3. Implement the function to subscribe public stream
+    2.4. Run the unittest to make sure it works
+3. Integrate the API path you want to implement in client.go, without implementation (skip if you already done)
+    3.1. If the model is not defined, go to define it in ws_models.go
+    3.2. Define the function to subscribe, without implementation
+    3.3. Writing the unittest of it
+    3.4. Implement the public subscription
+    3.5. Run the unittest
 
 ## Purpose
 
