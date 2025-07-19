@@ -24,7 +24,10 @@ func TestClient_GetRealBTCPrice_AndPlaceOrder(t *testing.T) {
 		t.Fatalf("Failed to get BTC price: %v", err)
 	}
 
-	ticker := result.(*TickerPriceResponse)
+	if !result.IsSingle() {
+		t.Fatal("Expected single ticker result")
+	}
+	ticker := result.GetSingle()
 	t.Logf("Current BTC price: %s", ticker.Price)
 
 	// Parse the current price

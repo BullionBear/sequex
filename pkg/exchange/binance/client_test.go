@@ -245,11 +245,11 @@ func TestClient_GetTickerPrice_SingleSymbol_Success(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	ticker, ok := result.(*TickerPriceResponse)
-	if !ok {
-		t.Fatalf("expected *TickerPriceResponse, got %T", result)
+	if !result.IsSingle() {
+		t.Fatal("expected single ticker result")
 	}
 
+	ticker := result.GetSingle()
 	if ticker.Symbol != "BTCUSDT" {
 		t.Errorf("expected symbol BTCUSDT, got %s", ticker.Symbol)
 	}
@@ -275,11 +275,11 @@ func TestClient_GetTickerPrice_AllSymbols_Success(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	tickers, ok := result.([]TickerPriceResponse)
-	if !ok {
-		t.Fatalf("expected []TickerPriceResponse, got %T", result)
+	if !result.IsArray() {
+		t.Fatal("expected array ticker result")
 	}
 
+	tickers := result.GetArray()
 	if len(tickers) != 2 {
 		t.Errorf("expected 2 tickers, got %d", len(tickers))
 	}
@@ -369,5 +369,182 @@ func TestClient_GetServerTime_ContextCancellation(t *testing.T) {
 	// Check error is context related
 	if !strings.Contains(err.Error(), "context canceled") {
 		t.Errorf("expected context cancellation error, got %v", err)
+	}
+}
+
+func TestClient_GetKlines_Success(t *testing.T) {
+	client, mockClient := createTestClient()
+
+	// Mock successful response for klines
+	responseBody := `[
+		[1635724800000,"45000.00","45100.00","44900.00","45050.00","100.5",1635724859999,"4525025.00",1000,"50.25","50.25"],
+		[1635724860000,"45050.00","45200.00","45000.00","45150.00","150.2",1635724919999,"6780300.00",1200,"75.10","75.10"]
+	]`
+	mockClient.setResponse("https://api.binance.com/api/v3/klines?interval=1m&limit=2&symbol=BTCUSDT", http.StatusOK, responseBody)
+
+	// Test GetKlines
+	ctx := context.Background()
+	result, err := client.GetKlines(ctx, "BTCUSDT", "1m", 2)
+
+	// Assertions
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("expected result, got nil")
+	}
+
+	if len(*result) != 2 {
+		t.Errorf("expected 2 klines, got %d", len(*result))
+	}
+
+	// Check first kline
+	firstKline := (*result)[0]
+	if firstKline.Open != "45000.00" {
+		t.Errorf("expected open 45000.00, got %s", firstKline.Open)
+	}
+
+	if firstKline.High != "45100.00" {
+		t.Errorf("expected high 45100.00, got %s", firstKline.High)
+	}
+
+	if firstKline.Low != "44900.00" {
+		t.Errorf("expected low 44900.00, got %s", firstKline.Low)
+	}
+
+	if firstKline.Close != "45050.00" {
+		t.Errorf("expected close 45050.00, got %s", firstKline.Close)
+	}
+
+	if firstKline.Volume != "100.5" {
+		t.Errorf("expected volume 100.5, got %s", firstKline.Volume)
+	}
+}
+
+func TestClient_GetOrderBook_Success(t *testing.T) {
+	client, mockClient := createTestClient()
+
+	// Mock successful response for order book
+	responseBody := `{
+		"lastUpdateId": 123456789,
+		"bids": [
+			["45000.00", "1.5"],
+			["44999.00", "2.0"]
+		],
+		"asks": [
+			["45001.00", "1.0"],
+			["45002.00", "2.5"]
+		]
+	}`
+	mockClient.setResponse("https://api.binance.com/api/v3/depth?limit=5&symbol=BTCUSDT", http.StatusOK, responseBody)
+
+	// Test GetOrderBook
+	ctx := context.Background()
+	result, err := client.GetOrderBook(ctx, "BTCUSDT", 5)
+
+	// Assertions
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("expected result, got nil")
+	}
+
+	if result.LastUpdateId != 123456789 {
+		t.Errorf("expected lastUpdateId 123456789, got %d", result.LastUpdateId)
+	}
+
+	if len(result.Bids) != 2 {
+		t.Errorf("expected 2 bids, got %d", len(result.Bids))
+	}
+
+	if len(result.Asks) != 2 {
+		t.Errorf("expected 2 asks, got %d", len(result.Asks))
+	}
+
+	// Check first bid
+	if result.Bids[0][0] != "45000.00" {
+		t.Errorf("expected first bid price 45000.00, got %s", result.Bids[0][0])
+	}
+
+	if result.Bids[0][1] != "1.5" {
+		t.Errorf("expected first bid quantity 1.5, got %s", result.Bids[0][1])
+	}
+
+	// Check first ask
+	if result.Asks[0][0] != "45001.00" {
+		t.Errorf("expected first ask price 45001.00, got %s", result.Asks[0][0])
+	}
+
+	if result.Asks[0][1] != "1.0" {
+		t.Errorf("expected first ask quantity 1.0, got %s", result.Asks[0][1])
+	}
+}
+
+func TestClient_GetTrades_Success(t *testing.T) {
+	client, mockClient := createTestClient()
+
+	// Mock successful response for trades
+	responseBody := `[
+		{
+			"id": 12345,
+			"price": "45000.00",
+			"qty": "1.5",
+			"quoteQty": "67500.00",
+			"time": 1635724800000,
+			"isBuyerMaker": false,
+			"isBestMatch": true
+		},
+		{
+			"id": 12346,
+			"price": "45001.00",
+			"qty": "0.5",
+			"quoteQty": "22500.50",
+			"time": 1635724801000,
+			"isBuyerMaker": true,
+			"isBestMatch": false
+		}
+	]`
+	mockClient.setResponse("https://api.binance.com/api/v3/trades?limit=2&symbol=BTCUSDT", http.StatusOK, responseBody)
+
+	// Test GetTrades
+	ctx := context.Background()
+	result, err := client.GetTrades(ctx, "BTCUSDT", 2)
+
+	// Assertions
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("expected result, got nil")
+	}
+
+	if len(result) != 2 {
+		t.Errorf("expected 2 trades, got %d", len(result))
+	}
+
+	// Check first trade
+	firstTrade := result[0]
+	if firstTrade.Id != 12345 {
+		t.Errorf("expected trade id 12345, got %d", firstTrade.Id)
+	}
+
+	if firstTrade.Price != "45000.00" {
+		t.Errorf("expected trade price 45000.00, got %s", firstTrade.Price)
+	}
+
+	if firstTrade.Qty != "1.5" {
+		t.Errorf("expected trade qty 1.5, got %s", firstTrade.Qty)
+	}
+
+	if firstTrade.IsBuyerMaker != false {
+		t.Errorf("expected isBuyerMaker false, got %v", firstTrade.IsBuyerMaker)
+	}
+
+	if firstTrade.IsBestMatch != true {
+		t.Errorf("expected isBestMatch true, got %v", firstTrade.IsBestMatch)
 	}
 }

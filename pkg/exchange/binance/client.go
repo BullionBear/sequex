@@ -119,7 +119,7 @@ func (c *Client) GetExchangeInfo(ctx context.Context) (*ExchangeInfoResponse, er
 
 // GetTickerPrice gets symbol price ticker
 // If symbol is empty, returns price tickers for all symbols
-func (c *Client) GetTickerPrice(ctx context.Context, symbol string) (interface{}, error) {
+func (c *Client) GetTickerPrice(ctx context.Context, symbol string) (*TickerPriceResult, error) {
 	c.logger.Debug("getting ticker price", "symbol", symbol)
 
 	params := url.Values{}
@@ -138,6 +138,8 @@ func (c *Client) GetTickerPrice(ctx context.Context, symbol string) (interface{}
 		return nil, fmt.Errorf("failed to get ticker price: %w", err)
 	}
 
+	result := &TickerPriceResult{}
+
 	// If symbol is specified, return single ticker, otherwise return array
 	if symbol != "" {
 		var ticker TickerPriceResponse
@@ -145,22 +147,24 @@ func (c *Client) GetTickerPrice(ctx context.Context, symbol string) (interface{}
 			c.logger.Error("failed to parse ticker price response", "error", err)
 			return nil, fmt.Errorf("failed to parse ticker price response: %w", err)
 		}
+		result.Single = &ticker
 		c.logger.Debug("ticker price retrieved successfully", "symbol", symbol, "price", ticker.Price)
-		return &ticker, nil
 	} else {
 		var tickers []TickerPriceResponse
 		if err := json.Unmarshal(respBody, &tickers); err != nil {
 			c.logger.Error("failed to parse ticker prices response", "error", err)
 			return nil, fmt.Errorf("failed to parse ticker prices response: %w", err)
 		}
+		result.Array = tickers
 		c.logger.Debug("ticker prices retrieved successfully", "count", len(tickers))
-		return tickers, nil
 	}
+
+	return result, nil
 }
 
 // GetTicker24hr gets 24hr ticker price change statistics
 // If symbol is empty, returns tickers for all symbols
-func (c *Client) GetTicker24hr(ctx context.Context, symbol string) (interface{}, error) {
+func (c *Client) GetTicker24hr(ctx context.Context, symbol string) (*Ticker24hrResult, error) {
 	c.logger.Debug("getting 24hr ticker", "symbol", symbol)
 
 	params := url.Values{}
@@ -179,6 +183,8 @@ func (c *Client) GetTicker24hr(ctx context.Context, symbol string) (interface{},
 		return nil, fmt.Errorf("failed to get 24hr ticker: %w", err)
 	}
 
+	result := &Ticker24hrResult{}
+
 	// If symbol is specified, return single ticker, otherwise return array
 	if symbol != "" {
 		var ticker Ticker24hrResponse
@@ -186,17 +192,113 @@ func (c *Client) GetTicker24hr(ctx context.Context, symbol string) (interface{},
 			c.logger.Error("failed to parse 24hr ticker response", "error", err)
 			return nil, fmt.Errorf("failed to parse 24hr ticker response: %w", err)
 		}
+		result.Single = &ticker
 		c.logger.Debug("24hr ticker retrieved successfully", "symbol", symbol)
-		return &ticker, nil
 	} else {
 		var tickers []Ticker24hrResponse
 		if err := json.Unmarshal(respBody, &tickers); err != nil {
 			c.logger.Error("failed to parse 24hr tickers response", "error", err)
 			return nil, fmt.Errorf("failed to parse 24hr tickers response: %w", err)
 		}
+		result.Array = tickers
 		c.logger.Debug("24hr tickers retrieved successfully", "count", len(tickers))
-		return tickers, nil
 	}
+
+	return result, nil
+}
+
+// GetKlines gets kline/candlestick data for a symbol
+func (c *Client) GetKlines(ctx context.Context, symbol, interval string, limit int) (*KlineResponse, error) {
+	c.logger.Debug("getting klines", "symbol", symbol, "interval", interval, "limit", limit)
+
+	params := url.Values{}
+	params.Set("symbol", symbol)
+	params.Set("interval", interval)
+	if limit > 0 {
+		params.Set("limit", strconv.Itoa(limit))
+	}
+
+	respBody, err := c.requestService.DoUnsignedRequest(
+		ctx,
+		MethodGET,
+		EndpointKlines,
+		params,
+	)
+	if err != nil {
+		c.logger.Error("failed to get klines", "error", err, "symbol", symbol)
+		return nil, fmt.Errorf("failed to get klines: %w", err)
+	}
+
+	var klines KlineResponse
+	if err := json.Unmarshal(respBody, &klines); err != nil {
+		c.logger.Error("failed to parse klines response", "error", err)
+		return nil, fmt.Errorf("failed to parse klines response: %w", err)
+	}
+
+	c.logger.Debug("klines retrieved successfully", "symbol", symbol, "count", len(klines))
+	return &klines, nil
+}
+
+// GetOrderBook gets order book for a symbol
+func (c *Client) GetOrderBook(ctx context.Context, symbol string, limit int) (*OrderBookResponse, error) {
+	c.logger.Debug("getting order book", "symbol", symbol, "limit", limit)
+
+	params := url.Values{}
+	params.Set("symbol", symbol)
+	if limit > 0 {
+		params.Set("limit", strconv.Itoa(limit))
+	}
+
+	respBody, err := c.requestService.DoUnsignedRequest(
+		ctx,
+		MethodGET,
+		EndpointOrderBook,
+		params,
+	)
+	if err != nil {
+		c.logger.Error("failed to get order book", "error", err, "symbol", symbol)
+		return nil, fmt.Errorf("failed to get order book: %w", err)
+	}
+
+	var orderbook OrderBookResponse
+	if err := json.Unmarshal(respBody, &orderbook); err != nil {
+		c.logger.Error("failed to parse order book response", "error", err)
+		return nil, fmt.Errorf("failed to parse order book response: %w", err)
+	}
+
+	c.logger.Debug("order book retrieved successfully", "symbol", symbol, "bids", len(orderbook.Bids), "asks", len(orderbook.Asks))
+	return &orderbook, nil
+}
+
+// GetTrades gets recent trades for a symbol
+func (c *Client) GetTrades(ctx context.Context, symbol string, limit int) ([]TradeResponse, error) {
+	c.logger.Debug("getting trades", "symbol", symbol, "limit", limit)
+
+	params := url.Values{}
+	params.Set("symbol", symbol)
+	if limit > 0 {
+		params.Set("limit", strconv.Itoa(limit))
+	}
+
+	respBody, err := c.requestService.DoUnsignedRequest(
+		ctx,
+		MethodGET,
+		EndpointTrades,
+		params,
+	)
+	if err != nil {
+		c.logger.Error("failed to get trades", "error", err, "symbol", symbol)
+		return nil, fmt.Errorf("failed to get trades: %w", err)
+	}
+
+	var trades []TradeResponse
+	if err := json.Unmarshal(respBody, &trades); err != nil {
+		c.logger.Error("failed to parse trades response", "error", err)
+		return nil, fmt.Errorf("failed to parse trades response: %w", err)
+	}
+
+	c.logger.Debug("trades retrieved successfully", "symbol", symbol, "count", len(trades))
+	return trades, nil
 }
 
 // GetAccount gets current account information (requires signature)

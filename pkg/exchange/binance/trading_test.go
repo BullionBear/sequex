@@ -69,7 +69,10 @@ func TestClient_PlaceOrder_LimitBuy_WithTestCredentials(t *testing.T) {
 		t.Fatalf("Failed to get BTC price: %v", err)
 	}
 
-	ticker := result.(*TickerPriceResponse)
+	if !result.IsSingle() {
+		t.Fatal("Expected single ticker result")
+	}
+	ticker := result.GetSingle()
 	currentPrice, err := strconv.ParseFloat(ticker.Price, 64)
 	if err != nil {
 		t.Fatalf("Failed to parse current price: %v", err)
@@ -214,7 +217,10 @@ func TestClient_GetOrder_WithTestCredentials(t *testing.T) {
 		t.Fatalf("Failed to get BTC price: %v", err)
 	}
 
-	ticker := result.(*TickerPriceResponse)
+	if !result.IsSingle() {
+		t.Fatal("Expected single ticker result")
+	}
+	ticker := result.GetSingle()
 	currentPrice, err := strconv.ParseFloat(ticker.Price, 64)
 	if err != nil {
 		t.Fatalf("Failed to parse current price: %v", err)
@@ -298,7 +304,10 @@ func TestClient_GetOpenOrders_WithTestCredentials(t *testing.T) {
 		t.Fatalf("Failed to get BTC price: %v", err)
 	}
 
-	ticker := result.(*TickerPriceResponse)
+	if !result.IsSingle() {
+		t.Fatal("Expected single ticker result")
+	}
+	ticker := result.GetSingle()
 	currentPrice, err := strconv.ParseFloat(ticker.Price, 64)
 	if err != nil {
 		t.Fatalf("Failed to parse current price: %v", err)

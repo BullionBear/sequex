@@ -55,7 +55,10 @@ func ExampleClient_GetTickerPrice() {
 		log.Fatalf("Failed to get ticker price: %v", err)
 	}
 
-	ticker := result.(*binance.TickerPriceResponse)
+	if !result.IsSingle() {
+		log.Fatal("Expected single ticker result")
+	}
+	ticker := result.GetSingle()
 	fmt.Printf("Symbol: %s, Price: %s\n", ticker.Symbol, ticker.Price)
 }
 

@@ -1,6 +1,8 @@
 package binance
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -106,11 +108,73 @@ type OrderBookResponse struct {
 	Asks         [][]string `json:"asks"`
 }
 
-// KlineResponse represents a single kline (candlestick) data
-type KlineResponse []interface{}
+// KlineData represents a single kline (candlestick) data point
+// Binance returns klines as arrays, so we need custom unmarshaling
+type KlineData struct {
+	OpenTime                 int64
+	Open                     string
+	High                     string
+	Low                      string
+	Close                    string
+	Volume                   string
+	CloseTime                int64
+	QuoteAssetVolume         string
+	NumberOfTrades           int64
+	TakerBuyBaseAssetVolume  string
+	TakerBuyQuoteAssetVolume string
+}
 
-// KlinesResponse represents the response from /api/v3/klines endpoint
-type KlinesResponse []KlineResponse
+// UnmarshalJSON implements custom JSON unmarshaling for KlineData
+func (k *KlineData) UnmarshalJSON(data []byte) error {
+	var arr []interface{}
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return err
+	}
+
+	if len(arr) < 11 {
+		return fmt.Errorf("kline data must have at least 11 elements, got %d", len(arr))
+	}
+
+	// Parse each field from the array
+	if openTime, ok := arr[0].(float64); ok {
+		k.OpenTime = int64(openTime)
+	}
+	if open, ok := arr[1].(string); ok {
+		k.Open = open
+	}
+	if high, ok := arr[2].(string); ok {
+		k.High = high
+	}
+	if low, ok := arr[3].(string); ok {
+		k.Low = low
+	}
+	if close, ok := arr[4].(string); ok {
+		k.Close = close
+	}
+	if volume, ok := arr[5].(string); ok {
+		k.Volume = volume
+	}
+	if closeTime, ok := arr[6].(float64); ok {
+		k.CloseTime = int64(closeTime)
+	}
+	if quoteAssetVolume, ok := arr[7].(string); ok {
+		k.QuoteAssetVolume = quoteAssetVolume
+	}
+	if numberOfTrades, ok := arr[8].(float64); ok {
+		k.NumberOfTrades = int64(numberOfTrades)
+	}
+	if takerBuyBaseAssetVolume, ok := arr[9].(string); ok {
+		k.TakerBuyBaseAssetVolume = takerBuyBaseAssetVolume
+	}
+	if takerBuyQuoteAssetVolume, ok := arr[10].(string); ok {
+		k.TakerBuyQuoteAssetVolume = takerBuyQuoteAssetVolume
+	}
+
+	return nil
+}
+
+// KlineResponse represents the response from /api/v3/klines endpoint
+type KlineResponse []KlineData
 
 // TradeResponse represents the response from /api/v3/trades endpoint
 type TradeResponse struct {
@@ -236,4 +300,70 @@ type UserDataStreamResponse struct {
 // UserDataStreamRequest represents the request for user data stream operations
 type UserDataStreamRequest struct {
 	ListenKey string `json:"listenKey,omitempty"`
+}
+
+// TickerPriceResult represents the result of GetTickerPrice
+// Can be either a single ticker or an array of tickers
+type TickerPriceResult struct {
+	Single *TickerPriceResponse
+	Array  []TickerPriceResponse
+}
+
+// Ticker24hrResult represents the result of GetTicker24hr
+// Can be either a single ticker or an array of tickers
+type Ticker24hrResult struct {
+	Single *Ticker24hrResponse
+	Array  []Ticker24hrResponse
+}
+
+// IsSingle returns true if this result contains a single ticker
+func (t *TickerPriceResult) IsSingle() bool {
+	return t.Single != nil
+}
+
+// IsArray returns true if this result contains an array of tickers
+func (t *TickerPriceResult) IsArray() bool {
+	return len(t.Array) > 0
+}
+
+// GetSingle returns the single ticker (panics if not single)
+func (t *TickerPriceResult) GetSingle() *TickerPriceResponse {
+	if t.Single == nil {
+		panic("TickerPriceResult does not contain a single ticker")
+	}
+	return t.Single
+}
+
+// GetArray returns the array of tickers (panics if not array)
+func (t *TickerPriceResult) GetArray() []TickerPriceResponse {
+	if len(t.Array) == 0 {
+		panic("TickerPriceResult does not contain an array of tickers")
+	}
+	return t.Array
+}
+
+// IsSingle returns true if this result contains a single ticker
+func (t *Ticker24hrResult) IsSingle() bool {
+	return t.Single != nil
+}
+
+// IsArray returns true if this result contains an array of tickers
+func (t *Ticker24hrResult) IsArray() bool {
+	return len(t.Array) > 0
+}
+
+// GetSingle returns the single ticker (panics if not single)
+func (t *Ticker24hrResult) GetSingle() *Ticker24hrResponse {
+	if t.Single == nil {
+		panic("Ticker24hrResult does not contain a single ticker")
+	}
+	return t.Single
+}
+
+// GetArray returns the array of tickers (panics if not array)
+func (t *Ticker24hrResult) GetArray() []Ticker24hrResponse {
+	if len(t.Array) == 0 {
+		panic("Ticker24hrResult does not contain an array of tickers")
+	}
+	return t.Array
 }
