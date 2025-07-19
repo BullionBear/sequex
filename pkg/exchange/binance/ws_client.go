@@ -263,6 +263,49 @@ func (c *WSStreamClient) SubscribeToDiffDepth(symbol string, callback WebSocketC
 	return c.subscribeToStream(streamName, callback)
 }
 
+// SubscribeToUserDataStream subscribes to user data stream with generic callback
+func (c *WSStreamClient) SubscribeToUserDataStream(listenKey string, callback WebSocketCallback) (func() error, error) {
+	streamName := listenKey
+	return c.subscribeToStream(streamName, callback)
+}
+
+// SubscribeToUserDataStreamWithCallbacks subscribes to user data stream with type-specific callbacks
+func (c *WSStreamClient) SubscribeToUserDataStreamWithCallbacks(
+	listenKey string,
+	accountPositionCallback OutboundAccountPositionCallback,
+	balanceUpdateCallback BalanceUpdateCallback,
+	executionReportCallback ExecutionReportCallback,
+) (func() error, error) {
+	streamName := listenKey
+
+	wsCallback := func(data []byte) error {
+		// Try to parse as different user data event types
+		if accountPositionCallback != nil {
+			if accountPosition, err := ParseOutboundAccountPosition(data); err == nil {
+				return accountPositionCallback(accountPosition)
+			}
+		}
+
+		if balanceUpdateCallback != nil {
+			if balanceUpdate, err := ParseBalanceUpdate(data); err == nil {
+				return balanceUpdateCallback(balanceUpdate)
+			}
+		}
+
+		if executionReportCallback != nil {
+			if executionReport, err := ParseExecutionReport(data); err == nil {
+				return executionReportCallback(executionReport)
+			}
+		}
+
+		// If none of the callbacks matched, log the raw data
+		log.Printf("Unhandled user data stream event: %s", string(data))
+		return nil
+	}
+
+	return c.subscribeToStream(streamName, wsCallback)
+}
+
 // subscribeToStream is the internal method to subscribe to any stream
 func (c *WSStreamClient) subscribeToStream(streamName string, callback WebSocketCallback) (func() error, error) {
 	c.mu.Lock()
@@ -477,4 +520,34 @@ func ParseDiffDepthData(data []byte) (*WSDiffDepthData, error) {
 		return nil, fmt.Errorf("failed to parse diff depth data: %w", err)
 	}
 	return &diffDepthData, nil
+}
+
+// ParseOutboundAccountPosition parses outbound account position data from WebSocket message
+func ParseOutboundAccountPosition(data []byte) (*WSOutboundAccountPosition, error) {
+	var accountPosition WSOutboundAccountPosition
+	err := json.Unmarshal(data, &accountPosition)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse outbound account position data: %w", err)
+	}
+	return &accountPosition, nil
+}
+
+// ParseBalanceUpdate parses balance update data from WebSocket message
+func ParseBalanceUpdate(data []byte) (*WSBalanceUpdate, error) {
+	var balanceUpdate WSBalanceUpdate
+	err := json.Unmarshal(data, &balanceUpdate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse balance update data: %w", err)
+	}
+	return &balanceUpdate, nil
+}
+
+// ParseExecutionReport parses execution report data from WebSocket message
+func ParseExecutionReport(data []byte) (*WSExecutionReport, error) {
+	var executionReport WSExecutionReport
+	err := json.Unmarshal(data, &executionReport)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse execution report data: %w", err)
+	}
+	return &executionReport, nil
 }

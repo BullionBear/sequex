@@ -167,6 +167,69 @@ type WSAggTradeData struct {
 	EventType    string  `json:"e"`
 }
 
+// WSBalance represents a balance in user data stream
+type WSBalance struct {
+	Asset  string `json:"a"`
+	Free   string `json:"f"`
+	Locked string `json:"l"`
+}
+
+// WSOutboundAccountPosition represents outbound account position data
+type WSOutboundAccountPosition struct {
+	EventType    string      `json:"e"`
+	EventTime    int64       `json:"E"`
+	LastUpdateID int64       `json:"u"`
+	Balances     []WSBalance `json:"B"`
+}
+
+// WSBalanceUpdate represents balance update data
+type WSBalanceUpdate struct {
+	EventType    string `json:"e"`
+	EventTime    int64  `json:"E"`
+	Asset        string `json:"a"`
+	BalanceDelta string `json:"d"`
+	ClearTime    int64  `json:"T"`
+}
+
+// WSExecutionReport represents execution report data
+type WSExecutionReport struct {
+	EventType                    string `json:"e"`
+	EventTime                    int64  `json:"E"`
+	Symbol                       string `json:"s"`
+	ClientOrderID                string `json:"c"`
+	Side                         string `json:"S"`
+	OrderType                    string `json:"o"`
+	TimeInForce                  string `json:"f"`
+	OrderQuantity                string `json:"q"`
+	OrderPrice                   string `json:"p"`
+	StopPrice                    string `json:"P"`
+	IcebergQuantity              string `json:"F"`
+	OrderListID                  int64  `json:"g"`
+	OriginalClientOrderID        string `json:"C"`
+	CurrentExecutionType         string `json:"x"`
+	CurrentOrderStatus           string `json:"X"`
+	OrderRejectReason            string `json:"r"`
+	OrderID                      int64  `json:"i"`
+	LastExecutedQuantity         string `json:"l"`
+	CumulativeFilledQuantity     string `json:"z"`
+	LastExecutedPrice            string `json:"L"`
+	CommissionAmount             string `json:"n"`
+	CommissionAsset              string `json:"N"`
+	TransactionTime              int64  `json:"T"`
+	TradeID                      int64  `json:"t"`
+	PreventedMatchID             int64  `json:"v"`
+	ExecutionID                  int64  `json:"I"`
+	IsOrderOnBook                bool   `json:"w"`
+	IsTradeMakerSide             bool   `json:"m"`
+	Ignore                       bool   `json:"M"`
+	OrderCreationTime            int64  `json:"O"`
+	CumulativeQuoteAssetQuantity string `json:"Z"`
+	LastQuoteAssetQuantity       string `json:"Y"`
+	QuoteOrderQuantity           string `json:"Q"`
+	WorkingTime                  int64  `json:"W"`
+	SelfTradePreventionMode      string `json:"V"`
+}
+
 // Type-specific callback functions
 type KlineCallback func(data *WSKlineData) error
 type TickerCallback func(data *WSTickerData) error
@@ -177,6 +240,9 @@ type DiffDepthCallback func(data *WSDiffDepthData) error
 type DepthCallback func(data *WSDepthData) error
 type TradeCallback func(data *WSTradeData) error
 type AggTradeCallback func(data *WSAggTradeData) error
+type OutboundAccountPositionCallback func(data *WSOutboundAccountPosition) error
+type BalanceUpdateCallback func(data *WSBalanceUpdate) error
+type ExecutionReportCallback func(data *WSExecutionReport) error
 
 // WebSocketCallback represents a callback function for WebSocket events
 type WebSocketCallback func(data []byte) error

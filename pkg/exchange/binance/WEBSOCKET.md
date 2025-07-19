@@ -388,6 +388,196 @@ Run the WebSocket tests:
 go test ./pkg/exchange/binance -v -run TestWS
 ```
 
+## User Data Streams
+
+User data streams provide real-time updates about account activities including balance changes, order updates, and account position changes.
+
+### Features
+
+- **24-hour Connection Limit**: User data streams are valid for 24 hours and will be disconnected automatically
+- **Listen Key Required**: Requires a listen key obtained from the REST API
+- **Multiple Event Types**: Supports account position, balance updates, and execution reports
+- **Type-Safe Callbacks**: Separate callback functions for each event type
+
+### Getting a Listen Key
+
+Before subscribing to user data streams, you need to obtain a listen key from the REST API:
+
+```go
+// Using the REST client to get a listen key
+client := binance.NewClient(config)
+listenKeyResponse, err := client.CreateUserDataStream()
+if err != nil {
+    log.Fatalf("Failed to create user data stream: %v", err)
+}
+
+listenKey := listenKeyResponse.ListenKey
+```
+
+### User Data Stream Methods
+
+#### SubscribeToUserDataStream
+```go
+func (c *WSStreamClient) SubscribeToUserDataStream(listenKey string, callback WebSocketCallback) (func() error, error)
+```
+Subscribes to user data stream with generic callback.
+
+#### SubscribeToUserDataStreamWithCallbacks
+```go
+func (c *WSStreamClient) SubscribeToUserDataStreamWithCallbacks(
+    listenKey string,
+    accountPositionCallback OutboundAccountPositionCallback,
+    balanceUpdateCallback BalanceUpdateCallback,
+    executionReportCallback ExecutionReportCallback,
+) (func() error, error)
+```
+Subscribes to user data stream with type-specific callbacks for each event type.
+
+**Parameters:**
+- `listenKey`: Listen key obtained from REST API
+- `accountPositionCallback`: Callback for account position updates (can be nil)
+- `balanceUpdateCallback`: Callback for balance updates (can be nil)
+- `executionReportCallback`: Callback for order execution reports (can be nil)
+
+### User Data Event Types
+
+#### WSOutboundAccountPosition
+Represents account position updates.
+
+```go
+type WSOutboundAccountPosition struct {
+    EventType    string       `json:"e"`
+    EventTime    int64        `json:"E"`
+    LastUpdateID int64        `json:"u"`
+    Balances     []WSBalance  `json:"B"`
+}
+
+type WSBalance struct {
+    Asset  string `json:"a"`
+    Free   string `json:"f"`
+    Locked string `json:"l"`
+}
+```
+
+#### WSBalanceUpdate
+Represents balance update events.
+
+```go
+type WSBalanceUpdate struct {
+    EventType     string `json:"e"`
+    EventTime     int64  `json:"E"`
+    Asset         string `json:"a"`
+    BalanceDelta  string `json:"d"`
+    ClearTime     int64  `json:"T"`
+}
+```
+
+#### WSExecutionReport
+Represents order execution reports.
+
+```go
+type WSExecutionReport struct {
+    EventType                    string `json:"e"`
+    EventTime                    int64  `json:"E"`
+    Symbol                       string `json:"s"`
+    ClientOrderID                string `json:"c"`
+    Side                         string `json:"S"`
+    OrderType                    string `json:"o"`
+    TimeInForce                  string `json:"f"`
+    OrderQuantity                string `json:"q"`
+    OrderPrice                   string `json:"p"`
+    StopPrice                    string `json:"P"`
+    IcebergQuantity              string `json:"F"`
+    OrderListID                  int64  `json:"g"`
+    OriginalClientOrderID        string `json:"C"`
+    CurrentExecutionType         string `json:"x"`
+    CurrentOrderStatus           string `json:"X"`
+    OrderRejectReason            string `json:"r"`
+    OrderID                      int64  `json:"i"`
+    LastExecutedQuantity         string `json:"l"`
+    CumulativeFilledQuantity     string `json:"z"`
+    LastExecutedPrice            string `json:"L"`
+    CommissionAmount             string `json:"n"`
+    CommissionAsset              string `json:"N"`
+    TransactionTime              int64  `json:"T"`
+    TradeID                      int64  `json:"t"`
+    PreventedMatchID             int64  `json:"v"`
+    ExecutionID                  int64  `json:"I"`
+    IsOrderOnBook                bool   `json:"w"`
+    IsTradeMakerSide             bool   `json:"m"`
+    Ignore                       bool   `json:"M"`
+    OrderCreationTime            int64  `json:"O"`
+    CumulativeQuoteAssetQuantity string `json:"Z"`
+    LastQuoteAssetQuantity       string `json:"Y"`
+    QuoteOrderQuantity           string `json:"Q"`
+    WorkingTime                  int64  `json:"W"`
+    SelfTradePreventionMode      string `json:"V"`
+}
+```
+
+### User Data Stream Callback Types
+
+```go
+type OutboundAccountPositionCallback func(data *WSOutboundAccountPosition) error
+type BalanceUpdateCallback func(data *WSBalanceUpdate) error
+type ExecutionReportCallback func(data *WSExecutionReport) error
+```
+
+### User Data Stream Example
+
+```go
+// Subscribe to user data stream with type-specific callbacks
+accountPositionCallback := func(data *binance.WSOutboundAccountPosition) error {
+    fmt.Printf("Account position update - Event time: %d\n", data.EventTime)
+    for _, balance := range data.Balances {
+        fmt.Printf("  %s: Free=%s, Locked=%s\n", 
+            balance.Asset, balance.Free, balance.Locked)
+    }
+    return nil
+}
+
+balanceUpdateCallback := func(data *binance.WSBalanceUpdate) error {
+    fmt.Printf("Balance update - Asset: %s, Delta: %s\n", 
+        data.Asset, data.BalanceDelta)
+    return nil
+}
+
+executionReportCallback := func(data *binance.WSExecutionReport) error {
+    fmt.Printf("Order update - Symbol: %s, Status: %s, Side: %s\n", 
+        data.Symbol, data.CurrentOrderStatus, data.Side)
+    return nil
+}
+
+// Get listen key from REST API first
+listenKey := "your-listen-key-here"
+
+unsubscribeUserData, err := client.SubscribeToUserDataStreamWithCallbacks(
+    listenKey,
+    accountPositionCallback,
+    balanceUpdateCallback,
+    executionReportCallback,
+)
+if err != nil {
+    log.Fatalf("Failed to subscribe to user data stream: %v", err)
+}
+defer unsubscribeUserData()
+```
+
+### User Data Stream Parsing Functions
+
+```go
+func ParseOutboundAccountPosition(data []byte) (*WSOutboundAccountPosition, error)
+func ParseBalanceUpdate(data []byte) (*WSBalanceUpdate, error)
+func ParseExecutionReport(data []byte) (*WSExecutionReport, error)
+```
+
+### Important Notes
+
+1. **Listen Key Expiration**: Listen keys expire after 24 hours. You need to refresh them periodically.
+2. **Single Connection**: Only one connection per listen key is allowed.
+3. **Authentication Required**: User data streams require API key authentication.
+4. **Event Filtering**: The client automatically routes events to the appropriate callbacks based on event type.
+
 ## Dependencies
 
 - `github.com/gorilla/websocket` - WebSocket implementation

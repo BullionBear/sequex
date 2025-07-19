@@ -493,6 +493,202 @@ func TestWSStreamClient_Close(t *testing.T) {
 	}
 }
 
+func TestWSStreamClient_SubscribeToUserDataStream(t *testing.T) {
+	config := DefaultConfig()
+	client := NewWSStreamClient(config)
+
+	callback := func(data []byte) error {
+		return nil
+	}
+
+	listenKey := "test-listen-key"
+	unsubscribe, err := client.SubscribeToUserDataStream(listenKey, callback)
+
+	// This should fail in test environment without real connection
+	if err == nil {
+		defer unsubscribe()
+	}
+
+	// Check if the stream was attempted to be created
+}
+
+func TestWSStreamClient_SubscribeToUserDataStreamWithCallbacks(t *testing.T) {
+	config := DefaultConfig()
+	client := NewWSStreamClient(config)
+
+	accountPositionCallback := func(data *WSOutboundAccountPosition) error {
+		if data.EventType != "outboundAccountPosition" {
+			t.Errorf("Expected event type outboundAccountPosition, got %s", data.EventType)
+		}
+		return nil
+	}
+
+	balanceUpdateCallback := func(data *WSBalanceUpdate) error {
+		if data.EventType != "balanceUpdate" {
+			t.Errorf("Expected event type balanceUpdate, got %s", data.EventType)
+		}
+		return nil
+	}
+
+	executionReportCallback := func(data *WSExecutionReport) error {
+		if data.EventType != "executionReport" {
+			t.Errorf("Expected event type executionReport, got %s", data.EventType)
+		}
+		return nil
+	}
+
+	listenKey := "test-listen-key"
+	unsubscribe, err := client.SubscribeToUserDataStreamWithCallbacks(
+		listenKey,
+		accountPositionCallback,
+		balanceUpdateCallback,
+		executionReportCallback,
+	)
+
+	// This should fail in test environment without real connection
+	if err == nil {
+		defer unsubscribe()
+	}
+
+	// Check if the stream was attempted to be created
+}
+
+func TestParseOutboundAccountPosition(t *testing.T) {
+	// Sample outbound account position data from Binance WebSocket
+	sampleData := `{
+		"e": "outboundAccountPosition",
+		"E": 1564034571105,
+		"u": 1564034571073,
+		"B": [
+			{
+				"a": "ETH",
+				"f": "10000.000000",
+				"l": "0.000000"
+			},
+			{
+				"a": "BTC",
+				"f": "1.000000",
+				"l": "0.000000"
+			}
+		]
+	}`
+
+	accountPosition, err := ParseOutboundAccountPosition([]byte(sampleData))
+	if err != nil {
+		t.Fatalf("Failed to parse outbound account position data: %v", err)
+	}
+
+	if accountPosition.EventType != "outboundAccountPosition" {
+		t.Errorf("Expected event type outboundAccountPosition, got %s", accountPosition.EventType)
+	}
+
+	if accountPosition.EventTime != 1564034571105 {
+		t.Errorf("Expected event time 1564034571105, got %d", accountPosition.EventTime)
+	}
+
+	if len(accountPosition.Balances) != 2 {
+		t.Errorf("Expected 2 balances, got %d", len(accountPosition.Balances))
+	}
+
+	if accountPosition.Balances[0].Asset != "ETH" {
+		t.Errorf("Expected first balance asset ETH, got %s", accountPosition.Balances[0].Asset)
+	}
+}
+
+func TestParseBalanceUpdate(t *testing.T) {
+	// Sample balance update data from Binance WebSocket
+	sampleData := `{
+		"e": "balanceUpdate",
+		"E": 1573200697110,
+		"a": "BTC",
+		"d": "100.00000000",
+		"T": 1573200697068
+	}`
+
+	balanceUpdate, err := ParseBalanceUpdate([]byte(sampleData))
+	if err != nil {
+		t.Fatalf("Failed to parse balance update data: %v", err)
+	}
+
+	if balanceUpdate.EventType != "balanceUpdate" {
+		t.Errorf("Expected event type balanceUpdate, got %s", balanceUpdate.EventType)
+	}
+
+	if balanceUpdate.Asset != "BTC" {
+		t.Errorf("Expected asset BTC, got %s", balanceUpdate.Asset)
+	}
+
+	if balanceUpdate.BalanceDelta != "100.00000000" {
+		t.Errorf("Expected balance delta 100.00000000, got %s", balanceUpdate.BalanceDelta)
+	}
+}
+
+func TestParseExecutionReport(t *testing.T) {
+	// Sample execution report data from Binance WebSocket
+	sampleData := `{
+		"e": "executionReport",
+		"E": 1499405658658,
+		"s": "ETHBTC",
+		"c": "mUvoqJxFIILMdfAW5iGSOW",
+		"S": "BUY",
+		"o": "LIMIT",
+		"f": "GTC",
+		"q": "1.00000000",
+		"p": "0.10264410",
+		"P": "0.00000000",
+		"F": "0.00000000",
+		"g": -1,
+		"C": "",
+		"x": "NEW",
+		"X": "NEW",
+		"r": "NONE",
+		"i": 4293153,
+		"l": "0.00000000",
+		"z": "0.00000000",
+		"L": "0.00000000",
+		"n": "0",
+		"N": null,
+		"T": 1499405658657,
+		"t": -1,
+		"v": 3,
+		"I": 8641984,
+		"w": true,
+		"m": false,
+		"M": false,
+		"O": 1499405658657,
+		"Z": "0.00000000",
+		"Y": "0.00000000",
+		"Q": "0.00000000",
+		"W": 1499405658657,
+		"V": "NONE"
+	}`
+
+	executionReport, err := ParseExecutionReport([]byte(sampleData))
+	if err != nil {
+		t.Fatalf("Failed to parse execution report data: %v", err)
+	}
+
+	if executionReport.EventType != "executionReport" {
+		t.Errorf("Expected event type executionReport, got %s", executionReport.EventType)
+	}
+
+	if executionReport.Symbol != "ETHBTC" {
+		t.Errorf("Expected symbol ETHBTC, got %s", executionReport.Symbol)
+	}
+
+	if executionReport.Side != "BUY" {
+		t.Errorf("Expected side BUY, got %s", executionReport.Side)
+	}
+
+	if executionReport.OrderType != "LIMIT" {
+		t.Errorf("Expected order type LIMIT, got %s", executionReport.OrderType)
+	}
+
+	if executionReport.OrderID != 4293153 {
+		t.Errorf("Expected order ID 4293153, got %d", executionReport.OrderID)
+	}
+}
+
 func TestWSStreamClient_SubscribeToKlineWithCallback(t *testing.T) {
 	config := DefaultConfig()
 	client := NewWSStreamClient(config)
