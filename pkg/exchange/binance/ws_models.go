@@ -185,3 +185,120 @@ func BuildBookTickerStreamName(symbol string) string {
 func BuildAggTradeStreamName(symbol string) string {
 	return NormalizeSymbol(symbol) + "@" + WSStreamAggTrade
 }
+
+// WSAccountUpdate represents an account update event from user data stream
+type WSAccountUpdate struct {
+	EventType    string             `json:"e"` // Event type: outboundAccountPosition
+	EventTime    int64              `json:"E"` // Event time
+	LastUpdateID int64              `json:"u"` // Time of last account update
+	Balances     []WSAccountBalance `json:"B"` // Account balances
+}
+
+// WSAccountBalance represents a balance in account update
+type WSAccountBalance struct {
+	Asset  string `json:"a"` // Asset
+	Free   string `json:"f"` // Free amount
+	Locked string `json:"l"` // Locked amount
+}
+
+// WSBalanceUpdate represents a balance update event from user data stream
+type WSBalanceUpdate struct {
+	EventType    string `json:"e"` // Event type: balanceUpdate
+	EventTime    int64  `json:"E"` // Event time
+	Asset        string `json:"a"` // Asset
+	BalanceDelta string `json:"d"` // Balance delta
+	ClearTime    int64  `json:"T"` // Clear time
+}
+
+// WSExecutionReport represents an order update event from user data stream
+type WSExecutionReport struct {
+	EventType                string `json:"e"` // Event type: executionReport
+	EventTime                int64  `json:"E"` // Event time
+	Symbol                   string `json:"s"` // Symbol
+	ClientOrderID            string `json:"c"` // Client order ID
+	Side                     string `json:"S"` // Side (BUY/SELL)
+	OrderType                string `json:"o"` // Order type
+	TimeInForce              string `json:"f"` // Time in force
+	Quantity                 string `json:"q"` // Order quantity
+	Price                    string `json:"p"` // Order price
+	StopPrice                string `json:"P"` // Stop price
+	IcebergQuantity          string `json:"F"` // Iceberg quantity
+	OrderListID              int64  `json:"g"` // OrderListId
+	OriginalClientOrderID    string `json:"C"` // Original client order ID
+	CurrentExecutionType     string `json:"x"` // Current execution type
+	CurrentOrderStatus       string `json:"X"` // Current order status
+	OrderRejectReason        string `json:"r"` // Order reject reason
+	OrderID                  int64  `json:"i"` // Order ID
+	LastExecutedQuantity     string `json:"l"` // Last executed quantity
+	CumulativeFilledQuantity string `json:"z"` // Cumulative filled quantity
+	LastExecutedPrice        string `json:"L"` // Last executed price
+	CommissionAmount         string `json:"n"` // Commission amount
+	CommissionAsset          string `json:"N"` // Commission asset
+	TransactionTime          int64  `json:"T"` // Transaction time
+	TradeID                  int64  `json:"t"` // Trade ID
+	Ignore1                  int64  `json:"I"` // Ignore
+	IsOrderOnBook            bool   `json:"w"` // Is the order on the book?
+	IsMakerSide              bool   `json:"m"` // Is this trade the maker side?
+	Ignore2                  bool   `json:"M"` // Ignore
+	OrderCreationTime        int64  `json:"O"` // Order creation time
+	CumulativeQuoteQuantity  string `json:"Z"` // Cumulative quote asset transacted quantity
+	LastQuoteQuantity        string `json:"Y"` // Last quote asset transacted quantity (i.e. lastPrice * lastQty)
+	QuoteOrderQuantity       string `json:"Q"` // Quote Order Qty
+}
+
+// WSListStatus represents an OCO order list status update from user data stream
+type WSListStatus struct {
+	EventType         string            `json:"e"` // Event type: listStatus
+	EventTime         int64             `json:"E"` // Event time
+	Symbol            string            `json:"s"` // Symbol
+	OrderListID       int64             `json:"g"` // OrderListId
+	ContingencyType   string            `json:"c"` // Contingency Type
+	ListStatusType    string            `json:"l"` // List Status Type
+	ListOrderStatus   string            `json:"L"` // List Order Status
+	ListRejectReason  string            `json:"r"` // List Reject Reason
+	ListClientOrderID string            `json:"C"` // List Client Order ID
+	TransactionTime   int64             `json:"T"` // Transaction Time
+	Orders            []WSListOrderInfo `json:"O"` // Objects in the order list
+}
+
+// WSListOrderInfo represents order information in OCO list
+type WSListOrderInfo struct {
+	Symbol        string `json:"s"` // Symbol
+	OrderID       int64  `json:"i"` // orderId
+	ClientOrderID string `json:"c"` // clientOrderId
+}
+
+// GetTransactionTime returns the execution report transaction time as time.Time
+func (e *WSExecutionReport) GetTransactionTime() time.Time {
+	return time.Unix(0, e.TransactionTime*int64(time.Millisecond))
+}
+
+// GetOrderCreationTime returns the execution report order creation time as time.Time
+func (e *WSExecutionReport) GetOrderCreationTime() time.Time {
+	return time.Unix(0, e.OrderCreationTime*int64(time.Millisecond))
+}
+
+// IsNewOrder returns true if this is a new order event
+func (e *WSExecutionReport) IsNewOrder() bool {
+	return e.CurrentExecutionType == "NEW"
+}
+
+// IsCanceled returns true if this order was canceled
+func (e *WSExecutionReport) IsCanceled() bool {
+	return e.CurrentOrderStatus == "CANCELED"
+}
+
+// IsFilled returns true if this order was filled
+func (e *WSExecutionReport) IsFilled() bool {
+	return e.CurrentOrderStatus == "FILLED"
+}
+
+// IsPartiallyFilled returns true if this order was partially filled
+func (e *WSExecutionReport) IsPartiallyFilled() bool {
+	return e.CurrentOrderStatus == "PARTIALLY_FILLED"
+}
+
+// IsTrade returns true if this is a trade execution
+func (e *WSExecutionReport) IsTrade() bool {
+	return e.CurrentExecutionType == "TRADE"
+}

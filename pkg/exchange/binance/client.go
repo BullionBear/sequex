@@ -441,3 +441,57 @@ func (c *Client) orderRequestToParams(req *NewOrderRequest) url.Values {
 
 	return params
 }
+
+// CreateUserDataStream creates a listen key for user data stream
+func (c *Client) CreateUserDataStream(ctx context.Context) (*UserDataStreamResponse, error) {
+	c.logger.Debug("creating user data stream")
+
+	data, err := c.requestService.DoAPIKeyRequest(ctx, MethodPOST, EndpointUserDataStream, nil)
+	if err != nil {
+		c.logger.Error("failed to create user data stream", "error", err)
+		return nil, err
+	}
+
+	var response UserDataStreamResponse
+	if err := json.Unmarshal(data, &response); err != nil {
+		c.logger.Error("failed to parse user data stream response", "error", err, "body", string(data))
+		return nil, fmt.Errorf("failed to parse user data stream response: %w", err)
+	}
+
+	c.logger.Debug("user data stream created successfully", "listenKey", response.ListenKey[:8]+"...")
+	return &response, nil
+}
+
+// KeepAliveUserDataStream extends the validity of a listen key
+func (c *Client) KeepAliveUserDataStream(ctx context.Context, listenKey string) error {
+	c.logger.Debug("keeping alive user data stream", "listenKey", listenKey[:8]+"...")
+
+	params := url.Values{}
+	params.Set("listenKey", listenKey)
+
+	_, err := c.requestService.DoAPIKeyRequest(ctx, MethodPUT, EndpointUserDataStream, params)
+	if err != nil {
+		c.logger.Error("failed to keep alive user data stream", "error", err)
+		return err
+	}
+
+	c.logger.Debug("user data stream kept alive successfully")
+	return nil
+}
+
+// CloseUserDataStream closes a user data stream
+func (c *Client) CloseUserDataStream(ctx context.Context, listenKey string) error {
+	c.logger.Debug("closing user data stream", "listenKey", listenKey[:8]+"...")
+
+	params := url.Values{}
+	params.Set("listenKey", listenKey)
+
+	_, err := c.requestService.DoAPIKeyRequest(ctx, MethodDELETE, EndpointUserDataStream, params)
+	if err != nil {
+		c.logger.Error("failed to close user data stream", "error", err)
+		return err
+	}
+
+	c.logger.Debug("user data stream closed successfully")
+	return nil
+}

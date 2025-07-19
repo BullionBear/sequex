@@ -227,3 +227,13 @@ type CancelOrderResponse struct {
 	Type                string `json:"type"`
 	Side                string `json:"side"`
 }
+
+// UserDataStreamResponse represents the response for user data stream operations
+type UserDataStreamResponse struct {
+	ListenKey string `json:"listenKey"`
+}
+
+// UserDataStreamRequest represents the request for user data stream operations
+type UserDataStreamRequest struct {
+	ListenKey string `json:"listenKey,omitempty"`
+}

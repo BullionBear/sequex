@@ -34,6 +34,9 @@ const (
 	EndpointCancelOrder = "/api/v3/order"
 	EndpointOrderStatus = "/api/v3/order"
 	EndpointMyTrades    = "/api/v3/myTrades"
+
+	// User data stream endpoints
+	EndpointUserDataStream = "/api/v3/userDataStream"
 )
 
 // HTTP Headers
@@ -148,4 +151,12 @@ const (
 	WSMsgTypeResult      = "result"
 	WSMsgTypeError       = "error"
 	WSMsgTypeStream      = "stream"
+)
+
+// User Data Stream Event Types
+const (
+	WSEventAccountUpdate   = "outboundAccountPosition"
+	WSEventBalanceUpdate   = "balanceUpdate"
+	WSEventExecutionReport = "executionReport"
+	WSEventListStatus      = "listStatus"
 )
