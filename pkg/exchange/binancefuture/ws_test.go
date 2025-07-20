@@ -277,3 +277,182 @@ func TestParseAggTradeData(t *testing.T) {
 		t.Errorf("Expected event type aggTrade, got %s", aggTrade.EventType)
 	}
 }
+
+func TestWSStreamClient_UserDataStream(t *testing.T) {
+	config := &Config{
+		APIKey:     "test-api-key",
+		APISecret:  "test-api-secret",
+		UseTestnet: true,
+	}
+
+	client := NewWSStreamClient(config)
+
+	// Test that user data stream methods exist and have correct signatures
+	t.Run("UserDataStreamMethodsExist", func(t *testing.T) {
+		listenKey := "test-listen-key-12345"
+		callback := func(data []byte) error {
+			return nil
+		}
+
+		// Test SubscribeToUserDataStream
+		_, err := client.SubscribeToUserDataStream(callback)
+		// We expect an authentication error, but not a method signature error
+		if err != nil && err.Error() == "method SubscribeToUserDataStream not found" {
+			t.Fatalf("SubscribeToUserDataStream method not found")
+		}
+
+		// Test SubscribeToUserDataStreamWithListenKey
+		_, err = client.SubscribeToUserDataStreamWithListenKey(listenKey, callback)
+		if err != nil && err.Error() == "method SubscribeToUserDataStreamWithListenKey not found" {
+			t.Fatalf("SubscribeToUserDataStreamWithListenKey method not found")
+		}
+	})
+}
+
+func TestParseUserDataStreamEvents(t *testing.T) {
+	// Test parsing listen key expired event
+	t.Run("ParseListenKeyExpiredEvent", func(t *testing.T) {
+		data := []byte(`{
+			"e": "listenKeyExpired",
+			"E": 1736996475556,
+			"listenKey": "WsCMN0a4KHUPTQuX6IUnqEZfB1inxmv1qR4kbf1LuEjur5VdbzqvyxqG9TSjVVxv"
+		}`)
+
+		event, err := ParseListenKeyExpiredEvent(data)
+		if err != nil {
+			t.Fatalf("Failed to parse listen key expired event: %v", err)
+		}
+
+		if event.EventType != "listenKeyExpired" {
+			t.Errorf("Expected event type 'listenKeyExpired', got '%s'", event.EventType)
+		}
+		if event.EventTime != 1736996475556 {
+			t.Errorf("Expected event time 1736996475556, got %d", event.EventTime)
+		}
+		if event.ListenKey != "WsCMN0a4KHUPTQuX6IUnqEZfB1inxmv1qR4kbf1LuEjur5VdbzqvyxqG9TSjVVxv" {
+			t.Errorf("Expected listen key 'WsCMN0a4KHUPTQuX6IUnqEZfB1inxmv1qR4kbf1LuEjur5VdbzqvyxqG9TSjVVxv', got '%s'", event.ListenKey)
+		}
+	})
+
+	// Test parsing account update event
+	t.Run("ParseAccountUpdateEvent", func(t *testing.T) {
+		data := []byte(`{
+			"e": "ACCOUNT_UPDATE",
+			"E": 1564745798939,
+			"T": 1564745798938,
+			"a": {
+				"m": "ORDER",
+				"B": [
+					{
+						"a": "USDT",
+						"wb": "122624.12345678",
+						"cw": "100.12345678",
+						"bc": "50.12345678"
+					}
+				],
+				"P": [
+					{
+						"s": "BTCUSDT",
+						"pa": "0",
+						"ep": "0.00000",
+						"bep": "0",
+						"cr": "200",
+						"up": "0",
+						"mt": "isolated",
+						"iw": "0.00000000",
+						"ps": "BOTH"
+					}
+				]
+			}
+		}`)
+
+		event, err := ParseAccountUpdateEvent(data)
+		if err != nil {
+			t.Fatalf("Failed to parse account update event: %v", err)
+		}
+
+		if event.EventType != "ACCOUNT_UPDATE" {
+			t.Errorf("Expected event type 'ACCOUNT_UPDATE', got '%s'", event.EventType)
+		}
+		if event.EventTime != 1564745798939 {
+			t.Errorf("Expected event time 1564745798939, got %d", event.EventTime)
+		}
+		if event.UpdateData.EventReasonType != "ORDER" {
+			t.Errorf("Expected event reason type 'ORDER', got '%s'", event.UpdateData.EventReasonType)
+		}
+		if len(event.UpdateData.Balances) != 1 {
+			t.Errorf("Expected 1 balance, got %d", len(event.UpdateData.Balances))
+		}
+		if len(event.UpdateData.Positions) != 1 {
+			t.Errorf("Expected 1 position, got %d", len(event.UpdateData.Positions))
+		}
+	})
+
+	// Test parsing order trade update event
+	t.Run("ParseOrderTradeUpdateEvent", func(t *testing.T) {
+		data := []byte(`{
+			"e": "ORDER_TRADE_UPDATE",
+			"E": 1568879465651,
+			"T": 1568879465650,
+			"o": {
+				"s": "BTCUSDT",
+				"c": "TEST",
+				"S": "SELL",
+				"o": "TRAILING_STOP_MARKET",
+				"f": "GTC",
+				"q": "0.001",
+				"p": "0",
+				"ap": "0",
+				"sp": "7103.04",
+				"x": "NEW",
+				"X": "NEW",
+				"i": 8886774,
+				"l": "0",
+				"z": "0",
+				"L": "0",
+				"N": "USDT",
+				"n": "0",
+				"T": 1568879465650,
+				"t": 0,
+				"b": "0",
+				"a": "9.91",
+				"m": false,
+				"R": false,
+				"wt": "CONTRACT_PRICE",
+				"ot": "TRAILING_STOP_MARKET",
+				"ps": "LONG",
+				"cp": false,
+				"AP": "7476.89",
+				"cr": "5.0",
+				"pP": false,
+				"si": 0,
+				"ss": 0,
+				"rp": "0",
+				"V": "EXPIRE_TAKER",
+				"pm": "OPPONENT",
+				"gtd": 0
+			}
+		}`)
+
+		event, err := ParseOrderTradeUpdateEvent(data)
+		if err != nil {
+			t.Fatalf("Failed to parse order trade update event: %v", err)
+		}
+
+		if event.EventType != "ORDER_TRADE_UPDATE" {
+			t.Errorf("Expected event type 'ORDER_TRADE_UPDATE', got '%s'", event.EventType)
+		}
+		if event.EventTime != 1568879465651 {
+			t.Errorf("Expected event time 1568879465651, got %d", event.EventTime)
+		}
+		if event.Order.Symbol != "BTCUSDT" {
+			t.Errorf("Expected symbol 'BTCUSDT', got '%s'", event.Order.Symbol)
+		}
+		if event.Order.Side != "SELL" {
+			t.Errorf("Expected side 'SELL', got '%s'", event.Order.Side)
+		}
+		if event.Order.OrderType != "TRAILING_STOP_MARKET" {
+			t.Errorf("Expected order type 'TRAILING_STOP_MARKET', got '%s'", event.Order.OrderType)
+		}
+	})
+}

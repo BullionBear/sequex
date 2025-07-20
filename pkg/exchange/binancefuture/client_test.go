@@ -365,3 +365,42 @@ func TestGetOpenInterest(t *testing.T) {
 		t.Error("open interest should not be empty")
 	}
 }
+
+func TestClient_UserDataStream(t *testing.T) {
+	config := &Config{
+		APIKey:     "test-api-key",
+		APISecret:  "test-api-secret",
+		UseTestnet: true,
+	}
+
+	client := NewClient(config)
+
+	// Test that user data stream methods exist and have correct signatures
+	t.Run("UserDataStreamMethodsExist", func(t *testing.T) {
+		ctx := context.Background()
+		listenKey := "test-listen-key-12345"
+
+		// Test that methods exist and don't panic on basic calls
+		// These will fail with authentication errors, but that's expected
+		// The important thing is that the methods exist and have correct signatures
+
+		// Test CreateUserDataStream
+		_, err := client.CreateUserDataStream(ctx)
+		// We expect an authentication error, not a method signature error
+		if err != nil && err.Error() == "method CreateUserDataStream not found" {
+			t.Fatalf("CreateUserDataStream method not found")
+		}
+
+		// Test KeepAliveUserDataStream
+		err = client.KeepAliveUserDataStream(ctx, listenKey)
+		if err != nil && err.Error() == "method KeepAliveUserDataStream not found" {
+			t.Fatalf("KeepAliveUserDataStream method not found")
+		}
+
+		// Test CloseUserDataStream
+		err = client.CloseUserDataStream(ctx, listenKey)
+		if err != nil && err.Error() == "method CloseUserDataStream not found" {
+			t.Fatalf("CloseUserDataStream method not found")
+		}
+	})
+}

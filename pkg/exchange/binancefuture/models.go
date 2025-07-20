@@ -506,3 +506,13 @@ func (t *Ticker24hrResult) GetSingle() *Ticker24hrResponse {
 func (t *Ticker24hrResult) GetArray() []Ticker24hrResponse {
 	return t.Array
 }
+
+// UserDataStreamResponse represents the response for user data stream operations
+type UserDataStreamResponse struct {
+	ListenKey string `json:"listenKey"`
+}
+
+// UserDataStreamRequest represents the request for user data stream operations
+type UserDataStreamRequest struct {
+	ListenKey string `json:"listenKey,omitempty"`
+}

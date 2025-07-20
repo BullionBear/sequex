@@ -283,3 +283,157 @@ type WebSocketConnection struct {
 	IsActive bool
 	Close    chan struct{}
 }
+
+// WSUserDataStreamEvent represents a generic user data stream event
+type WSUserDataStreamEvent struct {
+	EventType string `json:"e"`
+	EventTime int64  `json:"E"`
+}
+
+// WSListenKeyExpiredEvent represents listen key expired event
+type WSListenKeyExpiredEvent struct {
+	EventType string `json:"e"`
+	EventTime int64  `json:"E"`
+	ListenKey string `json:"listenKey"`
+}
+
+// WSAccountUpdateEvent represents account update event
+type WSAccountUpdateEvent struct {
+	EventType       string              `json:"e"`
+	EventTime       int64               `json:"E"`
+	TransactionTime int64               `json:"T"`
+	UpdateData      WSAccountUpdateData `json:"a"`
+}
+
+// WSAccountUpdateData represents account update data
+type WSAccountUpdateData struct {
+	EventReasonType string           `json:"m"`
+	Balances        []WSBalanceData  `json:"B"`
+	Positions       []WSPositionData `json:"P"`
+}
+
+// WSBalanceData represents balance data in account update
+type WSBalanceData struct {
+	Asset              string `json:"a"`
+	WalletBalance      string `json:"wb"`
+	CrossWalletBalance string `json:"cw"`
+	BalanceChange      string `json:"bc"`
+}
+
+// WSPositionData represents position data in account update
+type WSPositionData struct {
+	Symbol              string `json:"s"`
+	PositionAmount      string `json:"pa"`
+	EntryPrice          string `json:"ep"`
+	BreakevenPrice      string `json:"bep"`
+	AccumulatedRealized string `json:"cr"`
+	UnrealizedPnL       string `json:"up"`
+	MarginType          string `json:"mt"`
+	IsolatedWallet      string `json:"iw"`
+	PositionSide        string `json:"ps"`
+}
+
+// WSMarginCallEvent represents margin call event
+type WSMarginCallEvent struct {
+	EventType          string                 `json:"e"`
+	EventTime          int64                  `json:"E"`
+	CrossWalletBalance string                 `json:"cw"`
+	Positions          []WSMarginCallPosition `json:"p"`
+}
+
+// WSMarginCallPosition represents position in margin call
+type WSMarginCallPosition struct {
+	Symbol                    string `json:"s"`
+	PositionSide              string `json:"ps"`
+	PositionAmount            string `json:"pa"`
+	MarginType                string `json:"mt"`
+	IsolatedWallet            string `json:"iw"`
+	MarkPrice                 string `json:"mp"`
+	UnrealizedPnL             string `json:"up"`
+	MaintenanceMarginRequired string `json:"mm"`
+}
+
+// WSOrderTradeUpdateEvent represents order trade update event
+type WSOrderTradeUpdateEvent struct {
+	EventType       string                  `json:"e"`
+	EventTime       int64                   `json:"E"`
+	TransactionTime int64                   `json:"T"`
+	Order           WSOrderTradeUpdateOrder `json:"o"`
+}
+
+// WSOrderTradeUpdateOrder represents order in trade update
+type WSOrderTradeUpdateOrder struct {
+	Symbol                    string `json:"s"`
+	ClientOrderID             string `json:"c"`
+	Side                      string `json:"S"`
+	OrderType                 string `json:"o"`
+	TimeInForce               string `json:"f"`
+	OriginalQuantity          string `json:"q"`
+	OriginalPrice             string `json:"p"`
+	AveragePrice              string `json:"ap"`
+	StopPrice                 string `json:"sp"`
+	ExecutionType             string `json:"x"`
+	OrderStatus               string `json:"X"`
+	OrderID                   int64  `json:"i"`
+	LastFilledQuantity        string `json:"l"`
+	FilledAccumulatedQuantity string `json:"z"`
+	LastFilledPrice           string `json:"L"`
+	CommissionAsset           string `json:"N"`
+	Commission                string `json:"n"`
+	OrderTradeTime            int64  `json:"T"`
+	TradeID                   int64  `json:"t"`
+	BidsNotional              string `json:"b"`
+	AsksNotional              string `json:"a"`
+	IsMaker                   bool   `json:"m"`
+	IsReduceOnly              bool   `json:"R"`
+	WorkingType               string `json:"wt"`
+	OriginalOrderType         string `json:"ot"`
+	PositionSide              string `json:"ps"`
+	IsCloseAll                bool   `json:"cp"`
+	ActivationPrice           string `json:"AP"`
+	CallbackRate              string `json:"cr"`
+	PriceProtection           bool   `json:"pP"`
+	RealizedProfit            string `json:"rp"`
+	STPMode                   string `json:"V"`
+	PriceMatchMode            string `json:"pm"`
+	GoodTillDate              int64  `json:"gtd"`
+}
+
+// WSTradeLiteEvent represents trade lite event
+type WSTradeLiteEvent struct {
+	EventType          string `json:"e"`
+	EventTime          int64  `json:"E"`
+	TransactionTime    int64  `json:"T"`
+	Symbol             string `json:"s"`
+	Quantity           string `json:"q"`
+	Price              string `json:"p"`
+	IsMaker            bool   `json:"m"`
+	ClientOrderID      string `json:"c"`
+	Side               string `json:"S"`
+	LastFilledPrice    string `json:"L"`
+	LastFilledQuantity string `json:"l"`
+	TradeID            int64  `json:"t"`
+	OrderID            int64  `json:"i"`
+}
+
+// WSAccountConfigUpdateEvent represents account config update event
+type WSAccountConfigUpdateEvent struct {
+	EventType       string          `json:"e"`
+	EventTime       int64           `json:"E"`
+	TransactionTime int64           `json:"T"`
+	AccountConfig   WSAccountConfig `json:"ac"`
+}
+
+// WSAccountConfig represents account configuration
+type WSAccountConfig struct {
+	Symbol   string `json:"s"`
+	Leverage int    `json:"l"`
+}
+
+// User data stream callback types
+type ListenKeyExpiredCallback func(data *WSListenKeyExpiredEvent) error
+type AccountUpdateCallback func(data *WSAccountUpdateEvent) error
+type MarginCallCallback func(data *WSMarginCallEvent) error
+type OrderTradeUpdateCallback func(data *WSOrderTradeUpdateEvent) error
+type TradeLiteCallback func(data *WSTradeLiteEvent) error
+type AccountConfigUpdateCallback func(data *WSAccountConfigUpdateEvent) error
