@@ -293,7 +293,7 @@ type WSUserDataStreamEvent struct {
 // WSListenKeyExpiredEvent represents listen key expired event
 type WSListenKeyExpiredEvent struct {
 	EventType string `json:"e"`
-	EventTime int64  `json:"E"`
+	EventTime string `json:"E"`
 	ListenKey string `json:"listenKey"`
 }
 
@@ -397,6 +397,9 @@ type WSOrderTradeUpdateOrder struct {
 	STPMode                   string `json:"V"`
 	PriceMatchMode            string `json:"pm"`
 	GoodTillDate              int64  `json:"gtd"`
+	// Additional fields from the payload
+	Ignore1 int `json:"si,omitempty"` // ignore field
+	Ignore2 int `json:"ss,omitempty"` // ignore field
 }
 
 // WSTradeLiteEvent represents trade lite event
@@ -860,9 +863,12 @@ func (o *FundingRateSubscriptionOptions) WithError(callback func(error)) *Fundin
 // UserDataSubscriptionOptions represents user data subscription options
 type UserDataSubscriptionOptions struct {
 	*SubscriptionOptions
-	executionReportCallback ExecutionReportCallback
-	accountUpdateCallback   OutboundAccountPositionCallback
-	balanceUpdateCallback   BalanceUpdateCallback
+	listenKeyExpiredCallback    ListenKeyExpiredCallback
+	accountUpdateEventCallback  AccountUpdateCallback
+	marginCallCallback          MarginCallCallback
+	orderTradeUpdateCallback    OrderTradeUpdateCallback
+	tradeLiteCallback           TradeLiteCallback
+	accountConfigUpdateCallback AccountConfigUpdateCallback
 }
 
 // NewUserDataSubscriptionOptions creates a new user data subscription options
@@ -872,21 +878,39 @@ func NewUserDataSubscriptionOptions() *UserDataSubscriptionOptions {
 	}
 }
 
-// WithExecutionReport sets the execution report callback
-func (o *UserDataSubscriptionOptions) WithExecutionReport(callback ExecutionReportCallback) *UserDataSubscriptionOptions {
-	o.executionReportCallback = callback
+// WithListenKeyExpired sets the listen key expired callback
+func (o *UserDataSubscriptionOptions) WithListenKeyExpired(callback ListenKeyExpiredCallback) *UserDataSubscriptionOptions {
+	o.listenKeyExpiredCallback = callback
 	return o
 }
 
-// WithAccountUpdate sets the account update callback
-func (o *UserDataSubscriptionOptions) WithAccountUpdate(callback OutboundAccountPositionCallback) *UserDataSubscriptionOptions {
-	o.accountUpdateCallback = callback
+// WithAccountUpdateEvent sets the account update event callback
+func (o *UserDataSubscriptionOptions) WithAccountUpdateEvent(callback AccountUpdateCallback) *UserDataSubscriptionOptions {
+	o.accountUpdateEventCallback = callback
 	return o
 }
 
-// WithBalanceUpdate sets the balance update callback
-func (o *UserDataSubscriptionOptions) WithBalanceUpdate(callback BalanceUpdateCallback) *UserDataSubscriptionOptions {
-	o.balanceUpdateCallback = callback
+// WithMarginCall sets the margin call callback
+func (o *UserDataSubscriptionOptions) WithMarginCall(callback MarginCallCallback) *UserDataSubscriptionOptions {
+	o.marginCallCallback = callback
+	return o
+}
+
+// WithOrderTradeUpdate sets the order trade update callback
+func (o *UserDataSubscriptionOptions) WithOrderTradeUpdate(callback OrderTradeUpdateCallback) *UserDataSubscriptionOptions {
+	o.orderTradeUpdateCallback = callback
+	return o
+}
+
+// WithTradeLite sets the trade lite callback
+func (o *UserDataSubscriptionOptions) WithTradeLite(callback TradeLiteCallback) *UserDataSubscriptionOptions {
+	o.tradeLiteCallback = callback
+	return o
+}
+
+// WithAccountConfigUpdate sets the account config update callback
+func (o *UserDataSubscriptionOptions) WithAccountConfigUpdate(callback AccountConfigUpdateCallback) *UserDataSubscriptionOptions {
+	o.accountConfigUpdateCallback = callback
 	return o
 }
 

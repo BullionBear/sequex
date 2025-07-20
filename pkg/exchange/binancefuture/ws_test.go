@@ -569,11 +569,11 @@ func TestWSStreamClient_UserDataStream(t *testing.T) {
 	t.Run("UserDataStreamMethodsExist", func(t *testing.T) {
 		// Create subscription options
 		options := NewUserDataSubscriptionOptions()
-		options.WithExecutionReport(func(data *WSExecutionReport) error {
+		options.WithListenKeyExpired(func(data *WSListenKeyExpiredEvent) error {
 			return nil
-		}).WithAccountUpdate(func(data *WSOutboundAccountPosition) error {
+		}).WithAccountUpdateEvent(func(data *WSAccountUpdateEvent) error {
 			return nil
-		}).WithBalanceUpdate(func(data *WSBalanceUpdate) error {
+		}).WithMarginCall(func(data *WSMarginCallEvent) error {
 			return nil
 		})
 
@@ -591,7 +591,7 @@ func TestParseUserDataStreamEvents(t *testing.T) {
 	t.Run("ParseListenKeyExpiredEvent", func(t *testing.T) {
 		data := []byte(`{
 			"e": "listenKeyExpired",
-			"E": 1736996475556,
+			"E": "1736996475556",
 			"listenKey": "WsCMN0a4KHUPTQuX6IUnqEZfB1inxmv1qR4kbf1LuEjur5VdbzqvyxqG9TSjVVxv"
 		}`)
 
@@ -603,8 +603,8 @@ func TestParseUserDataStreamEvents(t *testing.T) {
 		if event.EventType != "listenKeyExpired" {
 			t.Errorf("Expected event type 'listenKeyExpired', got '%s'", event.EventType)
 		}
-		if event.EventTime != 1736996475556 {
-			t.Errorf("Expected event time 1736996475556, got %d", event.EventTime)
+		if event.EventTime != "1736996475556" {
+			t.Errorf("Expected event time 1736996475556, got %s", event.EventTime)
 		}
 		if event.ListenKey != "WsCMN0a4KHUPTQuX6IUnqEZfB1inxmv1qR4kbf1LuEjur5VdbzqvyxqG9TSjVVxv" {
 			t.Errorf("Expected listen key 'WsCMN0a4KHUPTQuX6IUnqEZfB1inxmv1qR4kbf1LuEjur5VdbzqvyxqG9TSjVVxv', got '%s'", event.ListenKey)
@@ -662,6 +662,48 @@ func TestParseUserDataStreamEvents(t *testing.T) {
 		}
 		if len(event.UpdateData.Positions) != 1 {
 			t.Errorf("Expected 1 position, got %d", len(event.UpdateData.Positions))
+		}
+	})
+
+	// Test parsing margin call event
+	t.Run("ParseMarginCallEvent", func(t *testing.T) {
+		data := []byte(`{
+			"e": "MARGIN_CALL",
+			"E": 1587727187525,
+			"cw": "3.16812045",
+			"p": [
+				{
+					"s": "ETHUSDT",
+					"ps": "LONG",
+					"pa": "1.327",
+					"mt": "CROSSED",
+					"iw": "0",
+					"mp": "187.17127",
+					"up": "-1.166074",
+					"mm": "1.614445"
+				}
+			]
+		}`)
+
+		event, err := ParseMarginCallEvent(data)
+		if err != nil {
+			t.Fatalf("Failed to parse margin call event: %v", err)
+		}
+
+		if event.EventType != "MARGIN_CALL" {
+			t.Errorf("Expected event type 'MARGIN_CALL', got '%s'", event.EventType)
+		}
+		if event.EventTime != 1587727187525 {
+			t.Errorf("Expected event time 1587727187525, got %d", event.EventTime)
+		}
+		if event.CrossWalletBalance != "3.16812045" {
+			t.Errorf("Expected cross wallet balance '3.16812045', got '%s'", event.CrossWalletBalance)
+		}
+		if len(event.Positions) != 1 {
+			t.Errorf("Expected 1 position, got %d", len(event.Positions))
+		}
+		if event.Positions[0].Symbol != "ETHUSDT" {
+			t.Errorf("Expected symbol 'ETHUSDT', got '%s'", event.Positions[0].Symbol)
 		}
 	})
 
@@ -730,6 +772,77 @@ func TestParseUserDataStreamEvents(t *testing.T) {
 		}
 		if event.Order.OrderType != "TRAILING_STOP_MARKET" {
 			t.Errorf("Expected order type 'TRAILING_STOP_MARKET', got '%s'", event.Order.OrderType)
+		}
+	})
+
+	// Test parsing trade lite event
+	t.Run("ParseTradeLiteEvent", func(t *testing.T) {
+		data := []byte(`{
+			"e": "TRADE_LITE",
+			"E": 1753016159507,
+			"T": 1753016159506,
+			"s": "ADAUSDT",
+			"q": "10",
+			"p": "0.00000",
+			"m": false,
+			"c": "CV5JitlaOPHmoXB5bZ2IUK",
+			"S": "SELL",
+			"L": "0.85330",
+			"l": "10",
+			"t": 1624239491,
+			"i": 56025850170
+		}`)
+
+		event, err := ParseTradeLiteEvent(data)
+		if err != nil {
+			t.Fatalf("Failed to parse trade lite event: %v", err)
+		}
+
+		if event.EventType != "TRADE_LITE" {
+			t.Errorf("Expected event type 'TRADE_LITE', got '%s'", event.EventType)
+		}
+		if event.EventTime != 1753016159507 {
+			t.Errorf("Expected event time 1753016159507, got %d", event.EventTime)
+		}
+		if event.Symbol != "ADAUSDT" {
+			t.Errorf("Expected symbol 'ADAUSDT', got '%s'", event.Symbol)
+		}
+		if event.Quantity != "10" {
+			t.Errorf("Expected quantity '10', got '%s'", event.Quantity)
+		}
+		if event.Side != "SELL" {
+			t.Errorf("Expected side 'SELL', got '%s'", event.Side)
+		}
+	})
+
+	// Test parsing account config update event
+	t.Run("ParseAccountConfigUpdateEvent", func(t *testing.T) {
+		data := []byte(`{
+			"e": "ACCOUNT_CONFIG_UPDATE",
+			"E": 1564745798939,
+			"T": 1564745798938,
+			"ac": {
+				"s": "BTCUSDT",
+				"l": 20
+			}
+		}`)
+
+		event, err := ParseAccountConfigUpdateEvent(data)
+		if err != nil {
+			t.Fatalf("Failed to parse account config update event: %v", err)
+		}
+
+		if event.EventType != "ACCOUNT_CONFIG_UPDATE" {
+			t.Errorf("Expected event type 'ACCOUNT_CONFIG_UPDATE', got '%s'", event.EventType)
+		}
+		if event.EventTime != 1564745798939 {
+			t.Errorf("Expected event time 1564745798939, got %d", event.EventTime)
+		}
+		if event.AccountConfig.Symbol != "BTCUSDT" {
+			t.Errorf("Expected symbol 'BTCUSDT', got '%s'", event.AccountConfig.Symbol)
+		}
+		if event.AccountConfig.Leverage != 20 {
+			t.Errorf("Expected leverage 20, got %d", event.AccountConfig.Leverage)
 		}
 	})
 }
@@ -806,16 +919,16 @@ func TestSubscriptionOptionsChaining(t *testing.T) {
 			WithConnect(func() {
 				t.Log("Connected!")
 			}).
-			WithExecutionReport(func(data *WSExecutionReport) error {
-				t.Logf("Execution Report: %s", data.Symbol)
+			WithListenKeyExpired(func(data *WSListenKeyExpiredEvent) error {
+				t.Logf("Listen Key Expired: %s", data.ListenKey)
 				return nil
 			}).
-			WithAccountUpdate(func(data *WSOutboundAccountPosition) error {
-				t.Logf("Account Update: %d balances", len(data.Balances))
+			WithAccountUpdateEvent(func(data *WSAccountUpdateEvent) error {
+				t.Logf("Account Update Event: %s", data.UpdateData.EventReasonType)
 				return nil
 			}).
-			WithBalanceUpdate(func(data *WSBalanceUpdate) error {
-				t.Logf("Balance Update: %s", data.Asset)
+			WithMarginCall(func(data *WSMarginCallEvent) error {
+				t.Logf("Margin Call: %s", data.CrossWalletBalance)
 				return nil
 			}).
 			WithError(func(err error) {
@@ -829,14 +942,14 @@ func TestSubscriptionOptionsChaining(t *testing.T) {
 		if options.connectCallback == nil {
 			t.Error("Connect callback should be set")
 		}
-		if options.executionReportCallback == nil {
-			t.Error("Execution report callback should be set")
+		if options.listenKeyExpiredCallback == nil {
+			t.Error("Listen key expired callback should be set")
 		}
-		if options.accountUpdateCallback == nil {
-			t.Error("Account update callback should be set")
+		if options.accountUpdateEventCallback == nil {
+			t.Error("Account update event callback should be set")
 		}
-		if options.balanceUpdateCallback == nil {
-			t.Error("Balance update callback should be set")
+		if options.marginCallCallback == nil {
+			t.Error("Margin call callback should be set")
 		}
 		if options.errorCallback == nil {
 			t.Error("Error callback should be set")

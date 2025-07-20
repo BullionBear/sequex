@@ -459,54 +459,100 @@ func (c *WSStreamClient) SubscribeToUserDataStream(options *UserDataSubscription
 	streamName := userDataStream.ListenKey
 
 	wsCallback := func(data []byte) error {
-		// Parse the event type first
-		var baseEvent struct {
-			EventType string `json:"e"`
-		}
-		if err := json.Unmarshal(data, &baseEvent); err != nil {
+		// Parse the event type first using a map to avoid struct field conflicts
+		var rawData map[string]interface{}
+		if err := json.Unmarshal(data, &rawData); err != nil {
+			// Debug: Print the raw data when parsing fails
+			log.Printf("Failed to parse JSON. Raw data: %s", string(data))
 			if options.errorCallback != nil {
-				options.errorCallback(fmt.Errorf("failed to parse event type: %w", err))
+				options.errorCallback(fmt.Errorf("failed to parse JSON: %w", err))
 			}
-			return fmt.Errorf("failed to parse event type: %w", err)
+			return fmt.Errorf("failed to parse JSON: %w", err)
 		}
 
-		switch baseEvent.EventType {
-		case "executionReport":
-			if options.executionReportCallback != nil {
-				executionReport, err := ParseExecutionReport(data)
+		// Extract event type
+		eventTypeInterface, exists := rawData["e"]
+		if !exists {
+			log.Printf("No event type found in data: %s", string(data))
+			return fmt.Errorf("no event type found in data")
+		}
+
+		eventType, ok := eventTypeInterface.(string)
+		if !ok {
+			log.Printf("Event type is not a string: %v, raw data: %s", eventTypeInterface, string(data))
+			return fmt.Errorf("event type is not a string: %v", eventTypeInterface)
+		}
+
+		switch eventType {
+		case "listenKeyExpired":
+			if options.listenKeyExpiredCallback != nil {
+				listenKeyExpired, err := ParseListenKeyExpiredEvent(data)
 				if err != nil {
 					if options.errorCallback != nil {
-						options.errorCallback(fmt.Errorf("failed to parse execution report: %w", err))
+						options.errorCallback(fmt.Errorf("failed to parse listen key expired: %w", err))
 					}
-					return fmt.Errorf("failed to parse execution report: %w", err)
+					return fmt.Errorf("failed to parse listen key expired: %w", err)
 				}
-				return options.executionReportCallback(executionReport)
+				return options.listenKeyExpiredCallback(listenKeyExpired)
 			}
-		case "outboundAccountPosition":
-			if options.accountUpdateCallback != nil {
-				accountUpdate, err := ParseOutboundAccountPosition(data)
+		case "ACCOUNT_UPDATE":
+			if options.accountUpdateEventCallback != nil {
+				accountUpdate, err := ParseAccountUpdateEvent(data)
 				if err != nil {
 					if options.errorCallback != nil {
-						options.errorCallback(fmt.Errorf("failed to parse account update: %w", err))
+						options.errorCallback(fmt.Errorf("failed to parse account update event: %w", err))
 					}
-					return fmt.Errorf("failed to parse account update: %w", err)
+					return fmt.Errorf("failed to parse account update event: %w", err)
 				}
-				return options.accountUpdateCallback(accountUpdate)
+				return options.accountUpdateEventCallback(accountUpdate)
 			}
-		case "balanceUpdate":
-			if options.balanceUpdateCallback != nil {
-				balanceUpdate, err := ParseBalanceUpdate(data)
+		case "MARGIN_CALL":
+			if options.marginCallCallback != nil {
+				marginCall, err := ParseMarginCallEvent(data)
 				if err != nil {
 					if options.errorCallback != nil {
-						options.errorCallback(fmt.Errorf("failed to parse balance update: %w", err))
+						options.errorCallback(fmt.Errorf("failed to parse margin call: %w", err))
 					}
-					return fmt.Errorf("failed to parse balance update: %w", err)
+					return fmt.Errorf("failed to parse margin call: %w", err)
 				}
-				return options.balanceUpdateCallback(balanceUpdate)
+				return options.marginCallCallback(marginCall)
+			}
+		case "ORDER_TRADE_UPDATE":
+			if options.orderTradeUpdateCallback != nil {
+				orderTradeUpdate, err := ParseOrderTradeUpdateEvent(data)
+				if err != nil {
+					if options.errorCallback != nil {
+						options.errorCallback(fmt.Errorf("failed to parse order trade update: %w", err))
+					}
+					return fmt.Errorf("failed to parse order trade update: %w", err)
+				}
+				return options.orderTradeUpdateCallback(orderTradeUpdate)
+			}
+		case "TRADE_LITE":
+			if options.tradeLiteCallback != nil {
+				tradeLite, err := ParseTradeLiteEvent(data)
+				if err != nil {
+					if options.errorCallback != nil {
+						options.errorCallback(fmt.Errorf("failed to parse trade lite: %w", err))
+					}
+					return fmt.Errorf("failed to parse trade lite: %w", err)
+				}
+				return options.tradeLiteCallback(tradeLite)
+			}
+		case "ACCOUNT_CONFIG_UPDATE":
+			if options.accountConfigUpdateCallback != nil {
+				accountConfigUpdate, err := ParseAccountConfigUpdateEvent(data)
+				if err != nil {
+					if options.errorCallback != nil {
+						options.errorCallback(fmt.Errorf("failed to parse account config update: %w", err))
+					}
+					return fmt.Errorf("failed to parse account config update: %w", err)
+				}
+				return options.accountConfigUpdateCallback(accountConfigUpdate)
 			}
 		default:
 			// Unknown event type, log it but don't error
-			log.Printf("Unknown user data event type: %s", baseEvent.EventType)
+			log.Printf("Unknown user data event type: %s, raw data: %s", eventType, string(data))
 		}
 
 		return nil
@@ -521,109 +567,6 @@ func (c *WSStreamClient) SubscribeToUserDataStreamWithListenKey(
 	callback WebSocketCallback,
 ) (func() error, error) {
 	return c.subscribeToStream(listenKey, callback)
-}
-
-// handleUserDataStreamReconnect handles reconnection for user data streams
-func (c *WSStreamClient) handleUserDataStreamReconnect(listenKey *string, reconnectChan chan struct{}) error {
-	go func() {
-		for {
-			select {
-			case <-reconnectChan:
-				// Close the old stream
-				if err := c.restClient.CloseUserDataStream(context.Background(), *listenKey); err != nil {
-					log.Printf("Failed to close old user data stream: %v", err)
-				}
-
-				// Create a new listen key
-				userDataStream, err := c.restClient.CreateUserDataStream(context.Background())
-				if err != nil {
-					log.Printf("Failed to create new user data stream: %v", err)
-					continue
-				}
-
-				*listenKey = userDataStream.ListenKey
-				log.Printf("Reconnected user data stream with new listen key: %s...", (*listenKey)[:8])
-
-				// Resubscribe to the new stream
-				// Note: This is a simplified implementation. In a real scenario,
-				// you might want to store the callback and resubscribe automatically
-			}
-		}
-	}()
-
-	return nil
-}
-
-// subscribeToStreamWithReconnect subscribes to a stream with reconnection support
-func (c *WSStreamClient) subscribeToStreamWithReconnect(
-	streamName string,
-	callback WebSocketCallback,
-	reconnectChan chan struct{},
-) (func() error, error) {
-	// Create a new WebSocket client with callbacks
-	client := NewWSClient(c.config,
-		WithOnMessage(func(data []byte) {
-			if err := callback(data); err != nil {
-				log.Printf("error in WebSocket callback: %v", err)
-			}
-		}),
-		WithOnError(func(err error) {
-			log.Printf("WebSocket error for stream %s: %v", streamName, err)
-			reconnectChan <- struct{}{}
-		}),
-	)
-
-	// Connect to the WebSocket
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	err := client.Connect(ctx)
-	cancel()
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to WebSocket: %w", err)
-	}
-
-	// Subscribe to the stream
-	err = client.SubscribeToStream(streamName)
-	if err != nil {
-		client.Disconnect()
-		return nil, fmt.Errorf("failed to subscribe to stream %s: %w", streamName, err)
-	}
-
-	c.mu.Lock()
-	c.clients[streamName] = client
-	c.callbacks[streamName] = callback
-	c.mu.Unlock()
-
-	// Return unsubscribe function
-	unsubscribe := func() error {
-		c.mu.Lock()
-		defer c.mu.Unlock()
-
-		client, exists := c.clients[streamName]
-		if !exists {
-			return nil
-		}
-
-		// Unsubscribe from the stream
-		err := client.UnsubscribeFromStream(streamName)
-		if err != nil {
-			return fmt.Errorf("failed to unsubscribe from stream %s: %w", streamName, err)
-		}
-
-		// Disconnect the client
-		err = client.Disconnect()
-		if err != nil {
-			return fmt.Errorf("failed to disconnect client for stream %s: %w", streamName, err)
-		}
-
-		// Remove from maps
-		delete(c.clients, streamName)
-		delete(c.callbacks, streamName)
-
-		return nil
-	}
-
-	return unsubscribe, nil
 }
 
 // subscribeToStream subscribes to a WebSocket stream
