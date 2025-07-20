@@ -155,16 +155,44 @@ Binance WebSocket connectivity is handled under:
 **Rules:**
 
 Base Url: wss://fstream.binance.com
-Streams can be access either in a single raw stream or a combined stream
+Streams should be access in a single raw stream
 Raw streams are accessed at /ws/<streamName>
-Combined streams are accessed at /stream?streams=<streamName1>/<streamName2>/<streamName3>
 Example:
 wss://fstream.binance.com/ws/bnbusdt@aggTrade
-wss://fstream.binance.com/stream?streams=bnbusdt@aggTrade/btcusdt@markPrice
-Combined stream events are wrapped as follows: {"stream":"<streamName>","data":<rawPayload>}
 
-All symbols for streams are lowercase
+- The public API of a websocket subscription should looks like that:
 
-A single connection is only valid for 24 hours; expect to be disconnected at the 24 hour mark
+```go
+func (c *WSStreamClient) SubscribeToKline(symbol string, interval string, options *KlineSubscriptionOptions) (unsubscribe func() error, error)
+```
 
-The websocket server will send a ping frame every 3 minutes. If the websocket server does not receive a pong frame back from the connection within a 10 minute period, the connection will be disconnected. Unsolicited pong frames are allowed(the client can send pong frames at a frequency higher than every 15 minutes to maintain the connection).
+The KlineSubscriptionOptions define the chain methods for user include:
+- WithConnect(callback func())
+- WithReconnect(callback func())
+- WithKline(callback KlineCallback)
+- WithDisconnect(callback func())
+- WithError(callback func(error))
+
+So user can utilize the subscriptionOption.WithConnect(callback).WithKline(klineCallback) to focus what they really want of it.
+
+Example usage:
+```go
+klineOptions := &KlineSubscriptionOptions{}
+klineOptions.WithConnect(func() {
+    fmt.Println("Connected to kline stream")
+}).WithKline(func(data *WSKlineData) error {
+    fmt.Printf("Kline: Symbol=%s, Close=%f\n", data.Symbol, data.Kline.ClosePrice)
+    return nil
+}).WithError(func(err error) {
+    fmt.Printf("Error: %v\n", err)
+})
+
+unsubscribe, err := wsClient.SubscribeToKline("BTCUSDT", "1m", klineOptions)
+```
+
+If there are multiple event with the corresponding subscription, you can define the SubscriptionOptions with different pre-defined event handler like:
+- WithExecutionReport(ExecutionReportCallback)
+- WithAccountUpdate(OutboundAccountPositionCallback)
+- WithBalanceUpdate(BalanceUpdateCallback)
+
+This pattern makes developer easier to extend their implementation and provides type-safe callbacks for different data types.

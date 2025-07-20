@@ -29,22 +29,70 @@ func NewWSStreamClient(config *Config) *WSStreamClient {
 	}
 }
 
-// SubscribeToKline subscribes to kline/candlestick data
-func (c *WSStreamClient) SubscribeToKline(symbol string, interval string, callback WebSocketCallback) (func() error, error) {
+// SubscribeToKline subscribes to kline/candlestick data with subscription options
+func (c *WSStreamClient) SubscribeToKline(symbol string, interval string, options *KlineSubscriptionOptions) (func() error, error) {
 	streamName := fmt.Sprintf("%s@%s_%s", strings.ToLower(symbol), WSStreamKline, interval)
-	return c.subscribeToStream(streamName, callback)
+
+	wsCallback := func(data []byte) error {
+		klineData, err := ParseKlineData(data)
+		if err != nil {
+			if options.errorCallback != nil {
+				options.errorCallback(fmt.Errorf("failed to parse kline data: %w", err))
+			}
+			return fmt.Errorf("failed to parse kline data: %w", err)
+		}
+
+		if options.klineCallback != nil {
+			return options.klineCallback(klineData)
+		}
+		return nil
+	}
+
+	return c.subscribeToStreamWithOptions(streamName, wsCallback, options.SubscriptionOptions)
 }
 
-// SubscribeToTicker subscribes to 24hr ticker data
-func (c *WSStreamClient) SubscribeToTicker(symbol string, callback WebSocketCallback) (func() error, error) {
+// SubscribeToTicker subscribes to 24hr ticker data with subscription options
+func (c *WSStreamClient) SubscribeToTicker(symbol string, options *TickerSubscriptionOptions) (func() error, error) {
 	streamName := fmt.Sprintf("%s@%s", strings.ToLower(symbol), WSStreamTicker)
-	return c.subscribeToStream(streamName, callback)
+
+	wsCallback := func(data []byte) error {
+		tickerData, err := ParseTickerData(data)
+		if err != nil {
+			if options.errorCallback != nil {
+				options.errorCallback(fmt.Errorf("failed to parse ticker data: %w", err))
+			}
+			return fmt.Errorf("failed to parse ticker data: %w", err)
+		}
+
+		if options.tickerCallback != nil {
+			return options.tickerCallback(tickerData)
+		}
+		return nil
+	}
+
+	return c.subscribeToStreamWithOptions(streamName, wsCallback, options.SubscriptionOptions)
 }
 
-// SubscribeToMiniTicker subscribes to mini ticker data
-func (c *WSStreamClient) SubscribeToMiniTicker(symbol string, callback WebSocketCallback) (func() error, error) {
+// SubscribeToMiniTicker subscribes to mini ticker data with subscription options
+func (c *WSStreamClient) SubscribeToMiniTicker(symbol string, options *MiniTickerSubscriptionOptions) (func() error, error) {
 	streamName := fmt.Sprintf("%s@%s", strings.ToLower(symbol), WSStreamMiniTicker)
-	return c.subscribeToStream(streamName, callback)
+
+	wsCallback := func(data []byte) error {
+		miniTickerData, err := ParseMiniTickerData(data)
+		if err != nil {
+			if options.errorCallback != nil {
+				options.errorCallback(fmt.Errorf("failed to parse mini ticker data: %w", err))
+			}
+			return fmt.Errorf("failed to parse mini ticker data: %w", err)
+		}
+
+		if options.miniTickerCallback != nil {
+			return options.miniTickerCallback(miniTickerData)
+		}
+		return nil
+	}
+
+	return c.subscribeToStreamWithOptions(streamName, wsCallback, options.SubscriptionOptions)
 }
 
 // SubscribeToAllMiniTickers subscribes to all mini tickers
@@ -53,10 +101,26 @@ func (c *WSStreamClient) SubscribeToAllMiniTickers(callback WebSocketCallback) (
 	return c.subscribeToStream(streamName, callback)
 }
 
-// SubscribeToBookTicker subscribes to book ticker data
-func (c *WSStreamClient) SubscribeToBookTicker(symbol string, callback WebSocketCallback) (func() error, error) {
+// SubscribeToBookTicker subscribes to book ticker data with subscription options
+func (c *WSStreamClient) SubscribeToBookTicker(symbol string, options *BookTickerSubscriptionOptions) (func() error, error) {
 	streamName := fmt.Sprintf("%s@%s", strings.ToLower(symbol), WSStreamBookTicker)
-	return c.subscribeToStream(streamName, callback)
+
+	wsCallback := func(data []byte) error {
+		bookTickerData, err := ParseBookTickerData(data)
+		if err != nil {
+			if options.errorCallback != nil {
+				options.errorCallback(fmt.Errorf("failed to parse book ticker data: %w", err))
+			}
+			return fmt.Errorf("failed to parse book ticker data: %w", err)
+		}
+
+		if options.bookTickerCallback != nil {
+			return options.bookTickerCallback(bookTickerData)
+		}
+		return nil
+	}
+
+	return c.subscribeToStreamWithOptions(streamName, wsCallback, options.SubscriptionOptions)
 }
 
 // SubscribeToAllBookTickers subscribes to all book tickers
@@ -65,28 +129,92 @@ func (c *WSStreamClient) SubscribeToAllBookTickers(callback WebSocketCallback) (
 	return c.subscribeToStream(streamName, callback)
 }
 
-// SubscribeToDepth subscribes to order book depth data
-func (c *WSStreamClient) SubscribeToDepth(symbol string, levels string, callback WebSocketCallback) (func() error, error) {
+// SubscribeToDepth subscribes to order book depth data with subscription options
+func (c *WSStreamClient) SubscribeToDepth(symbol string, levels string, options *DepthSubscriptionOptions) (func() error, error) {
 	streamName := fmt.Sprintf("%s@%s%s", strings.ToLower(symbol), WSStreamDepth, levels)
-	return c.subscribeToStream(streamName, callback)
+
+	wsCallback := func(data []byte) error {
+		depthData, err := ParseDepthData(data)
+		if err != nil {
+			if options.errorCallback != nil {
+				options.errorCallback(fmt.Errorf("failed to parse depth data: %w", err))
+			}
+			return fmt.Errorf("failed to parse depth data: %w", err)
+		}
+
+		if options.depthCallback != nil {
+			return options.depthCallback(depthData)
+		}
+		return nil
+	}
+
+	return c.subscribeToStreamWithOptions(streamName, wsCallback, options.SubscriptionOptions)
 }
 
-// SubscribeToTrade subscribes to trade data
-func (c *WSStreamClient) SubscribeToTrade(symbol string, callback WebSocketCallback) (func() error, error) {
+// SubscribeToTrade subscribes to trade data with subscription options
+func (c *WSStreamClient) SubscribeToTrade(symbol string, options *TradeSubscriptionOptions) (func() error, error) {
 	streamName := fmt.Sprintf("%s@%s", strings.ToLower(symbol), WSStreamTrade)
-	return c.subscribeToStream(streamName, callback)
+
+	wsCallback := func(data []byte) error {
+		tradeData, err := ParseTradeData(data)
+		if err != nil {
+			if options.errorCallback != nil {
+				options.errorCallback(fmt.Errorf("failed to parse trade data: %w", err))
+			}
+			return fmt.Errorf("failed to parse trade data: %w", err)
+		}
+
+		if options.tradeCallback != nil {
+			return options.tradeCallback(tradeData)
+		}
+		return nil
+	}
+
+	return c.subscribeToStreamWithOptions(streamName, wsCallback, options.SubscriptionOptions)
 }
 
-// SubscribeToAggTrade subscribes to aggregated trade data
-func (c *WSStreamClient) SubscribeToAggTrade(symbol string, callback WebSocketCallback) (func() error, error) {
+// SubscribeToAggTrade subscribes to aggregated trade data with subscription options
+func (c *WSStreamClient) SubscribeToAggTrade(symbol string, options *AggTradeSubscriptionOptions) (func() error, error) {
 	streamName := fmt.Sprintf("%s@%s", strings.ToLower(symbol), WSStreamAggTrade)
-	return c.subscribeToStream(streamName, callback)
+
+	wsCallback := func(data []byte) error {
+		aggTradeData, err := ParseAggTradeData(data)
+		if err != nil {
+			if options.errorCallback != nil {
+				options.errorCallback(fmt.Errorf("failed to parse aggregated trade data: %w", err))
+			}
+			return fmt.Errorf("failed to parse aggregated trade data: %w", err)
+		}
+
+		if options.aggTradeCallback != nil {
+			return options.aggTradeCallback(aggTradeData)
+		}
+		return nil
+	}
+
+	return c.subscribeToStreamWithOptions(streamName, wsCallback, options.SubscriptionOptions)
 }
 
-// SubscribeToMarkPrice subscribes to mark price data
-func (c *WSStreamClient) SubscribeToMarkPrice(symbol string, callback WebSocketCallback) (func() error, error) {
+// SubscribeToMarkPrice subscribes to mark price data with subscription options
+func (c *WSStreamClient) SubscribeToMarkPrice(symbol string, options *MarkPriceSubscriptionOptions) (func() error, error) {
 	streamName := fmt.Sprintf("%s@%s", strings.ToLower(symbol), WSStreamMarkPrice)
-	return c.subscribeToStream(streamName, callback)
+
+	wsCallback := func(data []byte) error {
+		markPriceData, err := ParseMarkPriceData(data)
+		if err != nil {
+			if options.errorCallback != nil {
+				options.errorCallback(fmt.Errorf("failed to parse mark price data: %w", err))
+			}
+			return fmt.Errorf("failed to parse mark price data: %w", err)
+		}
+
+		if options.markPriceCallback != nil {
+			return options.markPriceCallback(markPriceData)
+		}
+		return nil
+	}
+
+	return c.subscribeToStreamWithOptions(streamName, wsCallback, options.SubscriptionOptions)
 }
 
 // SubscribeToAllMarkPrices subscribes to all mark prices
@@ -95,10 +223,26 @@ func (c *WSStreamClient) SubscribeToAllMarkPrices(callback WebSocketCallback) (f
 	return c.subscribeToStream(streamName, callback)
 }
 
-// SubscribeToFundingRate subscribes to funding rate data
-func (c *WSStreamClient) SubscribeToFundingRate(symbol string, callback WebSocketCallback) (func() error, error) {
+// SubscribeToFundingRate subscribes to funding rate data with subscription options
+func (c *WSStreamClient) SubscribeToFundingRate(symbol string, options *FundingRateSubscriptionOptions) (func() error, error) {
 	streamName := fmt.Sprintf("%s@%s", strings.ToLower(symbol), WSStreamFundingRate)
-	return c.subscribeToStream(streamName, callback)
+
+	wsCallback := func(data []byte) error {
+		fundingRateData, err := ParseFundingRateData(data)
+		if err != nil {
+			if options.errorCallback != nil {
+				options.errorCallback(fmt.Errorf("failed to parse funding rate data: %w", err))
+			}
+			return fmt.Errorf("failed to parse funding rate data: %w", err)
+		}
+
+		if options.fundingRateCallback != nil {
+			return options.fundingRateCallback(fundingRateData)
+		}
+		return nil
+	}
+
+	return c.subscribeToStreamWithOptions(streamName, wsCallback, options.SubscriptionOptions)
 }
 
 // SubscribeToCombinedStreams subscribes to multiple streams at once
@@ -304,63 +448,71 @@ func (c *WSStreamClient) SubscribeToDiffDepth(symbol string, callback WebSocketC
 // Note: User data stream methods are not yet implemented in the Binance Futures client.
 // These will be added when the corresponding REST API methods are implemented.
 
-// SubscribeToUserDataStream subscribes to user data stream with automatic listen key management
-func (c *WSStreamClient) SubscribeToUserDataStream(callback WebSocketCallback) (func() error, error) {
-	// Create a new listen key
+// SubscribeToUserDataStream subscribes to user data stream with subscription options
+func (c *WSStreamClient) SubscribeToUserDataStream(options *UserDataSubscriptionOptions) (func() error, error) {
+	// Get listen key from REST API
 	userDataStream, err := c.restClient.CreateUserDataStream(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user data stream: %w", err)
 	}
 
-	listenKey := userDataStream.ListenKey
-	log.Printf("Created user data stream with listen key: %s...", listenKey[:8])
+	streamName := userDataStream.ListenKey
 
-	// Create a channel for reconnection signals
-	reconnectChan := make(chan struct{}, 1)
-
-	// Start keepalive goroutine
-	go func() {
-		ticker := time.NewTicker(30 * time.Minute) // Keep alive every 30 minutes
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				if err := c.restClient.KeepAliveUserDataStream(context.Background(), listenKey); err != nil {
-					log.Printf("Failed to keep alive user data stream: %v", err)
-					reconnectChan <- struct{}{}
-					return
-				}
-			case <-reconnectChan:
-				return
+	wsCallback := func(data []byte) error {
+		// Parse the event type first
+		var baseEvent struct {
+			EventType string `json:"e"`
+		}
+		if err := json.Unmarshal(data, &baseEvent); err != nil {
+			if options.errorCallback != nil {
+				options.errorCallback(fmt.Errorf("failed to parse event type: %w", err))
 			}
-		}
-	}()
-
-	// Start reconnection handler
-	if err := c.handleUserDataStreamReconnect(&listenKey, reconnectChan); err != nil {
-		return nil, fmt.Errorf("failed to start reconnection handler: %w", err)
-	}
-
-	// Subscribe to the stream
-	unsubscribe, err := c.subscribeToStreamWithReconnect(listenKey, callback, reconnectChan)
-	if err != nil {
-		return nil, fmt.Errorf("failed to subscribe to user data stream: %w", err)
-	}
-
-	// Return unsubscribe function that also closes the stream
-	return func() error {
-		// Signal reconnection handler to stop
-		reconnectChan <- struct{}{}
-
-		// Close the user data stream
-		if err := c.restClient.CloseUserDataStream(context.Background(), listenKey); err != nil {
-			log.Printf("Failed to close user data stream: %v", err)
+			return fmt.Errorf("failed to parse event type: %w", err)
 		}
 
-		// Unsubscribe from the stream
-		return unsubscribe()
-	}, nil
+		switch baseEvent.EventType {
+		case "executionReport":
+			if options.executionReportCallback != nil {
+				executionReport, err := ParseExecutionReport(data)
+				if err != nil {
+					if options.errorCallback != nil {
+						options.errorCallback(fmt.Errorf("failed to parse execution report: %w", err))
+					}
+					return fmt.Errorf("failed to parse execution report: %w", err)
+				}
+				return options.executionReportCallback(executionReport)
+			}
+		case "outboundAccountPosition":
+			if options.accountUpdateCallback != nil {
+				accountUpdate, err := ParseOutboundAccountPosition(data)
+				if err != nil {
+					if options.errorCallback != nil {
+						options.errorCallback(fmt.Errorf("failed to parse account update: %w", err))
+					}
+					return fmt.Errorf("failed to parse account update: %w", err)
+				}
+				return options.accountUpdateCallback(accountUpdate)
+			}
+		case "balanceUpdate":
+			if options.balanceUpdateCallback != nil {
+				balanceUpdate, err := ParseBalanceUpdate(data)
+				if err != nil {
+					if options.errorCallback != nil {
+						options.errorCallback(fmt.Errorf("failed to parse balance update: %w", err))
+					}
+					return fmt.Errorf("failed to parse balance update: %w", err)
+				}
+				return options.balanceUpdateCallback(balanceUpdate)
+			}
+		default:
+			// Unknown event type, log it but don't error
+			log.Printf("Unknown user data event type: %s", baseEvent.EventType)
+		}
+
+		return nil
+	}
+
+	return c.subscribeToStreamWithOptions(streamName, wsCallback, options.SubscriptionOptions)
 }
 
 // SubscribeToUserDataStreamWithListenKey subscribes to user data stream with a provided listen key
@@ -474,6 +626,114 @@ func (c *WSStreamClient) subscribeToStreamWithReconnect(
 	return unsubscribe, nil
 }
 
+// subscribeToStream subscribes to a WebSocket stream
+func (c *WSStreamClient) subscribeToStream(streamName string, callback WebSocketCallback) (func() error, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Check if we already have a client for this stream
+	client, exists := c.clients[streamName]
+	if !exists {
+		// Create a new WebSocket client
+		client = NewWSClient(c.config,
+			WithOnMessage(func(data []byte) {
+				// Route the message to the appropriate callback
+				if callback != nil {
+					if err := callback(data); err != nil {
+						log.Printf("error in WebSocket callback: %v", err)
+					}
+				}
+			}),
+			WithOnError(func(err error) {
+				log.Printf("WebSocket error: %v", err)
+			}),
+		)
+
+		// Connect to the WebSocket
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		err := client.Connect(ctx)
+		cancel()
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to WebSocket: %w", err)
+		}
+
+		// Subscribe to the stream
+		err = client.SubscribeToStream(streamName)
+		if err != nil {
+			client.Disconnect()
+			return nil, fmt.Errorf("failed to subscribe to stream %s: %w", streamName, err)
+		}
+
+		c.clients[streamName] = client
+		c.callbacks[streamName] = callback
+	}
+
+	// Return unsubscribe function
+	unsubscribe := func() error {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+
+		client, exists := c.clients[streamName]
+		if !exists {
+			return nil
+		}
+
+		// Unsubscribe from the stream
+		err := client.UnsubscribeFromStream(streamName)
+		if err != nil {
+			return fmt.Errorf("failed to unsubscribe from stream %s: %w", streamName, err)
+		}
+
+		// Disconnect the client
+		err = client.Disconnect()
+		if err != nil {
+			return fmt.Errorf("failed to disconnect client for stream %s: %w", streamName, err)
+		}
+
+		// Remove from maps
+		delete(c.clients, streamName)
+		delete(c.callbacks, streamName)
+
+		return nil
+	}
+
+	return unsubscribe, nil
+}
+
+// subscribeToStreamWithOptions is a helper method that handles subscription with options
+func (c *WSStreamClient) subscribeToStreamWithOptions(streamName string, callback WebSocketCallback, options *SubscriptionOptions) (func() error, error) {
+	// Create a wrapper callback that handles the options callbacks
+	wrappedCallback := func(data []byte) error {
+		if err := callback(data); err != nil {
+			if options.errorCallback != nil {
+				options.errorCallback(err)
+			}
+			return err
+		}
+		return nil
+	}
+
+	// Subscribe to the stream
+	unsubscribe, err := c.subscribeToStream(streamName, wrappedCallback)
+	if err != nil {
+		return nil, err
+	}
+
+	// If we have a connect callback, call it
+	if options.connectCallback != nil {
+		options.connectCallback()
+	}
+
+	// Return a wrapped unsubscribe function that calls the disconnect callback
+	return func() error {
+		if options.disconnectCallback != nil {
+			options.disconnectCallback()
+		}
+		return unsubscribe()
+	}, nil
+}
+
 // Parse functions for different WebSocket data types
 func ParseKlineData(data []byte) (*WSKlineData, error) {
 	var klineData WSKlineData
@@ -582,81 +842,6 @@ func ParseAccountConfigUpdateEvent(data []byte) (*WSAccountConfigUpdateEvent, er
 	var event WSAccountConfigUpdateEvent
 	err := json.Unmarshal(data, &event)
 	return &event, err
-}
-
-// subscribeToStream subscribes to a WebSocket stream
-func (c *WSStreamClient) subscribeToStream(streamName string, callback WebSocketCallback) (func() error, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// Check if we already have a client for this stream
-	client, exists := c.clients[streamName]
-	if !exists {
-		// Create a new WebSocket client
-		client = NewWSClient(c.config,
-			WithOnMessage(func(data []byte) {
-				// Route the message to the appropriate callback
-				if callback != nil {
-					if err := callback(data); err != nil {
-						log.Printf("error in WebSocket callback: %v", err)
-					}
-				}
-			}),
-			WithOnError(func(err error) {
-				log.Printf("WebSocket error: %v", err)
-			}),
-		)
-
-		// Connect to the WebSocket
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		err := client.Connect(ctx)
-		cancel()
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to connect to WebSocket: %w", err)
-		}
-
-		// Subscribe to the stream
-		err = client.SubscribeToStream(streamName)
-		if err != nil {
-			client.Disconnect()
-			return nil, fmt.Errorf("failed to subscribe to stream %s: %w", streamName, err)
-		}
-
-		c.clients[streamName] = client
-		c.callbacks[streamName] = callback
-	}
-
-	// Return unsubscribe function
-	unsubscribe := func() error {
-		c.mu.Lock()
-		defer c.mu.Unlock()
-
-		client, exists := c.clients[streamName]
-		if !exists {
-			return nil
-		}
-
-		// Unsubscribe from the stream
-		err := client.UnsubscribeFromStream(streamName)
-		if err != nil {
-			return fmt.Errorf("failed to unsubscribe from stream %s: %w", streamName, err)
-		}
-
-		// Disconnect the client
-		err = client.Disconnect()
-		if err != nil {
-			return fmt.Errorf("failed to disconnect client for stream %s: %w", streamName, err)
-		}
-
-		// Remove from maps
-		delete(c.clients, streamName)
-		delete(c.callbacks, streamName)
-
-		return nil
-	}
-
-	return unsubscribe, nil
 }
 
 // unsubscribeFromStream unsubscribes from a WebSocket stream

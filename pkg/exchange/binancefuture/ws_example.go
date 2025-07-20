@@ -1,305 +1,226 @@
 package binancefuture
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 )
 
-// ExampleWSStreamClient_SubscribeToAggTrade demonstrates how to subscribe to aggregated trades
-func ExampleWSStreamClient_SubscribeToAggTrade() {
-	// Create a configuration
-	config := &Config{
-		UseTestnet: true, // Use testnet for testing
-	}
+// Example usage of the refactored WSStreamClient with subscription options
 
-	// Create a new WebSocket stream client
-	wsClient := NewWSStreamClient(config)
-
-	// Subscribe to aggregated trades for BTCUSDT
-	symbol := "btcusdt"
-	unsubscribe, err := wsClient.SubscribeToAggTrade(symbol, func(data []byte) error {
-		// Parse the aggregated trade data
-		aggTrade, err := ParseAggTradeData(data)
-		if err != nil {
-			log.Printf("Failed to parse aggregated trade data: %v", err)
-			return err
-		}
-
-		// Print the trade information
-		fmt.Printf("Aggregated Trade: Symbol=%s, Price=%.2f, Quantity=%.4f, IsBuyerMaker=%t\n",
-			aggTrade.Symbol, aggTrade.Price, aggTrade.Quantity, aggTrade.IsBuyerMaker)
-
-		return nil
-	})
-
-	if err != nil {
-		log.Fatalf("Failed to subscribe to aggregated trades: %v", err)
-	}
-
-	// Keep the connection alive for a few seconds to receive some data
-	time.Sleep(10 * time.Second)
-
-	// Unsubscribe
-	if err := unsubscribe(); err != nil {
-		log.Printf("Failed to unsubscribe: %v", err)
-	}
-
-	// Close the client
-	if err := wsClient.Close(); err != nil {
-		log.Printf("Failed to close WebSocket client: %v", err)
-	}
-}
-
-// ExampleWSStreamClient_SubscribeToAggTradeWithCallback demonstrates how to subscribe to aggregated trades with type-specific callback
-func ExampleWSStreamClient_SubscribeToAggTradeWithCallback() {
-	// Create a configuration
-	config := &Config{
-		UseTestnet: true, // Use testnet for testing
-	}
-
-	// Create a new WebSocket stream client
-	wsClient := NewWSStreamClient(config)
-
-	// Subscribe to aggregated trades with type-specific callback
-	symbol := "btcusdt"
-	unsubscribe, err := wsClient.SubscribeToAggTradeWithCallback(symbol, func(data *WSAggTradeData) error {
-		// Print the trade information
-		fmt.Printf("Aggregated Trade: Symbol=%s, Price=%.2f, Quantity=%.4f, IsBuyerMaker=%t\n",
-			data.Symbol, data.Price, data.Quantity, data.IsBuyerMaker)
-
-		return nil
-	})
-
-	if err != nil {
-		log.Fatalf("Failed to subscribe to aggregated trades: %v", err)
-	}
-
-	// Keep the connection alive for a few seconds to receive some data
-	time.Sleep(10 * time.Second)
-
-	// Unsubscribe
-	if err := unsubscribe(); err != nil {
-		log.Printf("Failed to unsubscribe: %v", err)
-	}
-
-	// Close the client
-	if err := wsClient.Close(); err != nil {
-		log.Printf("Failed to close WebSocket client: %v", err)
-	}
-}
-
-// ExampleWSStreamClient_SubscribeToCombinedStreams demonstrates how to subscribe to multiple streams
-func ExampleWSStreamClient_SubscribeToCombinedStreams() {
-	// Create a configuration
-	config := &Config{
-		UseTestnet: true, // Use testnet for testing
-	}
-
-	// Create a new WebSocket stream client
-	wsClient := NewWSStreamClient(config)
-
-	// Subscribe to multiple streams
-	streams := []string{
-		"btcusdt@aggTrade",
-		"ethusdt@aggTrade",
-		"bnbusdt@aggTrade",
-	}
-
-	unsubscribe, err := wsClient.SubscribeToCombinedStreams(streams, func(data []byte) error {
-		// Parse the aggregated trade data
-		aggTrade, err := ParseAggTradeData(data)
-		if err != nil {
-			log.Printf("Failed to parse aggregated trade data: %v", err)
-			return err
-		}
-
-		// Print the trade information
-		fmt.Printf("Combined Stream Trade: Symbol=%s, Price=%.2f, Quantity=%.4f\n",
-			aggTrade.Symbol, aggTrade.Price, aggTrade.Quantity)
-
-		return nil
-	})
-
-	if err != nil {
-		log.Fatalf("Failed to subscribe to combined streams: %v", err)
-	}
-
-	// Keep the connection alive for a few seconds to receive some data
-	time.Sleep(10 * time.Second)
-
-	// Unsubscribe
-	if err := unsubscribe(); err != nil {
-		log.Printf("Failed to unsubscribe: %v", err)
-	}
-
-	// Close the client
-	if err := wsClient.Close(); err != nil {
-		log.Printf("Failed to close WebSocket client: %v", err)
-	}
-}
-
-// ExampleWSStreamClient_MultipleSubscriptions demonstrates how to manage multiple subscriptions
-func ExampleWSStreamClient_MultipleSubscriptions() {
-	// Create a configuration
-	config := &Config{
-		UseTestnet: true, // Use testnet for testing
-	}
-
-	// Create a new WebSocket stream client
-	wsClient := NewWSStreamClient(config)
-
-	// Subscribe to multiple different types of streams
-	unsubscribes := make([]func() error, 0)
-
-	// Subscribe to aggregated trades
-	aggTradeUnsub, err := wsClient.SubscribeToAggTrade("btcusdt", func(data []byte) error {
-		aggTrade, _ := ParseAggTradeData(data)
-		fmt.Printf("AggTrade: %s %.2f\n", aggTrade.Symbol, aggTrade.Price)
-		return nil
-	})
-	if err != nil {
-		log.Fatalf("Failed to subscribe to aggregated trades: %v", err)
-	}
-	unsubscribes = append(unsubscribes, aggTradeUnsub)
-
-	// Subscribe to ticker
-	tickerUnsub, err := wsClient.SubscribeToTicker("btcusdt", func(data []byte) error {
-		ticker, _ := ParseTickerData(data)
-		fmt.Printf("Ticker: %s %.2f\n", ticker.Symbol, ticker.LastPrice)
-		return nil
-	})
-	if err != nil {
-		log.Fatalf("Failed to subscribe to ticker: %v", err)
-	}
-	unsubscribes = append(unsubscribes, tickerUnsub)
-
-	// Subscribe to book ticker
-	bookTickerUnsub, err := wsClient.SubscribeToBookTicker("btcusdt", func(data []byte) error {
-		bookTicker, _ := ParseBookTickerData(data)
-		fmt.Printf("BookTicker: %s Bid=%.2f Ask=%.2f\n",
-			bookTicker.Symbol, bookTicker.BidPrice, bookTicker.AskPrice)
-		return nil
-	})
-	if err != nil {
-		log.Fatalf("Failed to subscribe to book ticker: %v", err)
-	}
-	unsubscribes = append(unsubscribes, bookTickerUnsub)
-
-	// Print active streams
-	fmt.Printf("Active streams: %v\n", wsClient.GetActiveStreams())
-
-	// Keep the connection alive for a few seconds to receive some data
-	time.Sleep(10 * time.Second)
-
-	// Unsubscribe from all streams
-	for _, unsub := range unsubscribes {
-		if err := unsub(); err != nil {
-			log.Printf("Failed to unsubscribe: %v", err)
-		}
-	}
-
-	// Close the client
-	if err := wsClient.Close(); err != nil {
-		log.Printf("Failed to close WebSocket client: %v", err)
-	}
-}
-
-func ExampleWSStreamClient_SubscribeToUserDataStream() {
+func ExampleWSStreamClientUsage() {
 	// Create configuration
 	config := &Config{
-		APIKey:     "your-api-key",
-		APISecret:  "your-api-secret",
-		UseTestnet: true, // Use testnet for testing
+		BaseURL: "https://testnet.binancefuture.com",
+		// Add your API key and secret if needed for user data streams
+		// APIKey:    "your-api-key",
+		// APISecret: "your-api-secret",
 	}
 
 	// Create WebSocket stream client
 	wsClient := NewWSStreamClient(config)
 
-	// Define callback function for user data stream events
-	callback := func(data []byte) error {
-		// Parse the event type first
-		var baseEvent struct {
-			EventType string `json:"e"`
-		}
-		if err := json.Unmarshal(data, &baseEvent); err != nil {
-			return fmt.Errorf("failed to parse event type: %w", err)
-		}
-
-		// Handle different event types
-		switch baseEvent.EventType {
-		case "listenKeyExpired":
-			event, err := ParseListenKeyExpiredEvent(data)
-			if err != nil {
-				return fmt.Errorf("failed to parse listen key expired event: %w", err)
-			}
-			fmt.Printf("Listen key expired: %s\n", event.ListenKey)
-
-		case "ACCOUNT_UPDATE":
-			event, err := ParseAccountUpdateEvent(data)
-			if err != nil {
-				return fmt.Errorf("failed to parse account update event: %w", err)
-			}
-			fmt.Printf("Account update - Event reason: %s\n", event.UpdateData.EventReasonType)
-			fmt.Printf("Balances updated: %d\n", len(event.UpdateData.Balances))
-			fmt.Printf("Positions updated: %d\n", len(event.UpdateData.Positions))
-
-		case "ORDER_TRADE_UPDATE":
-			event, err := ParseOrderTradeUpdateEvent(data)
-			if err != nil {
-				return fmt.Errorf("failed to parse order trade update event: %w", err)
-			}
-			fmt.Printf("Order update - Symbol: %s, Side: %s, Status: %s\n",
-				event.Order.Symbol, event.Order.Side, event.Order.OrderStatus)
-
-		case "MARGIN_CALL":
-			event, err := ParseMarginCallEvent(data)
-			if err != nil {
-				return fmt.Errorf("failed to parse margin call event: %w", err)
-			}
-			fmt.Printf("Margin call - Cross wallet balance: %s\n", event.CrossWalletBalance)
-			fmt.Printf("Positions in margin call: %d\n", len(event.Positions))
-
-		case "TRADE_LITE":
-			event, err := ParseTradeLiteEvent(data)
-			if err != nil {
-				return fmt.Errorf("failed to parse trade lite event: %w", err)
-			}
-			fmt.Printf("Trade lite - Symbol: %s, Side: %s, Quantity: %s, Price: %s\n",
-				event.Symbol, event.Side, event.Quantity, event.Price)
-
-		case "ACCOUNT_CONFIG_UPDATE":
-			event, err := ParseAccountConfigUpdateEvent(data)
-			if err != nil {
-				return fmt.Errorf("failed to parse account config update event: %w", err)
-			}
-			fmt.Printf("Account config update - Symbol: %s, Leverage: %d\n",
-				event.AccountConfig.Symbol, event.AccountConfig.Leverage)
-
-		default:
-			fmt.Printf("Unknown event type: %s\n", baseEvent.EventType)
-		}
-
+	// Example 1: Subscribe to kline data with options
+	fmt.Println("=== Example 1: Kline Subscription ===")
+	klineOptions := NewKlineSubscriptionOptions()
+	klineOptions.WithConnect(func() {
+		fmt.Println("Connected to kline stream")
+	}).WithKline(func(data *WSKlineData) error {
+		fmt.Printf("Kline: Symbol=%s, Close=%f, Volume=%f\n",
+			data.Symbol, data.Kline.ClosePrice, data.Kline.Volume)
 		return nil
-	}
+	}).WithError(func(err error) {
+		fmt.Printf("Kline Error: %v\n", err)
+	}).WithDisconnect(func() {
+		fmt.Println("Disconnected from kline stream")
+	})
 
-	// Subscribe to user data stream
-	unsubscribe, err := wsClient.SubscribeToUserDataStream(callback)
+	unsubscribeKline, err := wsClient.SubscribeToKline("BTCUSDT", "1m", klineOptions)
 	if err != nil {
-		fmt.Printf("Failed to subscribe to user data stream: %v\n", err)
-		return
+		log.Fatalf("Failed to subscribe to kline: %v", err)
 	}
 
-	fmt.Println("Subscribed to user data stream")
+	// Example 2: Subscribe to ticker data with options
+	fmt.Println("\n=== Example 2: Ticker Subscription ===")
+	tickerOptions := NewTickerSubscriptionOptions()
+	tickerOptions.WithConnect(func() {
+		fmt.Println("Connected to ticker stream")
+	}).WithTicker(func(data *WSTickerData) error {
+		fmt.Printf("Ticker: Symbol=%s, LastPrice=%f, Volume=%f\n",
+			data.Symbol, data.LastPrice, data.Volume)
+		return nil
+	}).WithError(func(err error) {
+		fmt.Printf("Ticker Error: %v\n", err)
+	})
 
-	// Keep the connection alive for some time
+	unsubscribeTicker, err := wsClient.SubscribeToTicker("ETHUSDT", tickerOptions)
+	if err != nil {
+		log.Fatalf("Failed to subscribe to ticker: %v", err)
+	}
+
+	// Example 3: Subscribe to trade data with options
+	fmt.Println("\n=== Example 3: Trade Subscription ===")
+	tradeOptions := NewTradeSubscriptionOptions()
+	tradeOptions.WithConnect(func() {
+		fmt.Println("Connected to trade stream")
+	}).WithTrade(func(data *WSTradeData) error {
+		fmt.Printf("Trade: Symbol=%s, Price=%f, Quantity=%f, IsBuyerMaker=%t\n",
+			data.Symbol, data.Price, data.Quantity, data.IsBuyerMaker)
+		return nil
+	}).WithError(func(err error) {
+		fmt.Printf("Trade Error: %v\n", err)
+	})
+
+	unsubscribeTrade, err := wsClient.SubscribeToTrade("BNBUSDT", tradeOptions)
+	if err != nil {
+		log.Fatalf("Failed to subscribe to trade: %v", err)
+	}
+
+	// Example 4: Subscribe to depth data with options
+	fmt.Println("\n=== Example 4: Depth Subscription ===")
+	depthOptions := NewDepthSubscriptionOptions()
+	depthOptions.WithConnect(func() {
+		fmt.Println("Connected to depth stream")
+	}).WithDepth(func(data *WSDepthData) error {
+		fmt.Printf("Depth: Symbol=%s, Bids=%d, Asks=%d\n",
+			data.Symbol, len(data.Bids), len(data.Asks))
+		return nil
+	}).WithError(func(err error) {
+		fmt.Printf("Depth Error: %v\n", err)
+	})
+
+	unsubscribeDepth, err := wsClient.SubscribeToDepth("ADAUSDT", "5", depthOptions)
+	if err != nil {
+		log.Fatalf("Failed to subscribe to depth: %v", err)
+	}
+
+	// Example 5: Subscribe to mark price data with options
+	fmt.Println("\n=== Example 5: Mark Price Subscription ===")
+	markPriceOptions := NewMarkPriceSubscriptionOptions()
+	markPriceOptions.WithConnect(func() {
+		fmt.Println("Connected to mark price stream")
+	}).WithMarkPrice(func(data *WSMarkPriceData) error {
+		fmt.Printf("Mark Price: Symbol=%s, MarkPrice=%f, FundingRate=%f\n",
+			data.Symbol, data.MarkPrice, data.LastFundingRate)
+		return nil
+	}).WithError(func(err error) {
+		fmt.Printf("Mark Price Error: %v\n", err)
+	})
+
+	unsubscribeMarkPrice, err := wsClient.SubscribeToMarkPrice("BTCUSDT", markPriceOptions)
+	if err != nil {
+		log.Fatalf("Failed to subscribe to mark price: %v", err)
+	}
+
+	// Example 6: Subscribe to funding rate data with options
+	fmt.Println("\n=== Example 6: Funding Rate Subscription ===")
+	fundingRateOptions := NewFundingRateSubscriptionOptions()
+	fundingRateOptions.WithConnect(func() {
+		fmt.Println("Connected to funding rate stream")
+	}).WithFundingRate(func(data *WSFundingRateData) error {
+		fmt.Printf("Funding Rate: Symbol=%s, Rate=%f, Time=%d\n",
+			data.Symbol, data.FundingRate, data.FundingTime)
+		return nil
+	}).WithError(func(err error) {
+		fmt.Printf("Funding Rate Error: %v\n", err)
+	})
+
+	unsubscribeFundingRate, err := wsClient.SubscribeToFundingRate("BTCUSDT", fundingRateOptions)
+	if err != nil {
+		log.Fatalf("Failed to subscribe to funding rate: %v", err)
+	}
+
+	// Example 7: Subscribe to user data stream (requires API credentials)
+	fmt.Println("\n=== Example 7: User Data Stream Subscription ===")
+	// Note: This requires API credentials to be set in the config
+	/*
+		userDataOptions := NewUserDataSubscriptionOptions()
+		userDataOptions.WithConnect(func() {
+			fmt.Println("Connected to user data stream")
+		}).WithExecutionReport(func(data *WSExecutionReport) error {
+			fmt.Printf("Execution Report: Symbol=%s, Status=%s, Side=%s\n",
+				data.Symbol, data.CurrentOrderStatus, data.Side)
+			return nil
+		}).WithAccountUpdate(func(data *WSOutboundAccountPosition) error {
+			fmt.Printf("Account Update: Balances=%d\n", len(data.Balances))
+			return nil
+		}).WithBalanceUpdate(func(data *WSBalanceUpdate) error {
+			fmt.Printf("Balance Update: Asset=%s, Delta=%s\n",
+				data.Asset, data.BalanceDelta)
+			return nil
+		}).WithError(func(err error) {
+			fmt.Printf("User Data Error: %v\n", err)
+		})
+
+		unsubscribeUserData, err := wsClient.SubscribeToUserDataStream(userDataOptions)
+		if err != nil {
+			log.Fatalf("Failed to subscribe to user data stream: %v", err)
+		}
+	*/
+
+	// Let the streams run for a while
+	fmt.Println("\n=== Running streams for 30 seconds ===")
 	time.Sleep(30 * time.Second)
 
-	// Unsubscribe and close the stream
-	if err := unsubscribe(); err != nil {
-		fmt.Printf("Failed to unsubscribe: %v\n", err)
+	// Unsubscribe from all streams
+	fmt.Println("\n=== Unsubscribing from streams ===")
+
+	if err := unsubscribeKline(); err != nil {
+		fmt.Printf("Error unsubscribing from kline: %v\n", err)
 	}
 
-	fmt.Println("Unsubscribed from user data stream")
+	if err := unsubscribeTicker(); err != nil {
+		fmt.Printf("Error unsubscribing from ticker: %v\n", err)
+	}
+
+	if err := unsubscribeTrade(); err != nil {
+		fmt.Printf("Error unsubscribing from trade: %v\n", err)
+	}
+
+	if err := unsubscribeDepth(); err != nil {
+		fmt.Printf("Error unsubscribing from depth: %v\n", err)
+	}
+
+	if err := unsubscribeMarkPrice(); err != nil {
+		fmt.Printf("Error unsubscribing from mark price: %v\n", err)
+	}
+
+	if err := unsubscribeFundingRate(); err != nil {
+		fmt.Printf("Error unsubscribing from funding rate: %v\n", err)
+	}
+
+	// Close the client
+	if err := wsClient.Close(); err != nil {
+		fmt.Printf("Error closing client: %v\n", err)
+	}
+
+	fmt.Println("=== Example completed ===")
+}
+
+// Example of chaining subscription options
+func ExampleSubscriptionOptionsChaining() {
+	// Create options with chaining
+	options := NewKlineSubscriptionOptions().
+		WithConnect(func() {
+			fmt.Println("Connected!")
+		}).
+		WithKline(func(data *WSKlineData) error {
+			fmt.Printf("Kline: %s\n", data.Symbol)
+			return nil
+		}).
+		WithError(func(err error) {
+			fmt.Printf("Error: %v\n", err)
+		}).
+		WithDisconnect(func() {
+			fmt.Println("Disconnected!")
+		})
+
+	// Use the options
+	fmt.Printf("Options created with %d callbacks\n",
+		len([]interface{}{
+			options.connectCallback,
+			options.klineCallback,
+			options.errorCallback,
+			options.disconnectCallback,
+		}))
 }

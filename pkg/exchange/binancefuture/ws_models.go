@@ -437,3 +437,479 @@ type MarginCallCallback func(data *WSMarginCallEvent) error
 type OrderTradeUpdateCallback func(data *WSOrderTradeUpdateEvent) error
 type TradeLiteCallback func(data *WSTradeLiteEvent) error
 type AccountConfigUpdateCallback func(data *WSAccountConfigUpdateEvent) error
+
+// SubscriptionOptions represents base subscription options with common callbacks
+type SubscriptionOptions struct {
+	connectCallback    func()
+	reconnectCallback  func()
+	disconnectCallback func()
+	errorCallback      func(error)
+}
+
+// WithConnect sets the connect callback
+func (o *SubscriptionOptions) WithConnect(callback func()) *SubscriptionOptions {
+	o.connectCallback = callback
+	return o
+}
+
+// WithReconnect sets the reconnect callback
+func (o *SubscriptionOptions) WithReconnect(callback func()) *SubscriptionOptions {
+	o.reconnectCallback = callback
+	return o
+}
+
+// WithDisconnect sets the disconnect callback
+func (o *SubscriptionOptions) WithDisconnect(callback func()) *SubscriptionOptions {
+	o.disconnectCallback = callback
+	return o
+}
+
+// WithError sets the error callback
+func (o *SubscriptionOptions) WithError(callback func(error)) *SubscriptionOptions {
+	o.errorCallback = callback
+	return o
+}
+
+// KlineSubscriptionOptions represents kline subscription options
+type KlineSubscriptionOptions struct {
+	*SubscriptionOptions
+	klineCallback KlineCallback
+}
+
+// NewKlineSubscriptionOptions creates a new kline subscription options
+func NewKlineSubscriptionOptions() *KlineSubscriptionOptions {
+	return &KlineSubscriptionOptions{
+		SubscriptionOptions: &SubscriptionOptions{},
+	}
+}
+
+// WithKline sets the kline callback
+func (o *KlineSubscriptionOptions) WithKline(callback KlineCallback) *KlineSubscriptionOptions {
+	o.klineCallback = callback
+	return o
+}
+
+// WithConnect sets the connect callback
+func (o *KlineSubscriptionOptions) WithConnect(callback func()) *KlineSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+// WithReconnect sets the reconnect callback
+func (o *KlineSubscriptionOptions) WithReconnect(callback func()) *KlineSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+// WithDisconnect sets the disconnect callback
+func (o *KlineSubscriptionOptions) WithDisconnect(callback func()) *KlineSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+// WithError sets the error callback
+func (o *KlineSubscriptionOptions) WithError(callback func(error)) *KlineSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+// TickerSubscriptionOptions represents ticker subscription options
+type TickerSubscriptionOptions struct {
+	*SubscriptionOptions
+	tickerCallback TickerCallback
+}
+
+// NewTickerSubscriptionOptions creates a new ticker subscription options
+func NewTickerSubscriptionOptions() *TickerSubscriptionOptions {
+	return &TickerSubscriptionOptions{
+		SubscriptionOptions: &SubscriptionOptions{},
+	}
+}
+
+// WithTicker sets the ticker callback
+func (o *TickerSubscriptionOptions) WithTicker(callback TickerCallback) *TickerSubscriptionOptions {
+	o.tickerCallback = callback
+	return o
+}
+
+// WithConnect sets the connect callback
+func (o *TickerSubscriptionOptions) WithConnect(callback func()) *TickerSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+// WithReconnect sets the reconnect callback
+func (o *TickerSubscriptionOptions) WithReconnect(callback func()) *TickerSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+// WithDisconnect sets the disconnect callback
+func (o *TickerSubscriptionOptions) WithDisconnect(callback func()) *TickerSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+// WithError sets the error callback
+func (o *TickerSubscriptionOptions) WithError(callback func(error)) *TickerSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+// MiniTickerSubscriptionOptions represents mini ticker subscription options
+type MiniTickerSubscriptionOptions struct {
+	*SubscriptionOptions
+	miniTickerCallback MiniTickerCallback
+}
+
+// NewMiniTickerSubscriptionOptions creates a new mini ticker subscription options
+func NewMiniTickerSubscriptionOptions() *MiniTickerSubscriptionOptions {
+	return &MiniTickerSubscriptionOptions{
+		SubscriptionOptions: &SubscriptionOptions{},
+	}
+}
+
+// WithMiniTicker sets the mini ticker callback
+func (o *MiniTickerSubscriptionOptions) WithMiniTicker(callback MiniTickerCallback) *MiniTickerSubscriptionOptions {
+	o.miniTickerCallback = callback
+	return o
+}
+
+// WithConnect sets the connect callback
+func (o *MiniTickerSubscriptionOptions) WithConnect(callback func()) *MiniTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+// WithReconnect sets the reconnect callback
+func (o *MiniTickerSubscriptionOptions) WithReconnect(callback func()) *MiniTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+// WithDisconnect sets the disconnect callback
+func (o *MiniTickerSubscriptionOptions) WithDisconnect(callback func()) *MiniTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+// WithError sets the error callback
+func (o *MiniTickerSubscriptionOptions) WithError(callback func(error)) *MiniTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+// BookTickerSubscriptionOptions represents book ticker subscription options
+type BookTickerSubscriptionOptions struct {
+	*SubscriptionOptions
+	bookTickerCallback BookTickerCallback
+}
+
+// NewBookTickerSubscriptionOptions creates a new book ticker subscription options
+func NewBookTickerSubscriptionOptions() *BookTickerSubscriptionOptions {
+	return &BookTickerSubscriptionOptions{
+		SubscriptionOptions: &SubscriptionOptions{},
+	}
+}
+
+// WithBookTicker sets the book ticker callback
+func (o *BookTickerSubscriptionOptions) WithBookTicker(callback BookTickerCallback) *BookTickerSubscriptionOptions {
+	o.bookTickerCallback = callback
+	return o
+}
+
+// WithConnect sets the connect callback
+func (o *BookTickerSubscriptionOptions) WithConnect(callback func()) *BookTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+// WithReconnect sets the reconnect callback
+func (o *BookTickerSubscriptionOptions) WithReconnect(callback func()) *BookTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+// WithDisconnect sets the disconnect callback
+func (o *BookTickerSubscriptionOptions) WithDisconnect(callback func()) *BookTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+// WithError sets the error callback
+func (o *BookTickerSubscriptionOptions) WithError(callback func(error)) *BookTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+// DepthSubscriptionOptions represents depth subscription options
+type DepthSubscriptionOptions struct {
+	*SubscriptionOptions
+	depthCallback DepthCallback
+}
+
+// NewDepthSubscriptionOptions creates a new depth subscription options
+func NewDepthSubscriptionOptions() *DepthSubscriptionOptions {
+	return &DepthSubscriptionOptions{
+		SubscriptionOptions: &SubscriptionOptions{},
+	}
+}
+
+// WithDepth sets the depth callback
+func (o *DepthSubscriptionOptions) WithDepth(callback DepthCallback) *DepthSubscriptionOptions {
+	o.depthCallback = callback
+	return o
+}
+
+// WithConnect sets the connect callback
+func (o *DepthSubscriptionOptions) WithConnect(callback func()) *DepthSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+// WithReconnect sets the reconnect callback
+func (o *DepthSubscriptionOptions) WithReconnect(callback func()) *DepthSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+// WithDisconnect sets the disconnect callback
+func (o *DepthSubscriptionOptions) WithDisconnect(callback func()) *DepthSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+// WithError sets the error callback
+func (o *DepthSubscriptionOptions) WithError(callback func(error)) *DepthSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+// TradeSubscriptionOptions represents trade subscription options
+type TradeSubscriptionOptions struct {
+	*SubscriptionOptions
+	tradeCallback TradeCallback
+}
+
+// NewTradeSubscriptionOptions creates a new trade subscription options
+func NewTradeSubscriptionOptions() *TradeSubscriptionOptions {
+	return &TradeSubscriptionOptions{
+		SubscriptionOptions: &SubscriptionOptions{},
+	}
+}
+
+// WithTrade sets the trade callback
+func (o *TradeSubscriptionOptions) WithTrade(callback TradeCallback) *TradeSubscriptionOptions {
+	o.tradeCallback = callback
+	return o
+}
+
+// WithConnect sets the connect callback
+func (o *TradeSubscriptionOptions) WithConnect(callback func()) *TradeSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+// WithReconnect sets the reconnect callback
+func (o *TradeSubscriptionOptions) WithReconnect(callback func()) *TradeSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+// WithDisconnect sets the disconnect callback
+func (o *TradeSubscriptionOptions) WithDisconnect(callback func()) *TradeSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+// WithError sets the error callback
+func (o *TradeSubscriptionOptions) WithError(callback func(error)) *TradeSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+// AggTradeSubscriptionOptions represents aggregated trade subscription options
+type AggTradeSubscriptionOptions struct {
+	*SubscriptionOptions
+	aggTradeCallback AggTradeCallback
+}
+
+// NewAggTradeSubscriptionOptions creates a new aggregated trade subscription options
+func NewAggTradeSubscriptionOptions() *AggTradeSubscriptionOptions {
+	return &AggTradeSubscriptionOptions{
+		SubscriptionOptions: &SubscriptionOptions{},
+	}
+}
+
+// WithAggTrade sets the aggregated trade callback
+func (o *AggTradeSubscriptionOptions) WithAggTrade(callback AggTradeCallback) *AggTradeSubscriptionOptions {
+	o.aggTradeCallback = callback
+	return o
+}
+
+// WithConnect sets the connect callback
+func (o *AggTradeSubscriptionOptions) WithConnect(callback func()) *AggTradeSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+// WithReconnect sets the reconnect callback
+func (o *AggTradeSubscriptionOptions) WithReconnect(callback func()) *AggTradeSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+// WithDisconnect sets the disconnect callback
+func (o *AggTradeSubscriptionOptions) WithDisconnect(callback func()) *AggTradeSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+// WithError sets the error callback
+func (o *AggTradeSubscriptionOptions) WithError(callback func(error)) *AggTradeSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+// MarkPriceSubscriptionOptions represents mark price subscription options
+type MarkPriceSubscriptionOptions struct {
+	*SubscriptionOptions
+	markPriceCallback MarkPriceCallback
+}
+
+// NewMarkPriceSubscriptionOptions creates a new mark price subscription options
+func NewMarkPriceSubscriptionOptions() *MarkPriceSubscriptionOptions {
+	return &MarkPriceSubscriptionOptions{
+		SubscriptionOptions: &SubscriptionOptions{},
+	}
+}
+
+// WithMarkPrice sets the mark price callback
+func (o *MarkPriceSubscriptionOptions) WithMarkPrice(callback MarkPriceCallback) *MarkPriceSubscriptionOptions {
+	o.markPriceCallback = callback
+	return o
+}
+
+// WithConnect sets the connect callback
+func (o *MarkPriceSubscriptionOptions) WithConnect(callback func()) *MarkPriceSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+// WithReconnect sets the reconnect callback
+func (o *MarkPriceSubscriptionOptions) WithReconnect(callback func()) *MarkPriceSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+// WithDisconnect sets the disconnect callback
+func (o *MarkPriceSubscriptionOptions) WithDisconnect(callback func()) *MarkPriceSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+// WithError sets the error callback
+func (o *MarkPriceSubscriptionOptions) WithError(callback func(error)) *MarkPriceSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+// FundingRateSubscriptionOptions represents funding rate subscription options
+type FundingRateSubscriptionOptions struct {
+	*SubscriptionOptions
+	fundingRateCallback FundingRateCallback
+}
+
+// NewFundingRateSubscriptionOptions creates a new funding rate subscription options
+func NewFundingRateSubscriptionOptions() *FundingRateSubscriptionOptions {
+	return &FundingRateSubscriptionOptions{
+		SubscriptionOptions: &SubscriptionOptions{},
+	}
+}
+
+// WithFundingRate sets the funding rate callback
+func (o *FundingRateSubscriptionOptions) WithFundingRate(callback FundingRateCallback) *FundingRateSubscriptionOptions {
+	o.fundingRateCallback = callback
+	return o
+}
+
+// WithConnect sets the connect callback
+func (o *FundingRateSubscriptionOptions) WithConnect(callback func()) *FundingRateSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+// WithReconnect sets the reconnect callback
+func (o *FundingRateSubscriptionOptions) WithReconnect(callback func()) *FundingRateSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+// WithDisconnect sets the disconnect callback
+func (o *FundingRateSubscriptionOptions) WithDisconnect(callback func()) *FundingRateSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+// WithError sets the error callback
+func (o *FundingRateSubscriptionOptions) WithError(callback func(error)) *FundingRateSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+// UserDataSubscriptionOptions represents user data subscription options
+type UserDataSubscriptionOptions struct {
+	*SubscriptionOptions
+	executionReportCallback ExecutionReportCallback
+	accountUpdateCallback   OutboundAccountPositionCallback
+	balanceUpdateCallback   BalanceUpdateCallback
+}
+
+// NewUserDataSubscriptionOptions creates a new user data subscription options
+func NewUserDataSubscriptionOptions() *UserDataSubscriptionOptions {
+	return &UserDataSubscriptionOptions{
+		SubscriptionOptions: &SubscriptionOptions{},
+	}
+}
+
+// WithExecutionReport sets the execution report callback
+func (o *UserDataSubscriptionOptions) WithExecutionReport(callback ExecutionReportCallback) *UserDataSubscriptionOptions {
+	o.executionReportCallback = callback
+	return o
+}
+
+// WithAccountUpdate sets the account update callback
+func (o *UserDataSubscriptionOptions) WithAccountUpdate(callback OutboundAccountPositionCallback) *UserDataSubscriptionOptions {
+	o.accountUpdateCallback = callback
+	return o
+}
+
+// WithBalanceUpdate sets the balance update callback
+func (o *UserDataSubscriptionOptions) WithBalanceUpdate(callback BalanceUpdateCallback) *UserDataSubscriptionOptions {
+	o.balanceUpdateCallback = callback
+	return o
+}
+
+// WithConnect sets the connect callback
+func (o *UserDataSubscriptionOptions) WithConnect(callback func()) *UserDataSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+// WithReconnect sets the reconnect callback
+func (o *UserDataSubscriptionOptions) WithReconnect(callback func()) *UserDataSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+// WithDisconnect sets the disconnect callback
+func (o *UserDataSubscriptionOptions) WithDisconnect(callback func()) *UserDataSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+// WithError sets the error callback
+func (o *UserDataSubscriptionOptions) WithError(callback func(error)) *UserDataSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}

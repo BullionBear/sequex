@@ -1,7 +1,6 @@
 package binancefuture
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"testing"
@@ -11,67 +10,7 @@ import (
 func TestWSStreamClient_SubscribeToAggTrade(t *testing.T) {
 	// Create a test configuration
 	config := &Config{
-		UseTestnet: true, // Use testnet for testing
-	}
-
-	// Create a new WebSocket stream client
-	wsClient := NewWSStreamClient(config)
-
-	// Test data
-	symbol := "btcusdt"
-	receivedData := make(chan []byte, 1)
-
-	// Subscribe to aggregated trades
-	unsubscribe, err := wsClient.SubscribeToAggTrade(symbol, func(data []byte) error {
-		// Log the received data
-		log.Printf("Received aggregated trade data: %s", string(data))
-
-		// Send data to channel for testing
-		select {
-		case receivedData <- data:
-		default:
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		t.Fatalf("Failed to subscribe to aggregated trades: %v", err)
-	}
-
-	// Wait for some data to be received (with timeout)
-	select {
-	case data := <-receivedData:
-		t.Logf("Successfully received aggregated trade data: %s", string(data))
-
-		// Try to parse the data
-		var aggTrade WSAggTradeData
-		if err := json.Unmarshal(data, &aggTrade); err != nil {
-			t.Logf("Failed to parse aggregated trade data: %v", err)
-		} else {
-			t.Logf("Parsed aggregated trade: Symbol=%s, Price=%f, Quantity=%f",
-				aggTrade.Symbol, aggTrade.Price, aggTrade.Quantity)
-		}
-
-	case <-time.After(30 * time.Second):
-		t.Log("Timeout waiting for aggregated trade data")
-	}
-
-	// Unsubscribe
-	if err := unsubscribe(); err != nil {
-		t.Fatalf("Failed to unsubscribe: %v", err)
-	}
-
-	// Close the client
-	if err := wsClient.Close(); err != nil {
-		t.Fatalf("Failed to close WebSocket client: %v", err)
-	}
-}
-
-func TestWSStreamClient_SubscribeToAggTradeWithCallback(t *testing.T) {
-	// Create a test configuration
-	config := &Config{
-		UseTestnet: true, // Use testnet for testing
+		BaseURL: "https://testnet.binancefuture.com", // Use testnet for testing
 	}
 
 	// Create a new WebSocket stream client
@@ -81,8 +20,11 @@ func TestWSStreamClient_SubscribeToAggTradeWithCallback(t *testing.T) {
 	symbol := "btcusdt"
 	receivedData := make(chan *WSAggTradeData, 1)
 
-	// Subscribe to aggregated trades with type-specific callback
-	unsubscribe, err := wsClient.SubscribeToAggTradeWithCallback(symbol, func(data *WSAggTradeData) error {
+	// Create subscription options
+	options := NewAggTradeSubscriptionOptions()
+	options.WithConnect(func() {
+		t.Log("Connected to aggregated trade stream")
+	}).WithAggTrade(func(data *WSAggTradeData) error {
 		// Log the received data
 		log.Printf("Received aggregated trade: Symbol=%s, Price=%f, Quantity=%f",
 			data.Symbol, data.Price, data.Quantity)
@@ -94,7 +36,14 @@ func TestWSStreamClient_SubscribeToAggTradeWithCallback(t *testing.T) {
 		}
 
 		return nil
+	}).WithError(func(err error) {
+		t.Logf("Error in aggregated trade stream: %v", err)
+	}).WithDisconnect(func() {
+		t.Log("Disconnected from aggregated trade stream")
 	})
+
+	// Subscribe to aggregated trades
+	unsubscribe, err := wsClient.SubscribeToAggTrade(symbol, options)
 
 	if err != nil {
 		t.Fatalf("Failed to subscribe to aggregated trades: %v", err)
@@ -121,26 +70,28 @@ func TestWSStreamClient_SubscribeToAggTradeWithCallback(t *testing.T) {
 	}
 }
 
-func TestWSStreamClient_SubscribeToCombinedStreams(t *testing.T) {
+func TestWSStreamClient_SubscribeToKline(t *testing.T) {
 	// Create a test configuration
 	config := &Config{
-		UseTestnet: true, // Use testnet for testing
+		BaseURL: "https://testnet.binancefuture.com", // Use testnet for testing
 	}
 
 	// Create a new WebSocket stream client
 	wsClient := NewWSStreamClient(config)
 
 	// Test data
-	streams := []string{
-		"btcusdt@aggTrade",
-		"ethusdt@aggTrade",
-	}
-	receivedData := make(chan []byte, 10)
+	symbol := "btcusdt"
+	interval := "1m"
+	receivedData := make(chan *WSKlineData, 1)
 
-	// Subscribe to combined streams
-	unsubscribe, err := wsClient.SubscribeToCombinedStreams(streams, func(data []byte) error {
+	// Create subscription options
+	options := NewKlineSubscriptionOptions()
+	options.WithConnect(func() {
+		t.Log("Connected to kline stream")
+	}).WithKline(func(data *WSKlineData) error {
 		// Log the received data
-		log.Printf("Received combined stream data: %s", string(data))
+		log.Printf("Received kline: Symbol=%s, Close=%f, Volume=%f",
+			data.Symbol, data.Kline.ClosePrice, data.Kline.Volume)
 
 		// Send data to channel for testing
 		select {
@@ -149,19 +100,343 @@ func TestWSStreamClient_SubscribeToCombinedStreams(t *testing.T) {
 		}
 
 		return nil
+	}).WithError(func(err error) {
+		t.Logf("Error in kline stream: %v", err)
+	}).WithDisconnect(func() {
+		t.Log("Disconnected from kline stream")
 	})
 
+	// Subscribe to kline data
+	unsubscribe, err := wsClient.SubscribeToKline(symbol, interval, options)
+
 	if err != nil {
-		t.Fatalf("Failed to subscribe to combined streams: %v", err)
+		t.Fatalf("Failed to subscribe to kline: %v", err)
 	}
 
 	// Wait for some data to be received (with timeout)
 	select {
 	case data := <-receivedData:
-		t.Logf("Successfully received combined stream data: %s", string(data))
+		t.Logf("Successfully received kline: Symbol=%s, Close=%f, Volume=%f",
+			data.Symbol, data.Kline.ClosePrice, data.Kline.Volume)
 
 	case <-time.After(30 * time.Second):
-		t.Log("Timeout waiting for combined stream data")
+		t.Log("Timeout waiting for kline data")
+	}
+
+	// Unsubscribe
+	if err := unsubscribe(); err != nil {
+		t.Fatalf("Failed to unsubscribe: %v", err)
+	}
+
+	// Close the client
+	if err := wsClient.Close(); err != nil {
+		t.Fatalf("Failed to close WebSocket client: %v", err)
+	}
+}
+
+func TestWSStreamClient_SubscribeToTicker(t *testing.T) {
+	// Create a test configuration
+	config := &Config{
+		BaseURL: "https://testnet.binancefuture.com", // Use testnet for testing
+	}
+
+	// Create a new WebSocket stream client
+	wsClient := NewWSStreamClient(config)
+
+	// Test data
+	symbol := "btcusdt"
+	receivedData := make(chan *WSTickerData, 1)
+
+	// Create subscription options
+	options := NewTickerSubscriptionOptions()
+	options.WithConnect(func() {
+		t.Log("Connected to ticker stream")
+	}).WithTicker(func(data *WSTickerData) error {
+		// Log the received data
+		log.Printf("Received ticker: Symbol=%s, LastPrice=%f, Volume=%f",
+			data.Symbol, data.LastPrice, data.Volume)
+
+		// Send data to channel for testing
+		select {
+		case receivedData <- data:
+		default:
+		}
+
+		return nil
+	}).WithError(func(err error) {
+		t.Logf("Error in ticker stream: %v", err)
+	}).WithDisconnect(func() {
+		t.Log("Disconnected from ticker stream")
+	})
+
+	// Subscribe to ticker data
+	unsubscribe, err := wsClient.SubscribeToTicker(symbol, options)
+
+	if err != nil {
+		t.Fatalf("Failed to subscribe to ticker: %v", err)
+	}
+
+	// Wait for some data to be received (with timeout)
+	select {
+	case data := <-receivedData:
+		t.Logf("Successfully received ticker: Symbol=%s, LastPrice=%f, Volume=%f",
+			data.Symbol, data.LastPrice, data.Volume)
+
+	case <-time.After(30 * time.Second):
+		t.Log("Timeout waiting for ticker data")
+	}
+
+	// Unsubscribe
+	if err := unsubscribe(); err != nil {
+		t.Fatalf("Failed to unsubscribe: %v", err)
+	}
+
+	// Close the client
+	if err := wsClient.Close(); err != nil {
+		t.Fatalf("Failed to close WebSocket client: %v", err)
+	}
+}
+
+func TestWSStreamClient_SubscribeToTrade(t *testing.T) {
+	// Create a test configuration
+	config := &Config{
+		BaseURL: "https://testnet.binancefuture.com", // Use testnet for testing
+	}
+
+	// Create a new WebSocket stream client
+	wsClient := NewWSStreamClient(config)
+
+	// Test data
+	symbol := "btcusdt"
+	receivedData := make(chan *WSTradeData, 1)
+
+	// Create subscription options
+	options := NewTradeSubscriptionOptions()
+	options.WithConnect(func() {
+		t.Log("Connected to trade stream")
+	}).WithTrade(func(data *WSTradeData) error {
+		// Log the received data
+		log.Printf("Received trade: Symbol=%s, Price=%f, Quantity=%f, IsBuyerMaker=%t",
+			data.Symbol, data.Price, data.Quantity, data.IsBuyerMaker)
+
+		// Send data to channel for testing
+		select {
+		case receivedData <- data:
+		default:
+		}
+
+		return nil
+	}).WithError(func(err error) {
+		t.Logf("Error in trade stream: %v", err)
+	}).WithDisconnect(func() {
+		t.Log("Disconnected from trade stream")
+	})
+
+	// Subscribe to trade data
+	unsubscribe, err := wsClient.SubscribeToTrade(symbol, options)
+
+	if err != nil {
+		t.Fatalf("Failed to subscribe to trade: %v", err)
+	}
+
+	// Wait for some data to be received (with timeout)
+	select {
+	case data := <-receivedData:
+		t.Logf("Successfully received trade: Symbol=%s, Price=%f, Quantity=%f, IsBuyerMaker=%t",
+			data.Symbol, data.Price, data.Quantity, data.IsBuyerMaker)
+
+	case <-time.After(30 * time.Second):
+		t.Log("Timeout waiting for trade data")
+	}
+
+	// Unsubscribe
+	if err := unsubscribe(); err != nil {
+		t.Fatalf("Failed to unsubscribe: %v", err)
+	}
+
+	// Close the client
+	if err := wsClient.Close(); err != nil {
+		t.Fatalf("Failed to close WebSocket client: %v", err)
+	}
+}
+
+func TestWSStreamClient_SubscribeToDepth(t *testing.T) {
+	// Create a test configuration
+	config := &Config{
+		BaseURL: "https://testnet.binancefuture.com", // Use testnet for testing
+	}
+
+	// Create a new WebSocket stream client
+	wsClient := NewWSStreamClient(config)
+
+	// Test data
+	symbol := "btcusdt"
+	levels := "5"
+	receivedData := make(chan *WSDepthData, 1)
+
+	// Create subscription options
+	options := NewDepthSubscriptionOptions()
+	options.WithConnect(func() {
+		t.Log("Connected to depth stream")
+	}).WithDepth(func(data *WSDepthData) error {
+		// Log the received data
+		log.Printf("Received depth: Symbol=%s, Bids=%d, Asks=%d",
+			data.Symbol, len(data.Bids), len(data.Asks))
+
+		// Send data to channel for testing
+		select {
+		case receivedData <- data:
+		default:
+		}
+
+		return nil
+	}).WithError(func(err error) {
+		t.Logf("Error in depth stream: %v", err)
+	}).WithDisconnect(func() {
+		t.Log("Disconnected from depth stream")
+	})
+
+	// Subscribe to depth data
+	unsubscribe, err := wsClient.SubscribeToDepth(symbol, levels, options)
+
+	if err != nil {
+		t.Fatalf("Failed to subscribe to depth: %v", err)
+	}
+
+	// Wait for some data to be received (with timeout)
+	select {
+	case data := <-receivedData:
+		t.Logf("Successfully received depth: Symbol=%s, Bids=%d, Asks=%d",
+			data.Symbol, len(data.Bids), len(data.Asks))
+
+	case <-time.After(30 * time.Second):
+		t.Log("Timeout waiting for depth data")
+	}
+
+	// Unsubscribe
+	if err := unsubscribe(); err != nil {
+		t.Fatalf("Failed to unsubscribe: %v", err)
+	}
+
+	// Close the client
+	if err := wsClient.Close(); err != nil {
+		t.Fatalf("Failed to close WebSocket client: %v", err)
+	}
+}
+
+func TestWSStreamClient_SubscribeToMarkPrice(t *testing.T) {
+	// Create a test configuration
+	config := &Config{
+		BaseURL: "https://testnet.binancefuture.com", // Use testnet for testing
+	}
+
+	// Create a new WebSocket stream client
+	wsClient := NewWSStreamClient(config)
+
+	// Test data
+	symbol := "btcusdt"
+	receivedData := make(chan *WSMarkPriceData, 1)
+
+	// Create subscription options
+	options := NewMarkPriceSubscriptionOptions()
+	options.WithConnect(func() {
+		t.Log("Connected to mark price stream")
+	}).WithMarkPrice(func(data *WSMarkPriceData) error {
+		// Log the received data
+		log.Printf("Received mark price: Symbol=%s, MarkPrice=%f, FundingRate=%f",
+			data.Symbol, data.MarkPrice, data.LastFundingRate)
+
+		// Send data to channel for testing
+		select {
+		case receivedData <- data:
+		default:
+		}
+
+		return nil
+	}).WithError(func(err error) {
+		t.Logf("Error in mark price stream: %v", err)
+	}).WithDisconnect(func() {
+		t.Log("Disconnected from mark price stream")
+	})
+
+	// Subscribe to mark price data
+	unsubscribe, err := wsClient.SubscribeToMarkPrice(symbol, options)
+
+	if err != nil {
+		t.Fatalf("Failed to subscribe to mark price: %v", err)
+	}
+
+	// Wait for some data to be received (with timeout)
+	select {
+	case data := <-receivedData:
+		t.Logf("Successfully received mark price: Symbol=%s, MarkPrice=%f, FundingRate=%f",
+			data.Symbol, data.MarkPrice, data.LastFundingRate)
+
+	case <-time.After(30 * time.Second):
+		t.Log("Timeout waiting for mark price data")
+	}
+
+	// Unsubscribe
+	if err := unsubscribe(); err != nil {
+		t.Fatalf("Failed to unsubscribe: %v", err)
+	}
+
+	// Close the client
+	if err := wsClient.Close(); err != nil {
+		t.Fatalf("Failed to close WebSocket client: %v", err)
+	}
+}
+
+func TestWSStreamClient_SubscribeToFundingRate(t *testing.T) {
+	// Create a test configuration
+	config := &Config{
+		BaseURL: "https://testnet.binancefuture.com", // Use testnet for testing
+	}
+
+	// Create a new WebSocket stream client
+	wsClient := NewWSStreamClient(config)
+
+	// Test data
+	symbol := "btcusdt"
+	receivedData := make(chan *WSFundingRateData, 1)
+
+	// Create subscription options
+	options := NewFundingRateSubscriptionOptions()
+	options.WithConnect(func() {
+		t.Log("Connected to funding rate stream")
+	}).WithFundingRate(func(data *WSFundingRateData) error {
+		// Log the received data
+		log.Printf("Received funding rate: Symbol=%s, Rate=%f, Time=%d",
+			data.Symbol, data.FundingRate, data.FundingTime)
+
+		// Send data to channel for testing
+		select {
+		case receivedData <- data:
+		default:
+		}
+
+		return nil
+	}).WithError(func(err error) {
+		t.Logf("Error in funding rate stream: %v", err)
+	}).WithDisconnect(func() {
+		t.Log("Disconnected from funding rate stream")
+	})
+
+	// Subscribe to funding rate data
+	unsubscribe, err := wsClient.SubscribeToFundingRate(symbol, options)
+
+	if err != nil {
+		t.Fatalf("Failed to subscribe to funding rate: %v", err)
+	}
+
+	// Wait for some data to be received (with timeout)
+	select {
+	case data := <-receivedData:
+		t.Logf("Successfully received funding rate: Symbol=%s, Rate=%f, Time=%d",
+			data.Symbol, data.FundingRate, data.FundingTime)
+
+	case <-time.After(30 * time.Second):
+		t.Log("Timeout waiting for funding rate data")
 	}
 
 	// Unsubscribe
@@ -178,7 +453,7 @@ func TestWSStreamClient_SubscribeToCombinedStreams(t *testing.T) {
 func TestWSStreamClient_GetActiveStreams(t *testing.T) {
 	// Create a test configuration
 	config := &Config{
-		UseTestnet: true, // Use testnet for testing
+		BaseURL: "https://testnet.binancefuture.com", // Use testnet for testing
 	}
 
 	// Create a new WebSocket stream client
@@ -192,9 +467,12 @@ func TestWSStreamClient_GetActiveStreams(t *testing.T) {
 
 	// Subscribe to a stream
 	symbol := "btcusdt"
-	unsubscribe, err := wsClient.SubscribeToAggTrade(symbol, func(data []byte) error {
+	options := NewAggTradeSubscriptionOptions()
+	options.WithAggTrade(func(data *WSAggTradeData) error {
 		return nil
 	})
+
+	unsubscribe, err := wsClient.SubscribeToAggTrade(symbol, options)
 
 	if err != nil {
 		t.Fatalf("Failed to subscribe to aggregated trades: %v", err)
@@ -280,31 +558,30 @@ func TestParseAggTradeData(t *testing.T) {
 
 func TestWSStreamClient_UserDataStream(t *testing.T) {
 	config := &Config{
-		APIKey:     "test-api-key",
-		APISecret:  "test-api-secret",
-		UseTestnet: true,
+		APIKey:    "test-api-key",
+		APISecret: "test-api-secret",
+		BaseURL:   "https://testnet.binancefuture.com",
 	}
 
 	client := NewWSStreamClient(config)
 
 	// Test that user data stream methods exist and have correct signatures
 	t.Run("UserDataStreamMethodsExist", func(t *testing.T) {
-		listenKey := "test-listen-key-12345"
-		callback := func(data []byte) error {
+		// Create subscription options
+		options := NewUserDataSubscriptionOptions()
+		options.WithExecutionReport(func(data *WSExecutionReport) error {
 			return nil
-		}
+		}).WithAccountUpdate(func(data *WSOutboundAccountPosition) error {
+			return nil
+		}).WithBalanceUpdate(func(data *WSBalanceUpdate) error {
+			return nil
+		})
 
 		// Test SubscribeToUserDataStream
-		_, err := client.SubscribeToUserDataStream(callback)
+		_, err := client.SubscribeToUserDataStream(options)
 		// We expect an authentication error, but not a method signature error
 		if err != nil && err.Error() == "method SubscribeToUserDataStream not found" {
 			t.Fatalf("SubscribeToUserDataStream method not found")
-		}
-
-		// Test SubscribeToUserDataStreamWithListenKey
-		_, err = client.SubscribeToUserDataStreamWithListenKey(listenKey, callback)
-		if err != nil && err.Error() == "method SubscribeToUserDataStreamWithListenKey not found" {
-			t.Fatalf("SubscribeToUserDataStreamWithListenKey method not found")
 		}
 	})
 }
@@ -453,6 +730,119 @@ func TestParseUserDataStreamEvents(t *testing.T) {
 		}
 		if event.Order.OrderType != "TRAILING_STOP_MARKET" {
 			t.Errorf("Expected order type 'TRAILING_STOP_MARKET', got '%s'", event.Order.OrderType)
+		}
+	})
+}
+
+// Test subscription options chaining
+func TestSubscriptionOptionsChaining(t *testing.T) {
+	// Test kline subscription options chaining
+	t.Run("KlineSubscriptionOptionsChaining", func(t *testing.T) {
+		options := NewKlineSubscriptionOptions().
+			WithConnect(func() {
+				t.Log("Connected!")
+			}).
+			WithKline(func(data *WSKlineData) error {
+				t.Logf("Kline: %s", data.Symbol)
+				return nil
+			}).
+			WithError(func(err error) {
+				t.Logf("Error: %v", err)
+			}).
+			WithDisconnect(func() {
+				t.Log("Disconnected!")
+			})
+
+		// Verify that all callbacks are set
+		if options.connectCallback == nil {
+			t.Error("Connect callback should be set")
+		}
+		if options.klineCallback == nil {
+			t.Error("Kline callback should be set")
+		}
+		if options.errorCallback == nil {
+			t.Error("Error callback should be set")
+		}
+		if options.disconnectCallback == nil {
+			t.Error("Disconnect callback should be set")
+		}
+	})
+
+	// Test ticker subscription options chaining
+	t.Run("TickerSubscriptionOptionsChaining", func(t *testing.T) {
+		options := NewTickerSubscriptionOptions().
+			WithConnect(func() {
+				t.Log("Connected!")
+			}).
+			WithTicker(func(data *WSTickerData) error {
+				t.Logf("Ticker: %s", data.Symbol)
+				return nil
+			}).
+			WithError(func(err error) {
+				t.Logf("Error: %v", err)
+			}).
+			WithDisconnect(func() {
+				t.Log("Disconnected!")
+			})
+
+		// Verify that all callbacks are set
+		if options.connectCallback == nil {
+			t.Error("Connect callback should be set")
+		}
+		if options.tickerCallback == nil {
+			t.Error("Ticker callback should be set")
+		}
+		if options.errorCallback == nil {
+			t.Error("Error callback should be set")
+		}
+		if options.disconnectCallback == nil {
+			t.Error("Disconnect callback should be set")
+		}
+	})
+
+	// Test user data subscription options chaining
+	t.Run("UserDataSubscriptionOptionsChaining", func(t *testing.T) {
+		options := NewUserDataSubscriptionOptions().
+			WithConnect(func() {
+				t.Log("Connected!")
+			}).
+			WithExecutionReport(func(data *WSExecutionReport) error {
+				t.Logf("Execution Report: %s", data.Symbol)
+				return nil
+			}).
+			WithAccountUpdate(func(data *WSOutboundAccountPosition) error {
+				t.Logf("Account Update: %d balances", len(data.Balances))
+				return nil
+			}).
+			WithBalanceUpdate(func(data *WSBalanceUpdate) error {
+				t.Logf("Balance Update: %s", data.Asset)
+				return nil
+			}).
+			WithError(func(err error) {
+				t.Logf("Error: %v", err)
+			}).
+			WithDisconnect(func() {
+				t.Log("Disconnected!")
+			})
+
+		// Verify that all callbacks are set
+		if options.connectCallback == nil {
+			t.Error("Connect callback should be set")
+		}
+		if options.executionReportCallback == nil {
+			t.Error("Execution report callback should be set")
+		}
+		if options.accountUpdateCallback == nil {
+			t.Error("Account update callback should be set")
+		}
+		if options.balanceUpdateCallback == nil {
+			t.Error("Balance update callback should be set")
+		}
+		if options.errorCallback == nil {
+			t.Error("Error callback should be set")
+		}
+		if options.disconnectCallback == nil {
+			t.Error("Disconnect callback should be set")
 		}
 	})
 }
