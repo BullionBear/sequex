@@ -484,39 +484,6 @@ func (c *WSStreamClient) SubscribeToUserDataStream(options *UserDataSubscription
 		}
 
 		switch eventType {
-		case "executionReport":
-			if options.executionReportCallback != nil {
-				executionReport, err := ParseExecutionReport(data)
-				if err != nil {
-					if options.errorCallback != nil {
-						options.errorCallback(fmt.Errorf("failed to parse execution report: %w", err))
-					}
-					return fmt.Errorf("failed to parse execution report: %w", err)
-				}
-				return options.executionReportCallback(executionReport)
-			}
-		case "outboundAccountPosition":
-			if options.accountUpdateCallback != nil {
-				accountUpdate, err := ParseOutboundAccountPosition(data)
-				if err != nil {
-					if options.errorCallback != nil {
-						options.errorCallback(fmt.Errorf("failed to parse account update: %w", err))
-					}
-					return fmt.Errorf("failed to parse account update: %w", err)
-				}
-				return options.accountUpdateCallback(accountUpdate)
-			}
-		case "balanceUpdate":
-			if options.balanceUpdateCallback != nil {
-				balanceUpdate, err := ParseBalanceUpdate(data)
-				if err != nil {
-					if options.errorCallback != nil {
-						options.errorCallback(fmt.Errorf("failed to parse balance update: %w", err))
-					}
-					return fmt.Errorf("failed to parse balance update: %w", err)
-				}
-				return options.balanceUpdateCallback(balanceUpdate)
-			}
 		case "listenKeyExpired":
 			if options.listenKeyExpiredCallback != nil {
 				listenKeyExpired, err := ParseListenKeyExpiredEvent(data)

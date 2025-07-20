@@ -184,17 +184,8 @@ func testSubscribeUserDataStream(ctx context.Context, client *binancefuture.Clie
 		log.Println("Disconnected from user data stream")
 	}).WithError(func(err error) {
 		log.Printf("User data stream error: %v", err)
-	}).WithAccountUpdate(func(data *binancefuture.WSOutboundAccountPosition) error {
-		log.Printf("Account update received: %+v", data)
-		return nil
 	}).WithAccountUpdateEvent(func(data *binancefuture.WSAccountUpdateEvent) error {
 		log.Printf("Account update event received: %+v", data)
-		return nil
-	}).WithBalanceUpdate(func(data *binancefuture.WSBalanceUpdate) error {
-		log.Printf("Balance update received: %+v", data)
-		return nil
-	}).WithExecutionReport(func(data *binancefuture.WSExecutionReport) error {
-		log.Printf("Execution report received: %+v", data)
 		return nil
 	}).WithListenKeyExpired(func(data *binancefuture.WSListenKeyExpiredEvent) error {
 		log.Printf("Listen key expired: %+v", data)
@@ -204,9 +195,6 @@ func testSubscribeUserDataStream(ctx context.Context, client *binancefuture.Clie
 		return nil
 	}).WithOrderTradeUpdate(func(data *binancefuture.WSOrderTradeUpdateEvent) error {
 		log.Printf("Order trade update received: %+v", data)
-		return nil
-	}).WithTradeLite(func(data *binancefuture.WSTradeLiteEvent) error {
-		log.Printf("Trade lite received: %+v", data)
 		return nil
 	}).WithAccountConfigUpdate(func(data *binancefuture.WSAccountConfigUpdateEvent) error {
 		log.Printf("Account config update received: %+v", data)

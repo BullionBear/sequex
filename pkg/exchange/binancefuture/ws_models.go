@@ -293,7 +293,7 @@ type WSUserDataStreamEvent struct {
 // WSListenKeyExpiredEvent represents listen key expired event
 type WSListenKeyExpiredEvent struct {
 	EventType string `json:"e"`
-	EventTime int64  `json:"E"`
+	EventTime string `json:"E"`
 	ListenKey string `json:"listenKey"`
 }
 
@@ -863,9 +863,6 @@ func (o *FundingRateSubscriptionOptions) WithError(callback func(error)) *Fundin
 // UserDataSubscriptionOptions represents user data subscription options
 type UserDataSubscriptionOptions struct {
 	*SubscriptionOptions
-	executionReportCallback     ExecutionReportCallback
-	accountUpdateCallback       OutboundAccountPositionCallback
-	balanceUpdateCallback       BalanceUpdateCallback
 	listenKeyExpiredCallback    ListenKeyExpiredCallback
 	accountUpdateEventCallback  AccountUpdateCallback
 	marginCallCallback          MarginCallCallback
@@ -879,24 +876,6 @@ func NewUserDataSubscriptionOptions() *UserDataSubscriptionOptions {
 	return &UserDataSubscriptionOptions{
 		SubscriptionOptions: &SubscriptionOptions{},
 	}
-}
-
-// WithExecutionReport sets the execution report callback
-func (o *UserDataSubscriptionOptions) WithExecutionReport(callback ExecutionReportCallback) *UserDataSubscriptionOptions {
-	o.executionReportCallback = callback
-	return o
-}
-
-// WithAccountUpdate sets the account update callback
-func (o *UserDataSubscriptionOptions) WithAccountUpdate(callback OutboundAccountPositionCallback) *UserDataSubscriptionOptions {
-	o.accountUpdateCallback = callback
-	return o
-}
-
-// WithBalanceUpdate sets the balance update callback
-func (o *UserDataSubscriptionOptions) WithBalanceUpdate(callback BalanceUpdateCallback) *UserDataSubscriptionOptions {
-	o.balanceUpdateCallback = callback
-	return o
 }
 
 // WithListenKeyExpired sets the listen key expired callback
