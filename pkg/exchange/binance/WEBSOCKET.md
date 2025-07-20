@@ -1,584 +1,238 @@
-# Binance WebSocket Connectivity
+# Binance WebSocket Subscription Pattern
 
-This module provides WebSocket connectivity for Binance Spot API, allowing real-time data streaming for market data and user data.
+This document describes the new WebSocket subscription pattern implemented in the Binance module, which provides a clean, chainable interface for subscribing to various market data and user data streams.
 
-## Features
+## Overview
 
-- **Raw Stream Subscription**: Connect directly to Binance WebSocket streams using `wss://stream.binance.com:9443/ws/<streamName>`
-- **Automatic Reconnection**: Exponential backoff retry mechanism with configurable attempts
-- **Ping/Pong Keepalive**: Maintains connection health with periodic ping messages
-- **Graceful Disconnection**: Proper cleanup and resource management
-- **Callback-based Event Handling**: Flexible event processing with user-defined callbacks
-- **Multiple Stream Support**: Subscribe to multiple streams simultaneously
-- **Type-safe Data Parsing**: Structured data models for all WebSocket events
+The new pattern uses subscription options with chainable methods, making it easy to configure callbacks for different events while maintaining type safety and clean code structure.
 
-## Quick Start
+## Core Concepts
+
+### Subscription Options
+
+Each subscription type has its own options struct that inherits from the base `SubscriptionOptions`:
+
+- `KlineSubscriptionOptions` - for kline/candlestick data
+- `TickerSubscriptionOptions` - for 24hr ticker data
+- `MiniTickerSubscriptionOptions` - for mini ticker data
+- `BookTickerSubscriptionOptions` - for book ticker data
+- `DepthSubscriptionOptions` - for order book depth data
+- `TradeSubscriptionOptions` - for trade data
+- `AggTradeSubscriptionOptions` - for aggregated trade data
+- `UserDataSubscriptionOptions` - for user data streams
+
+### Chainable Methods
+
+All subscription options support the following chainable methods:
+
+- `WithConnect(callback func())` - called when connection is established
+- `WithReconnect(callback func())` - called when reconnection occurs
+- `WithDisconnect(callback func())` - called when connection is lost
+- `WithError(callback func(error))` - called when errors occur
+
+Plus type-specific data callbacks:
+
+- `WithKline(callback KlineCallback)` - for kline data
+- `WithTicker(callback TickerCallback)` - for ticker data
+- `WithMiniTicker(callback MiniTickerCallback)` - for mini ticker data
+- `WithBookTicker(callback BookTickerCallback)` - for book ticker data
+- `WithDepth(callback DepthCallback)` - for depth data
+- `WithTrade(callback TradeCallback)` - for trade data
+- `WithAggTrade(callback AggTradeCallback)` - for aggregated trade data
+- `WithExecutionReport(callback ExecutionReportCallback)` - for execution reports
+- `WithAccountUpdate(callback OutboundAccountPositionCallback)` - for account updates
+- `WithBalanceUpdate(callback BalanceUpdateCallback)` - for balance updates
+
+## Usage Examples
+
+### Basic Kline Subscription
 
 ```go
-package main
-
-import (
-    "fmt"
-    "log"
-    "time"
-    
-    "github.com/BullionBear/sequex/pkg/exchange/binance"
-)
-
-func main() {
-    // Create configuration
-    config := binance.DefaultConfig()
-    
-    // Create WebSocket stream client
-    client := binance.NewWSStreamClient(config)
-
-    // Define callback for ticker data
-    tickerCallback := func(data []byte) error {
-        tickerData, err := binance.ParseTickerData(data)
-        if err != nil {
-            return err
-        }
-        
-        fmt.Printf("Symbol: %s, Price: %.2f\n", 
-            tickerData.Symbol, tickerData.LastPrice)
-        return nil
-    }
-
-    // Subscribe to BTCUSDT ticker
-    unsubscribe, err := client.SubscribeToTicker("BTCUSDT", tickerCallback)
-    if err != nil {
-        log.Fatalf("Failed to subscribe: %v", err)
-    }
-    defer unsubscribe()
-
-    // Keep the program running
-    time.Sleep(30 * time.Second)
+config := &Config{
+    UseTestnet: true,
 }
-```
+wsClient := NewWSStreamClient(config)
 
-## API Reference
+klineOptions := &KlineSubscriptionOptions{}
+klineOptions.WithConnect(func() {
+    fmt.Println("Connected to kline stream")
+}).WithKline(func(data *WSKlineData) error {
+    fmt.Printf("Kline: %s %s Close: %f\n", 
+        data.Symbol, data.Kline.Interval, data.Kline.ClosePrice)
+    return nil
+}).WithError(func(err error) {
+    fmt.Printf("Error: %v\n", err)
+})
 
-### WSStreamClient
-
-The main client for WebSocket stream management.
-
-#### Constructor
-
-```go
-func NewWSStreamClient(config *Config) *WSStreamClient
-```
-
-#### Methods
-
-##### SubscribeToKline
-```go
-func (c *WSStreamClient) SubscribeToKline(symbol string, interval string, callback WebSocketCallback) (func() error, error)
-```
-Subscribes to kline/candlestick data for a specific symbol and interval.
-
-**Parameters:**
-- `symbol`: Trading pair symbol (e.g., "BTCUSDT")
-- `interval`: Kline interval (e.g., "1m", "5m", "1h", "1d")
-- `callback`: Function to handle incoming data
-
-**Returns:**
-- Unsubscription function
-- Error if subscription fails
-
-##### SubscribeToTicker
-```go
-func (c *WSStreamClient) SubscribeToTicker(symbol string, callback WebSocketCallback) (func() error, error)
-```
-Subscribes to 24hr ticker data for a specific symbol.
-
-##### SubscribeToMiniTicker
-```go
-func (c *WSStreamClient) SubscribeToMiniTicker(symbol string, callback WebSocketCallback) (func() error, error)
-```
-Subscribes to mini ticker data for a specific symbol.
-
-##### SubscribeToAllMiniTickers
-```go
-func (c *WSStreamClient) SubscribeToAllMiniTickers(callback WebSocketCallback) (func() error, error)
-```
-Subscribes to mini ticker data for all symbols.
-
-##### SubscribeToBookTicker
-```go
-func (c *WSStreamClient) SubscribeToBookTicker(symbol string, callback WebSocketCallback) (func() error, error)
-```
-Subscribes to book ticker data for a specific symbol.
-
-##### SubscribeToAllBookTickers
-```go
-func (c *WSStreamClient) SubscribeToAllBookTickers(callback WebSocketCallback) (func() error, error)
-```
-Subscribes to book ticker data for all symbols.
-
-##### SubscribeToDepth
-```go
-func (c *WSStreamClient) SubscribeToDepth(symbol string, levels string, callback WebSocketCallback) (func() error, error)
-```
-Subscribes to order book depth data for a specific symbol.
-
-**Parameters:**
-- `symbol`: Trading pair symbol
-- `levels`: Depth levels (e.g., "5", "10", "20")
-- `callback`: Function to handle incoming data
-
-##### SubscribeToTrade
-```go
-func (c *WSStreamClient) SubscribeToTrade(symbol string, callback WebSocketCallback) (func() error, error)
-```
-Subscribes to trade data for a specific symbol.
-
-##### SubscribeToAggTrade
-```go
-func (c *WSStreamClient) SubscribeToAggTrade(symbol string, callback WebSocketCallback) (func() error, error)
-```
-Subscribes to aggregated trade data for a specific symbol.
-
-##### SubscribeToCombinedStreams
-```go
-func (c *WSStreamClient) SubscribeToCombinedStreams(streams []string, callback WebSocketCallback) (func() error, error)
-```
-Subscribes to multiple streams at once.
-
-**Parameters:**
-- `streams`: Array of stream names (e.g., ["btcusdt@ticker", "ethusdt@ticker"])
-- `callback`: Function to handle incoming data
-
-##### UnsubscribeFromAllStreams
-```go
-func (c *WSStreamClient) UnsubscribeFromAllStreams() error
-```
-Unsubscribes from all active streams.
-
-##### GetActiveStreams
-```go
-func (c *WSStreamClient) GetActiveStreams() []string
-```
-Returns a list of currently active stream names.
-
-##### IsStreamActive
-```go
-func (c *WSStreamClient) IsStreamActive(streamName string) bool
-```
-Checks if a specific stream is currently active.
-
-##### Close
-```go
-func (c *WSStreamClient) Close() error
-```
-Closes all WebSocket connections.
-
-### Data Models
-
-#### WSKlineData
-Represents kline/candlestick data from WebSocket.
-
-```go
-type WSKlineData struct {
-    Symbol            string  `json:"s"`
-    Kline             WSKline `json:"k"`
-    EventTime         int64   `json:"E"`
-    EventType         string  `json:"e"`
-    FirstTradeID      int64   `json:"f"`
-    LastTradeID       int64   `json:"L"`
-    IsKlineClosed     bool    `json:"x"`
-    QuoteVolume       float64 `json:"q,string"`
-    ActiveBuyVolume   float64 `json:"V,string"`
-    ActiveBuyQuoteVol float64 `json:"Q,string"`
+unsubscribe, err := wsClient.SubscribeToKline("BTCUSDT", "1m", klineOptions)
+if err != nil {
+    log.Fatalf("Failed to subscribe: %v", err)
 }
+
+// ... use the data ...
+
+unsubscribe() // Clean up when done
 ```
 
-#### WSTickerData
-Represents 24hr ticker data from WebSocket.
+### Ticker Subscription with All Callbacks
 
 ```go
-type WSTickerData struct {
-    Symbol             string  `json:"s"`
-    PriceChange        float64 `json:"P,string"`
-    PriceChangePercent float64 `json:"P,string"`
-    WeightedAvgPrice   float64 `json:"w,string"`
-    PrevClosePrice     float64 `json:"x,string"`
-    LastPrice          float64 `json:"c,string"`
-    LastQty            float64 `json:"Q,string"`
-    BidPrice           float64 `json:"b,string"`
-    BidQty             float64 `json:"B,string"`
-    AskPrice           float64 `json:"a,string"`
-    AskQty             float64 `json:"A,string"`
-    OpenPrice          float64 `json:"o,string"`
-    HighPrice          float64 `json:"h,string"`
-    LowPrice           float64 `json:"l,string"`
-    Volume             float64 `json:"v,string"`
-    QuoteVolume        float64 `json:"q,string"`
-    OpenTime           int64   `json:"O"`
-    CloseTime          int64   `json:"C"`
-    FirstID            int64   `json:"F"`
-    LastID             int64   `json:"L"`
-    Count              int64   `json:"n"`
-    EventTime          int64   `json:"E"`
-    EventType          string  `json:"e"`
-}
+tickerOptions := &TickerSubscriptionOptions{}
+tickerOptions.WithConnect(func() {
+    fmt.Println("Connected to ticker stream")
+}).WithReconnect(func() {
+    fmt.Println("Reconnected to ticker stream")
+}).WithTicker(func(data *WSTickerData) error {
+    fmt.Printf("Ticker: %s Last: %f Volume: %f Change: %f%%\n", 
+        data.Symbol, data.LastPrice, data.Volume, data.PriceChangePercent)
+    return nil
+}).WithDisconnect(func() {
+    fmt.Println("Disconnected from ticker stream")
+}).WithError(func(err error) {
+    fmt.Printf("Ticker error: %v\n", err)
+})
+
+unsubscribe, err := wsClient.SubscribeToTicker("ETHUSDT", tickerOptions)
 ```
 
-#### WSTradeData
-Represents trade data from WebSocket.
+### User Data Stream Subscription
 
 ```go
-type WSTradeData struct {
-    Symbol        string  `json:"s"`
-    ID            int64   `json:"t"`
-    Price         float64 `json:"p,string"`
-    Quantity      float64 `json:"q,string"`
-    BuyerOrderID  int64   `json:"b"`
-    SellerOrderID int64   `json:"a"`
-    TradeTime     int64   `json:"T"`
-    IsBuyerMaker  bool    `json:"m"`
-    Ignore        bool    `json:"M"`
-    EventTime     int64   `json:"E"`
-    EventType     string  `json:"e"`
-}
-```
-
-### Data Parsing Functions
-
-#### ParseKlineData
-```go
-func ParseKlineData(data []byte) (*WSKlineData, error)
-```
-Parses kline data from WebSocket message.
-
-#### ParseTickerData
-```go
-func ParseTickerData(data []byte) (*WSTickerData, error)
-```
-Parses ticker data from WebSocket message.
-
-#### ParseTradeData
-```go
-func ParseTradeData(data []byte) (*WSTradeData, error)
-```
-Parses trade data from WebSocket message.
-
-#### ParseMiniTickerData
-```go
-func ParseMiniTickerData(data []byte) (*WSMiniTickerData, error)
-```
-Parses mini ticker data from WebSocket message.
-
-#### ParseBookTickerData
-```go
-func ParseBookTickerData(data []byte) (*WSBookTickerData, error)
-```
-Parses book ticker data from WebSocket message.
-
-#### ParseDepthData
-```go
-func ParseDepthData(data []byte) (*WSDepthData, error)
-```
-Parses depth data from WebSocket message.
-
-#### ParseAggTradeData
-```go
-func ParseAggTradeData(data []byte) (*WSAggTradeData, error)
-```
-Parses aggregated trade data from WebSocket message.
-
-## Configuration
-
-### Production vs Testnet
-
-```go
-// Production
-config := binance.DefaultConfig()
-
-// Testnet
-config := binance.TestnetConfig()
-```
-
-### WebSocket URLs
-
-- **Production**: `wss://stream.binance.com:9443`
-- **Testnet**: `wss://testnet.binance.vision`
-
-## Stream Names
-
-### Individual Streams
-- `btcusdt@ticker` - 24hr ticker for BTCUSDT
-- `btcusdt@kline_1m` - 1-minute klines for BTCUSDT
-- `btcusdt@trade` - Trades for BTCUSDT
-- `btcusdt@depth5` - Order book depth (5 levels) for BTCUSDT
-- `btcusdt@bookTicker` - Book ticker for BTCUSDT
-- `btcusdt@miniTicker` - Mini ticker for BTCUSDT
-- `btcusdt@aggTrade` - Aggregated trades for BTCUSDT
-
-### All Symbols Streams
-- `!miniTicker@arr` - Mini ticker for all symbols
-- `!bookTicker` - Book ticker for all symbols
-
-### Combined Streams
-Multiple streams can be combined using `/` separator:
-- `btcusdt@ticker/ethusdt@ticker` - Both BTCUSDT and ETHUSDT tickers
-
-## Error Handling
-
-The WebSocket client includes comprehensive error handling:
-
-1. **Connection Errors**: Automatic reconnection with exponential backoff
-2. **Message Parsing Errors**: Graceful handling of malformed messages
-3. **Callback Errors**: Logged but don't interrupt the connection
-4. **Network Errors**: Automatic retry with configurable limits
-
-## Best Practices
-
-1. **Always use defer for unsubscription**:
-   ```go
-   unsubscribe, err := client.SubscribeToTicker("BTCUSDT", callback)
-   if err != nil {
-       return err
-   }
-   defer unsubscribe()
-   ```
-
-2. **Handle callback errors gracefully**:
-   ```go
-   callback := func(data []byte) error {
-       tickerData, err := binance.ParseTickerData(data)
-       if err != nil {
-           log.Printf("Parse error: %v", err)
-           return err // This won't break the connection
-       }
-       // Process data...
-       return nil
-   }
-   ```
-
-3. **Use signal handling for graceful shutdown**:
-   ```go
-   sigChan := make(chan os.Signal, 1)
-   signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-   
-   // ... subscribe to streams ...
-   
-   <-sigChan
-   client.Close()
-   ```
-
-4. **Monitor connection health**:
-   ```go
-   if !client.IsStreamActive("btcusdt@ticker") {
-       // Handle inactive stream
-   }
-   ```
-
-## Examples
-
-See `cmd/ws_example.go` for a complete working example that demonstrates:
-- Multiple stream subscriptions
-- Data parsing
-- Error handling
-- Graceful shutdown
-
-## Testing
-
-Run the WebSocket tests:
-```bash
-go test ./pkg/exchange/binance -v -run TestWS
-```
-
-## User Data Streams
-
-User data streams provide real-time updates about account activities including balance changes, order updates, and account position changes.
-
-### Features
-
-- **24-hour Connection Limit**: User data streams are valid for 24 hours and will be disconnected automatically
-- **Listen Key Required**: Requires a listen key obtained from the REST API
-- **Multiple Event Types**: Supports account position, balance updates, and execution reports
-- **Type-Safe Callbacks**: Separate callback functions for each event type
-
-### Getting a Listen Key
-
-Before subscribing to user data streams, you need to obtain a listen key from the REST API:
-
-```go
-// Using the REST client to get a listen key
-client := binance.NewClient(config)
-listenKeyResponse, err := client.CreateUserDataStream()
+// Create listen key (requires API credentials)
+restClient := NewClient(config)
+userDataStream, err := restClient.CreateUserDataStream(context.Background())
 if err != nil {
     log.Fatalf("Failed to create user data stream: %v", err)
 }
 
-listenKey := listenKeyResponse.ListenKey
+userDataOptions := &UserDataSubscriptionOptions{}
+userDataOptions.WithConnect(func() {
+    fmt.Println("Connected to user data stream")
+}).WithExecutionReport(func(data *WSExecutionReport) error {
+    fmt.Printf("Order: %s %s %s Status: %s\n", 
+        data.Symbol, data.Side, data.OrderPrice, data.CurrentOrderStatus)
+    return nil
+}).WithAccountUpdate(func(data *WSOutboundAccountPosition) error {
+    fmt.Printf("Account update: %d balances\n", len(data.Balances))
+    return nil
+}).WithBalanceUpdate(func(data *WSBalanceUpdate) error {
+    fmt.Printf("Balance: %s changed by %s\n", data.Asset, data.BalanceDelta)
+    return nil
+}).WithError(func(err error) {
+    fmt.Printf("User data error: %v\n", err)
+})
+
+unsubscribe, err := wsClient.SubscribeToUserDataStream(userDataStream.ListenKey, userDataOptions)
+
+// Keep the stream alive
+go func() {
+    ticker := time.NewTicker(30 * time.Minute)
+    defer ticker.Stop()
+    for range ticker.C {
+        restClient.KeepAliveUserDataStream(context.Background(), userDataStream.ListenKey)
+    }
+}()
+
+// Cleanup
+defer func() {
+    unsubscribe()
+    restClient.CloseUserDataStream(context.Background(), userDataStream.ListenKey)
+}()
 ```
 
-### User Data Stream Methods
 
-#### SubscribeToUserDataStream
-```go
-func (c *WSStreamClient) SubscribeToUserDataStream(listenKey string, callback WebSocketCallback) (func() error, error)
-```
-Subscribes to user data stream with generic callback.
 
-#### SubscribeToUserDataStreamWithCallbacks
-```go
-func (c *WSStreamClient) SubscribeToUserDataStreamWithCallbacks(
-    listenKey string,
-    accountPositionCallback OutboundAccountPositionCallback,
-    balanceUpdateCallback BalanceUpdateCallback,
-    executionReportCallback ExecutionReportCallback,
-) (func() error, error)
-```
-Subscribes to user data stream with type-specific callbacks for each event type.
-
-**Parameters:**
-- `listenKey`: Listen key obtained from REST API
-- `accountPositionCallback`: Callback for account position updates (can be nil)
-- `balanceUpdateCallback`: Callback for balance updates (can be nil)
-- `executionReportCallback`: Callback for order execution reports (can be nil)
-
-### User Data Event Types
-
-#### WSOutboundAccountPosition
-Represents account position updates.
+### All Mini Tickers
 
 ```go
-type WSOutboundAccountPosition struct {
-    EventType    string       `json:"e"`
-    EventTime    int64        `json:"E"`
-    LastUpdateID int64        `json:"u"`
-    Balances     []WSBalance  `json:"B"`
-}
+allMiniTickerOptions := &MiniTickerSubscriptionOptions{}
+allMiniTickerOptions.WithConnect(func() {
+    fmt.Println("Connected to all mini tickers")
+}).WithMiniTicker(func(data *WSMiniTickerData) error {
+    fmt.Printf("Mini: %s Close: %f Volume: %f\n", 
+        data.Symbol, data.ClosePrice, data.Volume)
+    return nil
+}).WithError(func(err error) {
+    fmt.Printf("Mini ticker error: %v\n", err)
+})
 
-type WSBalance struct {
-    Asset  string `json:"a"`
-    Free   string `json:"f"`
-    Locked string `json:"l"`
-}
+unsubscribe, err := wsClient.SubscribeToAllMiniTickers(allMiniTickerOptions)
 ```
 
-#### WSBalanceUpdate
-Represents balance update events.
+## Available Subscription Methods
+
+### Market Data Streams
+
+- `SubscribeToKline(symbol, interval, options)` - Kline/candlestick data
+- `SubscribeToTicker(symbol, options)` - 24hr ticker data
+- `SubscribeToMiniTicker(symbol, options)` - Mini ticker data
+- `SubscribeToAllMiniTickers(options)` - All mini tickers
+- `SubscribeToBookTicker(symbol, options)` - Book ticker data
+- `SubscribeToAllBookTickers(options)` - All book tickers
+- `SubscribeToDepth(symbol, levels, options)` - Order book depth data
+- `SubscribeToTrade(symbol, options)` - Trade data
+- `SubscribeToAggTrade(symbol, options)` - Aggregated trade data
+
+### User Data Streams
+
+- `SubscribeToUserDataStream(listenKey, options)` - User data stream
+
+### Utility Methods
+
+- `UnsubscribeFromAllStreams()` - Unsubscribe from all streams
+- `GetActiveStreams()` - Get list of active streams
+- `IsStreamActive(streamName)` - Check if stream is active
+- `Close()` - Close all connections
+
+## Error Handling
+
+All callback functions that return errors should handle them appropriately:
 
 ```go
-type WSBalanceUpdate struct {
-    EventType     string `json:"e"`
-    EventTime     int64  `json:"E"`
-    Asset         string `json:"a"`
-    BalanceDelta  string `json:"d"`
-    ClearTime     int64  `json:"T"`
-}
-```
-
-#### WSExecutionReport
-Represents order execution reports.
-
-```go
-type WSExecutionReport struct {
-    EventType                    string `json:"e"`
-    EventTime                    int64  `json:"E"`
-    Symbol                       string `json:"s"`
-    ClientOrderID                string `json:"c"`
-    Side                         string `json:"S"`
-    OrderType                    string `json:"o"`
-    TimeInForce                  string `json:"f"`
-    OrderQuantity                string `json:"q"`
-    OrderPrice                   string `json:"p"`
-    StopPrice                    string `json:"P"`
-    IcebergQuantity              string `json:"F"`
-    OrderListID                  int64  `json:"g"`
-    OriginalClientOrderID        string `json:"C"`
-    CurrentExecutionType         string `json:"x"`
-    CurrentOrderStatus           string `json:"X"`
-    OrderRejectReason            string `json:"r"`
-    OrderID                      int64  `json:"i"`
-    LastExecutedQuantity         string `json:"l"`
-    CumulativeFilledQuantity     string `json:"z"`
-    LastExecutedPrice            string `json:"L"`
-    CommissionAmount             string `json:"n"`
-    CommissionAsset              string `json:"N"`
-    TransactionTime              int64  `json:"T"`
-    TradeID                      int64  `json:"t"`
-    PreventedMatchID             int64  `json:"v"`
-    ExecutionID                  int64  `json:"I"`
-    IsOrderOnBook                bool   `json:"w"`
-    IsTradeMakerSide             bool   `json:"m"`
-    Ignore                       bool   `json:"M"`
-    OrderCreationTime            int64  `json:"O"`
-    CumulativeQuoteAssetQuantity string `json:"Z"`
-    LastQuoteAssetQuantity       string `json:"Y"`
-    QuoteOrderQuantity           string `json:"Q"`
-    WorkingTime                  int64  `json:"W"`
-    SelfTradePreventionMode      string `json:"V"`
-}
-```
-
-### User Data Stream Callback Types
-
-```go
-type OutboundAccountPositionCallback func(data *WSOutboundAccountPosition) error
-type BalanceUpdateCallback func(data *WSBalanceUpdate) error
-type ExecutionReportCallback func(data *WSExecutionReport) error
-```
-
-### User Data Stream Example
-
-```go
-// Subscribe to user data stream with type-specific callbacks
-accountPositionCallback := func(data *binance.WSOutboundAccountPosition) error {
-    fmt.Printf("Account position update - Event time: %d\n", data.EventTime)
-    for _, balance := range data.Balances {
-        fmt.Printf("  %s: Free=%s, Locked=%s\n", 
-            balance.Asset, balance.Free, balance.Locked)
+klineOptions.WithKline(func(data *WSKlineData) error {
+    // Process the data
+    if err := processKlineData(data); err != nil {
+        // Log the error but don't panic
+        log.Printf("Error processing kline data: %v", err)
+        return err // This will be logged by the WebSocket client
     }
     return nil
-}
-
-balanceUpdateCallback := func(data *binance.WSBalanceUpdate) error {
-    fmt.Printf("Balance update - Asset: %s, Delta: %s\n", 
-        data.Asset, data.BalanceDelta)
-    return nil
-}
-
-executionReportCallback := func(data *binance.WSExecutionReport) error {
-    fmt.Printf("Order update - Symbol: %s, Status: %s, Side: %s\n", 
-        data.Symbol, data.CurrentOrderStatus, data.Side)
-    return nil
-}
-
-// Get listen key from REST API first
-listenKey := "your-listen-key-here"
-
-unsubscribeUserData, err := client.SubscribeToUserDataStreamWithCallbacks(
-    listenKey,
-    accountPositionCallback,
-    balanceUpdateCallback,
-    executionReportCallback,
-)
-if err != nil {
-    log.Fatalf("Failed to subscribe to user data stream: %v", err)
-}
-defer unsubscribeUserData()
+})
 ```
 
-### User Data Stream Parsing Functions
+## Best Practices
+
+1. **Always provide error callbacks** to handle connection and parsing errors
+2. **Use defer statements** to ensure proper cleanup of subscriptions
+3. **Keep user data streams alive** with periodic keep-alive calls
+4. **Handle reconnection gracefully** by providing reconnect callbacks
+5. **Use type-safe callbacks** for all data handling
+6. **Close connections properly** when your application shuts down
+
+## API Design Philosophy
+
+The new subscription pattern is designed to:
+
+1. **Hide implementation details** - Users don't need to handle raw WebSocket callbacks
+2. **Provide type safety** - All callbacks are strongly typed for specific data structures
+3. **Enable chainable configuration** - Easy to configure multiple callbacks in a readable way
+4. **Focus on business logic** - Developers can focus on what they want to do with the data, not how to handle the WebSocket connection
+
+## Type Definitions
+
+All callback types are defined in `ws_models.go`:
 
 ```go
-func ParseOutboundAccountPosition(data []byte) (*WSOutboundAccountPosition, error)
-func ParseBalanceUpdate(data []byte) (*WSBalanceUpdate, error)
-func ParseExecutionReport(data []byte) (*WSExecutionReport, error)
+type KlineCallback func(data *WSKlineData) error
+type TickerCallback func(data *WSTickerData) error
+type MiniTickerCallback func(data *WSMiniTickerData) error
+type BookTickerCallback func(data *WSBookTickerData) error
+type DepthCallback func(data *WSDepthData) error
+type TradeCallback func(data *WSTradeData) error
+type AggTradeCallback func(data *WSAggTradeData) error
+type ExecutionReportCallback func(data *WSExecutionReport) error
+type OutboundAccountPositionCallback func(data *WSOutboundAccountPosition) error
+type BalanceUpdateCallback func(data *WSBalanceUpdate) error
 ```
 
-### Important Notes
-
-1. **Listen Key Expiration**: Listen keys expire after 24 hours. You need to refresh them periodically.
-2. **Single Connection**: Only one connection per listen key is allowed.
-3. **Authentication Required**: User data streams require API key authentication.
-4. **Event Filtering**: The client automatically routes events to the appropriate callbacks based on event type.
-
-## Dependencies
-
-- `github.com/gorilla/websocket` - WebSocket implementation
-- Standard Go libraries for JSON parsing, time handling, etc. 
+This pattern provides a clean, extensible, and type-safe way to handle WebSocket subscriptions in the Binance module. 

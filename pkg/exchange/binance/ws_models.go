@@ -244,19 +244,316 @@ type OutboundAccountPositionCallback func(data *WSOutboundAccountPosition) error
 type BalanceUpdateCallback func(data *WSBalanceUpdate) error
 type ExecutionReportCallback func(data *WSExecutionReport) error
 
-// WebSocketCallback represents a callback function for WebSocket events
-type WebSocketCallback func(data []byte) error
+// webSocketCallback represents a callback function for WebSocket events (internal use only)
+type webSocketCallback func(data []byte) error
 
 // WebSocketStream represents a WebSocket stream configuration
 type WebSocketStream struct {
 	StreamName string
-	Callback   WebSocketCallback
+	Callback   webSocketCallback
 }
 
-// WebSocketConnection represents a WebSocket connection
+// WebSocketConnection represents a WebSocket connection configuration
 type WebSocketConnection struct {
 	URL      string
 	Streams  []WebSocketStream
 	IsActive bool
 	Close    chan struct{}
+}
+
+// SubscriptionOptions represents the base subscription options with common callbacks
+type SubscriptionOptions struct {
+	onConnect    func()
+	onReconnect  func()
+	onDisconnect func()
+	onError      func(error)
+}
+
+// KlineSubscriptionOptions represents subscription options for kline data
+type KlineSubscriptionOptions struct {
+	SubscriptionOptions
+	onKline KlineCallback
+}
+
+// TickerSubscriptionOptions represents subscription options for ticker data
+type TickerSubscriptionOptions struct {
+	SubscriptionOptions
+	onTicker TickerCallback
+}
+
+// MiniTickerSubscriptionOptions represents subscription options for mini ticker data
+type MiniTickerSubscriptionOptions struct {
+	SubscriptionOptions
+	onMiniTicker MiniTickerCallback
+}
+
+// BookTickerSubscriptionOptions represents subscription options for book ticker data
+type BookTickerSubscriptionOptions struct {
+	SubscriptionOptions
+	onBookTicker BookTickerCallback
+}
+
+// DepthSubscriptionOptions represents subscription options for depth data
+type DepthSubscriptionOptions struct {
+	SubscriptionOptions
+	onDepth DepthCallback
+}
+
+// TradeSubscriptionOptions represents subscription options for trade data
+type TradeSubscriptionOptions struct {
+	SubscriptionOptions
+	onTrade TradeCallback
+}
+
+// AggTradeSubscriptionOptions represents subscription options for aggregated trade data
+type AggTradeSubscriptionOptions struct {
+	SubscriptionOptions
+	onAggTrade AggTradeCallback
+}
+
+// UserDataSubscriptionOptions represents subscription options for user data streams
+type UserDataSubscriptionOptions struct {
+	SubscriptionOptions
+	onExecutionReport ExecutionReportCallback
+	onAccountUpdate   OutboundAccountPositionCallback
+	onBalanceUpdate   BalanceUpdateCallback
+}
+
+// Base subscription option methods
+func (o *SubscriptionOptions) WithConnect(callback func()) *SubscriptionOptions {
+	o.onConnect = callback
+	return o
+}
+
+func (o *SubscriptionOptions) WithReconnect(callback func()) *SubscriptionOptions {
+	o.onReconnect = callback
+	return o
+}
+
+func (o *SubscriptionOptions) WithDisconnect(callback func()) *SubscriptionOptions {
+	o.onDisconnect = callback
+	return o
+}
+
+func (o *SubscriptionOptions) WithError(callback func(error)) *SubscriptionOptions {
+	o.onError = callback
+	return o
+}
+
+// Kline subscription option methods
+func (o *KlineSubscriptionOptions) WithConnect(callback func()) *KlineSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+func (o *KlineSubscriptionOptions) WithReconnect(callback func()) *KlineSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+func (o *KlineSubscriptionOptions) WithDisconnect(callback func()) *KlineSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+func (o *KlineSubscriptionOptions) WithError(callback func(error)) *KlineSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+func (o *KlineSubscriptionOptions) WithKline(callback KlineCallback) *KlineSubscriptionOptions {
+	o.onKline = callback
+	return o
+}
+
+// Ticker subscription option methods
+func (o *TickerSubscriptionOptions) WithConnect(callback func()) *TickerSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+func (o *TickerSubscriptionOptions) WithReconnect(callback func()) *TickerSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+func (o *TickerSubscriptionOptions) WithDisconnect(callback func()) *TickerSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+func (o *TickerSubscriptionOptions) WithError(callback func(error)) *TickerSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+func (o *TickerSubscriptionOptions) WithTicker(callback TickerCallback) *TickerSubscriptionOptions {
+	o.onTicker = callback
+	return o
+}
+
+// MiniTicker subscription option methods
+func (o *MiniTickerSubscriptionOptions) WithConnect(callback func()) *MiniTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+func (o *MiniTickerSubscriptionOptions) WithReconnect(callback func()) *MiniTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+func (o *MiniTickerSubscriptionOptions) WithDisconnect(callback func()) *MiniTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+func (o *MiniTickerSubscriptionOptions) WithError(callback func(error)) *MiniTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+func (o *MiniTickerSubscriptionOptions) WithMiniTicker(callback MiniTickerCallback) *MiniTickerSubscriptionOptions {
+	o.onMiniTicker = callback
+	return o
+}
+
+// BookTicker subscription option methods
+func (o *BookTickerSubscriptionOptions) WithConnect(callback func()) *BookTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+func (o *BookTickerSubscriptionOptions) WithReconnect(callback func()) *BookTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+func (o *BookTickerSubscriptionOptions) WithDisconnect(callback func()) *BookTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+func (o *BookTickerSubscriptionOptions) WithError(callback func(error)) *BookTickerSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+func (o *BookTickerSubscriptionOptions) WithBookTicker(callback BookTickerCallback) *BookTickerSubscriptionOptions {
+	o.onBookTicker = callback
+	return o
+}
+
+// Depth subscription option methods
+func (o *DepthSubscriptionOptions) WithConnect(callback func()) *DepthSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+func (o *DepthSubscriptionOptions) WithReconnect(callback func()) *DepthSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+func (o *DepthSubscriptionOptions) WithDisconnect(callback func()) *DepthSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+func (o *DepthSubscriptionOptions) WithError(callback func(error)) *DepthSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+func (o *DepthSubscriptionOptions) WithDepth(callback DepthCallback) *DepthSubscriptionOptions {
+	o.onDepth = callback
+	return o
+}
+
+// Trade subscription option methods
+func (o *TradeSubscriptionOptions) WithConnect(callback func()) *TradeSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+func (o *TradeSubscriptionOptions) WithReconnect(callback func()) *TradeSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+func (o *TradeSubscriptionOptions) WithDisconnect(callback func()) *TradeSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+func (o *TradeSubscriptionOptions) WithError(callback func(error)) *TradeSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+func (o *TradeSubscriptionOptions) WithTrade(callback TradeCallback) *TradeSubscriptionOptions {
+	o.onTrade = callback
+	return o
+}
+
+// AggTrade subscription option methods
+func (o *AggTradeSubscriptionOptions) WithConnect(callback func()) *AggTradeSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+func (o *AggTradeSubscriptionOptions) WithReconnect(callback func()) *AggTradeSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+func (o *AggTradeSubscriptionOptions) WithDisconnect(callback func()) *AggTradeSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+func (o *AggTradeSubscriptionOptions) WithError(callback func(error)) *AggTradeSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+func (o *AggTradeSubscriptionOptions) WithAggTrade(callback AggTradeCallback) *AggTradeSubscriptionOptions {
+	o.onAggTrade = callback
+	return o
+}
+
+// UserData subscription option methods
+func (o *UserDataSubscriptionOptions) WithConnect(callback func()) *UserDataSubscriptionOptions {
+	o.SubscriptionOptions.WithConnect(callback)
+	return o
+}
+
+func (o *UserDataSubscriptionOptions) WithReconnect(callback func()) *UserDataSubscriptionOptions {
+	o.SubscriptionOptions.WithReconnect(callback)
+	return o
+}
+
+func (o *UserDataSubscriptionOptions) WithDisconnect(callback func()) *UserDataSubscriptionOptions {
+	o.SubscriptionOptions.WithDisconnect(callback)
+	return o
+}
+
+func (o *UserDataSubscriptionOptions) WithError(callback func(error)) *UserDataSubscriptionOptions {
+	o.SubscriptionOptions.WithError(callback)
+	return o
+}
+
+func (o *UserDataSubscriptionOptions) WithExecutionReport(callback ExecutionReportCallback) *UserDataSubscriptionOptions {
+	o.onExecutionReport = callback
+	return o
+}
+
+func (o *UserDataSubscriptionOptions) WithAccountUpdate(callback OutboundAccountPositionCallback) *UserDataSubscriptionOptions {
+	o.onAccountUpdate = callback
+	return o
+}
+
+func (o *UserDataSubscriptionOptions) WithBalanceUpdate(callback BalanceUpdateCallback) *UserDataSubscriptionOptions {
+	o.onBalanceUpdate = callback
+	return o
 }

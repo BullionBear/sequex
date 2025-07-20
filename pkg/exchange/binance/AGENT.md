@@ -158,6 +158,42 @@ Binance WebSocket connectivity is handled under:
 **Rules:**
 
 - Connection URL depends on production/testnet mode.
-- Use **combined streams (`/stream?streams=...`) for multiplexing**, or single streams for individual channels.
 - Implement **ping/pong** keepalive.
 - Binance provide two ways to subscribe/unsubscribe data: use subscribe/unsubscribe request or subscribe a raw stream, here the implemeation always use raw stream
+- The public API of a websocket subscription should looks like that:
+
+```go
+func (c *WSStreamClient) SubscribeToKline(symbol string, interval string, options *KlineSubscriptionOptions) (unsubscribe func() error, error)
+```
+
+The KlineSubscriptionOptions define the chain methods for user include:
+- WithConnect(callback func())
+- WithReconnect(callback func())
+- WithKline(callback KlineCallback)
+- WithDisconnect(callback func())
+- WithError(callback func(error))
+
+So user can utilize the subscriptionOption.WithConnect(callback).WithKline(klineCallback) to focus what they really want of it.
+
+Example usage:
+```go
+klineOptions := &KlineSubscriptionOptions{}
+klineOptions.WithConnect(func() {
+    fmt.Println("Connected to kline stream")
+}).WithKline(func(data *WSKlineData) error {
+    fmt.Printf("Kline: Symbol=%s, Close=%f\n", data.Symbol, data.Kline.ClosePrice)
+    return nil
+}).WithError(func(err error) {
+    fmt.Printf("Error: %v\n", err)
+})
+
+unsubscribe, err := wsClient.SubscribeToKline("BTCUSDT", "1m", klineOptions)
+```
+
+If there are multiple event with the corresponding subscription, you can define the SubscriptionOptions with different pre-defined event handler like:
+- WithExecutionReport(ExecutionReportCallback)
+- WithAccountUpdate(OutboundAccountPositionCallback)
+- WithBalanceUpdate(BalanceUpdateCallback)
+
+This pattern makes developer easier to extend their implementation and provides type-safe callbacks for different data types.
+

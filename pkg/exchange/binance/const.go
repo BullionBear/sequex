@@ -120,10 +120,10 @@ const (
 // WebSocket URLs
 const (
 	// Production WebSocket endpoints
-	WSBaseURL = "wss://stream.binance.com:9443"
+	WSBaseURL = "wss://stream.binance.com:9443/ws"
 
 	// Testnet WebSocket endpoints
-	WSBaseURLTestnet = "wss://testnet.binance.vision"
+	WSBaseURLTestnet = "wss://testnet.binance.vision/ws"
 )
 
 // WebSocket Stream Names

@@ -70,7 +70,7 @@ func TestWSClient_SubscribeToStream(t *testing.T) {
 
 	// This should fail in test environment without real connection
 	// but we can test the URL construction
-	expectedURL := fmt.Sprintf("%s/ws/%s", WSBaseURL, streamName)
+	expectedURL := fmt.Sprintf("%s/%s", WSBaseURL, streamName)
 	if client.url != expectedURL {
 		t.Errorf("Expected URL %s, got %s", expectedURL, client.url)
 	}
@@ -117,11 +117,12 @@ func TestWSStreamClient_SubscribeToKline(t *testing.T) {
 	config := DefaultConfig()
 	client := NewWSStreamClient(config)
 
-	callback := func(data []byte) error {
+	options := &KlineSubscriptionOptions{}
+	options.WithKline(func(data *WSKlineData) error {
 		return nil
-	}
+	})
 
-	unsubscribe, err := client.SubscribeToKline("BTCUSDT", "1m", callback)
+	unsubscribe, err := client.SubscribeToKline("BTCUSDT", "1m", options)
 
 	// This should fail in test environment without real connection
 	// but we can test the stream name construction
@@ -136,11 +137,12 @@ func TestWSStreamClient_SubscribeToTicker(t *testing.T) {
 	config := DefaultConfig()
 	client := NewWSStreamClient(config)
 
-	callback := func(data []byte) error {
+	options := &TickerSubscriptionOptions{}
+	options.WithTicker(func(data *WSTickerData) error {
 		return nil
-	}
+	})
 
-	unsubscribe, err := client.SubscribeToTicker("BTCUSDT", callback)
+	unsubscribe, err := client.SubscribeToTicker("BTCUSDT", options)
 
 	// This should fail in test environment without real connection
 	if err == nil {
@@ -154,11 +156,12 @@ func TestWSStreamClient_SubscribeToMiniTicker(t *testing.T) {
 	config := DefaultConfig()
 	client := NewWSStreamClient(config)
 
-	callback := func(data []byte) error {
+	options := &MiniTickerSubscriptionOptions{}
+	options.WithMiniTicker(func(data *WSMiniTickerData) error {
 		return nil
-	}
+	})
 
-	unsubscribe, err := client.SubscribeToMiniTicker("BTCUSDT", callback)
+	unsubscribe, err := client.SubscribeToMiniTicker("BTCUSDT", options)
 
 	// This should fail in test environment without real connection
 	if err == nil {
@@ -172,11 +175,12 @@ func TestWSStreamClient_SubscribeToBookTicker(t *testing.T) {
 	config := DefaultConfig()
 	client := NewWSStreamClient(config)
 
-	callback := func(data []byte) error {
+	options := &BookTickerSubscriptionOptions{}
+	options.WithBookTicker(func(data *WSBookTickerData) error {
 		return nil
-	}
+	})
 
-	unsubscribe, err := client.SubscribeToBookTicker("BTCUSDT", callback)
+	unsubscribe, err := client.SubscribeToBookTicker("BTCUSDT", options)
 
 	// This should fail in test environment without real connection
 	if err == nil {
@@ -190,11 +194,12 @@ func TestWSStreamClient_SubscribeToDepth(t *testing.T) {
 	config := DefaultConfig()
 	client := NewWSStreamClient(config)
 
-	callback := func(data []byte) error {
+	options := &DepthSubscriptionOptions{}
+	options.WithDepth(func(data *WSDepthData) error {
 		return nil
-	}
+	})
 
-	unsubscribe, err := client.SubscribeToDepth("BTCUSDT", "5", callback)
+	unsubscribe, err := client.SubscribeToDepth("BTCUSDT", "5", options)
 
 	// This should fail in test environment without real connection
 	if err == nil {
@@ -208,11 +213,12 @@ func TestWSStreamClient_SubscribeToTrade(t *testing.T) {
 	config := DefaultConfig()
 	client := NewWSStreamClient(config)
 
-	callback := func(data []byte) error {
+	options := &TradeSubscriptionOptions{}
+	options.WithTrade(func(data *WSTradeData) error {
 		return nil
-	}
+	})
 
-	unsubscribe, err := client.SubscribeToTrade("BTCUSDT", callback)
+	unsubscribe, err := client.SubscribeToTrade("BTCUSDT", options)
 
 	// This should fail in test environment without real connection
 	if err == nil {
@@ -226,30 +232,12 @@ func TestWSStreamClient_SubscribeToAggTrade(t *testing.T) {
 	config := DefaultConfig()
 	client := NewWSStreamClient(config)
 
-	callback := func(data []byte) error {
+	options := &AggTradeSubscriptionOptions{}
+	options.WithAggTrade(func(data *WSAggTradeData) error {
 		return nil
-	}
+	})
 
-	unsubscribe, err := client.SubscribeToAggTrade("BTCUSDT", callback)
-
-	// This should fail in test environment without real connection
-	if err == nil {
-		defer unsubscribe()
-	}
-
-	// Check if the stream was attempted to be created
-}
-
-func TestWSStreamClient_SubscribeToCombinedStreams(t *testing.T) {
-	config := DefaultConfig()
-	client := NewWSStreamClient(config)
-
-	callback := func(data []byte) error {
-		return nil
-	}
-
-	streams := []string{"btcusdt@ticker", "ethusdt@ticker"}
-	unsubscribe, err := client.SubscribeToCombinedStreams(streams, callback)
+	unsubscribe, err := client.SubscribeToAggTrade("BTCUSDT", options)
 
 	// This should fail in test environment without real connection
 	if err == nil {
@@ -496,51 +484,17 @@ func TestWSStreamClient_SubscribeToUserDataStream(t *testing.T) {
 	config := DefaultConfig()
 	client := NewWSStreamClient(config)
 
-	callback := func(data []byte) error {
+	options := &UserDataSubscriptionOptions{}
+	options.WithExecutionReport(func(data *WSExecutionReport) error {
 		return nil
-	}
+	}).WithAccountUpdate(func(data *WSOutboundAccountPosition) error {
+		return nil
+	}).WithBalanceUpdate(func(data *WSBalanceUpdate) error {
+		return nil
+	})
 
 	listenKey := "test-listen-key"
-	unsubscribe, err := client.SubscribeToUserDataStream(listenKey, callback)
-
-	// This should fail in test environment without real connection
-	if err == nil {
-		defer unsubscribe()
-	}
-
-	// Check if the stream was attempted to be created
-}
-
-func TestWSStreamClient_SubscribeToUserDataStreamWithCallbacks(t *testing.T) {
-	config := DefaultConfig()
-	client := NewWSStreamClient(config)
-
-	accountPositionCallback := func(data *WSOutboundAccountPosition) error {
-		if data.EventType != "outboundAccountPosition" {
-			t.Errorf("Expected event type outboundAccountPosition, got %s", data.EventType)
-		}
-		return nil
-	}
-
-	balanceUpdateCallback := func(data *WSBalanceUpdate) error {
-		if data.EventType != "balanceUpdate" {
-			t.Errorf("Expected event type balanceUpdate, got %s", data.EventType)
-		}
-		return nil
-	}
-
-	executionReportCallback := func(data *WSExecutionReport) error {
-		if data.EventType != "executionReport" {
-			t.Errorf("Expected event type executionReport, got %s", data.EventType)
-		}
-		return nil
-	}
-
-	unsubscribe, err := client.SubscribeToUserDataStreamWithCallbacks(
-		accountPositionCallback,
-		balanceUpdateCallback,
-		executionReportCallback,
-	)
+	unsubscribe, err := client.SubscribeToUserDataStream(listenKey, options)
 
 	// This should fail in test environment without real connection
 	if err == nil {
@@ -686,135 +640,6 @@ func TestParseExecutionReport(t *testing.T) {
 	}
 }
 
-func TestWSStreamClient_SubscribeToKlineWithCallback(t *testing.T) {
-	config := DefaultConfig()
-	client := NewWSStreamClient(config)
-
-	callback := func(data *WSKlineData) error {
-		if data.Symbol != "BTCUSDT" {
-			t.Errorf("Expected symbol BTCUSDT, got %s", data.Symbol)
-		}
-		return nil
-	}
-
-	unsubscribe, err := client.SubscribeToKlineWithCallback("BTCUSDT", "1m", callback)
-
-	// This should fail in test environment without real connection
-	if err == nil {
-		defer unsubscribe()
-	}
-
-	// Check if the stream was attempted to be created
-}
-
-func TestWSStreamClient_SubscribeToTickerWithCallback(t *testing.T) {
-	config := DefaultConfig()
-	client := NewWSStreamClient(config)
-
-	callback := func(data *WSTickerData) error {
-		if data.Symbol != "BTCUSDT" {
-			t.Errorf("Expected symbol BTCUSDT, got %s", data.Symbol)
-		}
-		return nil
-	}
-
-	unsubscribe, err := client.SubscribeToTickerWithCallback("BTCUSDT", callback)
-
-	// This should fail in test environment without real connection
-	if err == nil {
-		defer unsubscribe()
-	}
-
-	// Check if the stream was attempted to be created
-}
-
-func TestWSStreamClient_SubscribeToTradeWithCallback(t *testing.T) {
-	config := DefaultConfig()
-	client := NewWSStreamClient(config)
-
-	callback := func(data *WSTradeData) error {
-		if data.Symbol != "BTCUSDT" {
-			t.Errorf("Expected symbol BTCUSDT, got %s", data.Symbol)
-		}
-		return nil
-	}
-
-	unsubscribe, err := client.SubscribeToTradeWithCallback("BTCUSDT", callback)
-
-	// This should fail in test environment without real connection
-	if err == nil {
-		defer unsubscribe()
-	}
-
-	// Check if the stream was attempted to be created
-}
-
-func TestWSStreamClient_SubscribeToBookTickerWithCallback(t *testing.T) {
-	config := DefaultConfig()
-	client := NewWSStreamClient(config)
-
-	callback := func(data *WSBookTickerData) error {
-		if data.Symbol != "BTCUSDT" {
-			t.Errorf("Expected symbol BTCUSDT, got %s", data.Symbol)
-		}
-		return nil
-	}
-
-	unsubscribe, err := client.SubscribeToBookTickerWithCallback("BTCUSDT", callback)
-
-	// This should fail in test environment without real connection
-	if err == nil {
-		defer unsubscribe()
-	}
-
-	// Check if the stream was attempted to be created
-}
-
-func TestWSStreamClient_SubscribeToPartialDepthWithCallback(t *testing.T) {
-	config := DefaultConfig()
-	client := NewWSStreamClient(config)
-
-	callback := func(data *WSPartialDepthData) error {
-		if data.LastUpdateID <= 0 {
-			t.Error("Expected positive LastUpdateID")
-		}
-		return nil
-	}
-
-	unsubscribe, err := client.SubscribeToPartialDepthWithCallback("BTCUSDT", "5", callback)
-
-	// This should fail in test environment without real connection
-	if err == nil {
-		defer unsubscribe()
-	}
-
-	// Check if the stream was attempted to be created
-}
-
-func TestWSStreamClient_SubscribeToDiffDepthWithCallback(t *testing.T) {
-	config := DefaultConfig()
-	client := NewWSStreamClient(config)
-
-	callback := func(data *WSDiffDepthData) error {
-		if data.Symbol != "BTCUSDT" {
-			t.Errorf("Expected symbol BTCUSDT, got %s", data.Symbol)
-		}
-		if data.EventType != "depthUpdate" {
-			t.Errorf("Expected event type depthUpdate, got %s", data.EventType)
-		}
-		return nil
-	}
-
-	unsubscribe, err := client.SubscribeToDiffDepthWithCallback("BTCUSDT", "", callback)
-
-	// This should fail in test environment without real connection
-	if err == nil {
-		defer unsubscribe()
-	}
-
-	// Check if the stream was attempted to be created
-}
-
 func TestParsePartialDepthData(t *testing.T) {
 	// Sample partial depth data from Binance WebSocket
 	sampleData := `{
@@ -884,5 +709,125 @@ func TestParseDiffDepthData(t *testing.T) {
 
 	if diffDepthData.FinalUpdateID != 160 {
 		t.Errorf("Expected FinalUpdateID 160, got %d", diffDepthData.FinalUpdateID)
+	}
+}
+
+// TestNewSubscriptionPattern tests the new subscription pattern with options
+func TestNewSubscriptionPattern(t *testing.T) {
+	config := DefaultConfig()
+	client := NewWSStreamClient(config)
+
+	// Test kline subscription with all callbacks
+	klineOptions := &KlineSubscriptionOptions{}
+	klineOptions.WithConnect(func() {
+		// Connection callback
+	}).WithReconnect(func() {
+		// Reconnect callback
+	}).WithKline(func(data *WSKlineData) error {
+		// Data callback
+		return nil
+	}).WithDisconnect(func() {
+		// Disconnect callback
+	}).WithError(func(err error) {
+		// Error callback
+	})
+
+	unsubscribe, err := client.SubscribeToKline("BTCUSDT", "1m", klineOptions)
+	if err == nil {
+		defer unsubscribe()
+	}
+
+	// Test ticker subscription with minimal options
+	tickerOptions := &TickerSubscriptionOptions{}
+	tickerOptions.WithTicker(func(data *WSTickerData) error {
+		return nil
+	})
+
+	unsubscribe2, err := client.SubscribeToTicker("ETHUSDT", tickerOptions)
+	if err == nil {
+		defer unsubscribe2()
+	}
+
+	// Test user data stream subscription
+	userDataOptions := &UserDataSubscriptionOptions{}
+	userDataOptions.WithExecutionReport(func(data *WSExecutionReport) error {
+		return nil
+	}).WithAccountUpdate(func(data *WSOutboundAccountPosition) error {
+		return nil
+	}).WithBalanceUpdate(func(data *WSBalanceUpdate) error {
+		return nil
+	})
+
+	listenKey := "test-listen-key"
+	unsubscribe3, err := client.SubscribeToUserDataStream(listenKey, userDataOptions)
+	if err == nil {
+		defer unsubscribe3()
+	}
+}
+
+// TestSubscriptionOptionsChainability tests that subscription options can be chained
+func TestSubscriptionOptionsChainability(t *testing.T) {
+	// Test that all subscription options can be chained
+	klineOptions := &KlineSubscriptionOptions{}
+	klineOptions.WithConnect(func() {}).
+		WithReconnect(func() {}).
+		WithKline(func(data *WSKlineData) error { return nil }).
+		WithDisconnect(func() {}).
+		WithError(func(err error) {})
+
+	if klineOptions.onConnect == nil {
+		t.Error("Expected onConnect to be set")
+	}
+	if klineOptions.onReconnect == nil {
+		t.Error("Expected onReconnect to be set")
+	}
+	if klineOptions.onKline == nil {
+		t.Error("Expected onKline to be set")
+	}
+	if klineOptions.onDisconnect == nil {
+		t.Error("Expected onDisconnect to be set")
+	}
+	if klineOptions.onError == nil {
+		t.Error("Expected onError to be set")
+	}
+
+	// Test ticker options
+	tickerOptions := &TickerSubscriptionOptions{}
+	tickerOptions.WithConnect(func() {}).
+		WithTicker(func(data *WSTickerData) error { return nil }).
+		WithError(func(err error) {})
+
+	if tickerOptions.onConnect == nil {
+		t.Error("Expected onConnect to be set")
+	}
+	if tickerOptions.onTicker == nil {
+		t.Error("Expected onTicker to be set")
+	}
+	if tickerOptions.onError == nil {
+		t.Error("Expected onError to be set")
+	}
+
+	// Test user data options
+	userDataOptions := &UserDataSubscriptionOptions{}
+	userDataOptions.WithConnect(func() {}).
+		WithExecutionReport(func(data *WSExecutionReport) error { return nil }).
+		WithAccountUpdate(func(data *WSOutboundAccountPosition) error { return nil }).
+		WithBalanceUpdate(func(data *WSBalanceUpdate) error { return nil }).
+		WithError(func(err error) {})
+
+	if userDataOptions.onConnect == nil {
+		t.Error("Expected onConnect to be set")
+	}
+	if userDataOptions.onExecutionReport == nil {
+		t.Error("Expected onExecutionReport to be set")
+	}
+	if userDataOptions.onAccountUpdate == nil {
+		t.Error("Expected onAccountUpdate to be set")
+	}
+	if userDataOptions.onBalanceUpdate == nil {
+		t.Error("Expected onBalanceUpdate to be set")
+	}
+	if userDataOptions.onError == nil {
+		t.Error("Expected onError to be set")
 	}
 }

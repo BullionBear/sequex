@@ -152,8 +152,13 @@ func (c *WSClient) Disconnect() error {
 		return nil
 	}
 
-	// Signal close
-	close(c.closeChan)
+	// Signal close (use select to avoid closing already closed channel)
+	select {
+	case <-c.closeChan:
+		// Channel already closed
+	default:
+		close(c.closeChan)
+	}
 
 	// Close connection
 	if c.conn != nil {
@@ -321,7 +326,7 @@ func (c *WSClient) SendMessage(message interface{}) error {
 // SubscribeToStream subscribes to a specific stream
 func (c *WSClient) SubscribeToStream(streamName string) error {
 	// For raw streams, we connect directly to the stream URL
-	streamURL := fmt.Sprintf("%s/ws/%s", c.url, streamName)
+	streamURL := fmt.Sprintf("%s/%s", c.url, streamName)
 
 	// Close existing connection if any
 	if c.isConnected {
