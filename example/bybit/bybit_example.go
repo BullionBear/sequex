@@ -4,24 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/BullionBear/sequex/pkg/exchange/bybit"
 )
 
 func main() {
-	// Source environment variables
-	// export BYBIT_TESTNET_API_KEY=A6Gtu44oGkqocpj8r6
-	// export BYBIT_TESTNET_API_SECRET=uYJtYU3jyyYeF9exQqgssURTdEJRUlgiiw2K
-
 	// Create Bybit client with testnet configuration
 	config := bybit.TestnetConfig()
 
-	// Set API credentials from environment variables
-	apiKey := "A6Gtu44oGkqocpj8r6"                      // BYBIT_TESTNET_API_KEY
-	apiSecret := "uYJtYU3jyyYeF9exQqgssURTdEJRUlgiiw2K" // BYBIT_TESTNET_API_SECRET
-
-	config = config.WithAPIKey(apiKey).WithAPISecret(apiSecret)
+	config = config.WithAPIKey(os.Getenv("BYBIT_TESTNET_API_KEY")).WithAPISecret(os.Getenv("BYBIT_TESTNET_API_SECRET"))
 	client := bybit.NewClient(config)
 
 	ctx := context.Background()
