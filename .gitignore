@@ -25,5 +25,5 @@ experiment/
 bin
 config.yml
 
-# Binance test credentials
-pkg/exchange/binance/binance_test.yml
+# test credentials
+env.sh
