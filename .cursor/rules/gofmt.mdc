@@ -1,0 +1,15 @@
+---
+description: Ensures all `.go` files are formatted with `gofmt`
+globs: 
+    - "**/*.go"
+alwaysApply: false
+---
+
+# Implementation Standards for Go (`gofmt`)
+
+- All Go source files (`*.go`) **must** be formatted using the standard `gofmt` tool before commit or merge.
+- Code **should not** be manually aligned or formatted in a way that conflicts with `gofmt` output.
+- Formatting is enforced on all files matching the glob: `**/*.go`.
+- If a file is not properly formatted, the change **may be rejected** or require reformatting.
+- Use the command `gofmt -w .` in the project root to automatically format all Go files.
+- Consistent formatting improves readability, reduces diffs, and follows the Go community's best practices.
