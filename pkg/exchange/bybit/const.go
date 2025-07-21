@@ -101,6 +101,21 @@ const (
 	OrderStatusExpired         = "Expired"
 )
 
+// Order Filter (UTA 2.0)
+const (
+	OrderFilterActive      = "ActiveOrder"
+	OrderFilterStop        = "StopOrder"
+	OrderFilterTpsl        = "TpslOrder"
+	OrderFilterOco         = "OcoOrder"
+	OrderFilterConditional = "ConditionalOrder"
+)
+
+// Place Type (UTA 2.0)
+const (
+	PlaceTypeIvRequest = "iv_request"
+	PlaceTypeUta       = "uta"
+)
+
 // Position Side
 const (
 	PositionSideLong  = "Long"

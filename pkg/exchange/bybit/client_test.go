@@ -211,7 +211,7 @@ func TestCreateOrder(t *testing.T) {
 
 	t.Logf("Order created successfully: %s", createOrderResp.Result.OrderId)
 
-	// Test getting order information
+	// Test getting order information (UTA 2.0)
 	getOrderReq := &GetOrderRequest{
 		Category: "inverse",
 		Symbol:   "BTCUSD",
@@ -227,7 +227,31 @@ func TestCreateOrder(t *testing.T) {
 		t.Fatalf("Expected retCode 0, got %d: %s", getOrderResp.RetCode, getOrderResp.RetMsg)
 	}
 
-	t.Logf("Order retrieved successfully: %s", getOrderResp.Result.OrderId)
+	// Verify we got order data in the list
+	if len(getOrderResp.Result.List) == 0 {
+		t.Error("Expected order data, got empty list")
+	} else {
+		order := getOrderResp.Result.List[0]
+		t.Logf("Order retrieved successfully: %s", order.OrderId)
+	}
+
+	// Test getting single order
+	getSingleOrderReq := &GetOrderRequest{
+		Category: "inverse",
+		Symbol:   "BTCUSD",
+		OrderId:  createOrderResp.Result.OrderId,
+	}
+
+	getSingleOrderResp, err := client.GetSingleOrder(ctx, getSingleOrderReq)
+	if err != nil {
+		t.Fatalf("Failed to get single order: %v", err)
+	}
+
+	if getSingleOrderResp.RetCode != 0 {
+		t.Fatalf("Expected retCode 0, got %d: %s", getSingleOrderResp.RetCode, getSingleOrderResp.RetMsg)
+	}
+
+	t.Logf("Single order retrieved successfully: %s", getSingleOrderResp.Result.OrderId)
 
 	// Test canceling the order
 	cancelOrderReq := &CancelOrderRequest{

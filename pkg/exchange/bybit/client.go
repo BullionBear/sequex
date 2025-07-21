@@ -188,12 +188,66 @@ func (c *Client) CancelOrder(ctx context.Context, req *CancelOrderRequest) (*Can
 	return &cancelOrderResp, nil
 }
 
-// GetOrder retrieves order information
-func (c *Client) GetOrder(ctx context.Context, req *GetOrderRequest) (*GetOrderResponse, error) {
+// GetOrder retrieves order information (UTA 2.0)
+func (c *Client) GetOrder(ctx context.Context, req *GetOrderRequest) (*GetOrderListResponse, error) {
 	// Build query parameters
 	params := url.Values{}
 	params.Set("category", req.Category)
-	params.Set("symbol", req.Symbol)
+	if req.Symbol != "" {
+		params.Set("symbol", req.Symbol)
+	}
+	if req.OrderId != "" {
+		params.Set("orderId", req.OrderId)
+	}
+	if req.OrderLinkId != "" {
+		params.Set("orderLinkId", req.OrderLinkId)
+	}
+	if req.SettleCoin != "" {
+		params.Set("settleCoin", req.SettleCoin)
+	}
+	if req.OrderFilter != "" {
+		params.Set("orderFilter", req.OrderFilter)
+	}
+	if req.Limit > 0 {
+		params.Set("limit", fmt.Sprintf("%d", req.Limit))
+	}
+	if req.Cursor != "" {
+		params.Set("cursor", req.Cursor)
+	}
+
+	// Make the signed GET request
+	resp, err := c.requestService.DoSignedGETRequest(ctx, EndpointOrderStatus, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get order: %w", err)
+	}
+
+	// Parse the response
+	var getOrderResp GetOrderListResponse
+	if err := json.Unmarshal(resp, &getOrderResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal get order response: %w", err)
+	}
+
+	// Check for API errors
+	if getOrderResp.RetCode != 0 {
+		return nil, fmt.Errorf("API error: code=%d, msg=%s", getOrderResp.RetCode, getOrderResp.RetMsg)
+	}
+
+	return &getOrderResp, nil
+}
+
+// GetSingleOrder retrieves a single order by orderId or orderLinkId
+func (c *Client) GetSingleOrder(ctx context.Context, req *GetOrderRequest) (*GetOrderResponse, error) {
+	// For single order lookup, we need either orderId or orderLinkId
+	if req.OrderId == "" && req.OrderLinkId == "" {
+		return nil, fmt.Errorf("either orderId or orderLinkId must be provided")
+	}
+
+	// Build query parameters
+	params := url.Values{}
+	params.Set("category", req.Category)
+	if req.Symbol != "" {
+		params.Set("symbol", req.Symbol)
+	}
 	if req.OrderId != "" {
 		params.Set("orderId", req.OrderId)
 	}
@@ -204,13 +258,13 @@ func (c *Client) GetOrder(ctx context.Context, req *GetOrderRequest) (*GetOrderR
 	// Make the signed GET request
 	resp, err := c.requestService.DoSignedGETRequest(ctx, EndpointOrderStatus, params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get order: %w", err)
+		return nil, fmt.Errorf("failed to get single order: %w", err)
 	}
 
 	// Parse the response
 	var getOrderResp GetOrderResponse
 	if err := json.Unmarshal(resp, &getOrderResp); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal get order response: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal get single order response: %w", err)
 	}
 
 	// Check for API errors

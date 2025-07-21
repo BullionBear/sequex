@@ -220,24 +220,8 @@ type CreateOrderResponse struct {
 }
 
 type CreateOrderResult struct {
-	OrderId      string `json:"orderId"`
-	OrderLinkId  string `json:"orderLinkId"`
-	Symbol       string `json:"symbol"`
-	Category     string `json:"category"`
-	Side         string `json:"side"`
-	OrderType    string `json:"orderType"`
-	Qty          string `json:"qty"`
-	Price        string `json:"price"`
-	TimeInForce  string `json:"timeInForce"`
-	OrderStatus  string `json:"orderStatus"`
-	CreatedTime  string `json:"createdTime"`
-	UpdatedTime  string `json:"updatedTime"`
-	AvgPrice     string `json:"avgPrice"`
-	CumExecQty   string `json:"cumExecQty"`
-	CumExecValue string `json:"cumExecValue"`
-	CumExecFee   string `json:"cumExecFee"`
-	TakeProfit   string `json:"takeProfit"`
-	StopLoss     string `json:"stopLoss"`
+	OrderId     string `json:"orderId"`
+	OrderLinkId string `json:"orderLinkId"`
 }
 
 // CancelOrderRequest represents the request to cancel an order
@@ -279,9 +263,13 @@ type CancelOrderResult struct {
 // GetOrderRequest represents the request to get order information
 type GetOrderRequest struct {
 	Category    string `json:"category"`
-	Symbol      string `json:"symbol"`
+	Symbol      string `json:"symbol,omitempty"`
 	OrderId     string `json:"orderId,omitempty"`
 	OrderLinkId string `json:"orderLinkId,omitempty"`
+	SettleCoin  string `json:"settleCoin,omitempty"`
+	OrderFilter string `json:"orderFilter,omitempty"`
+	Limit       int    `json:"limit,omitempty"`
+	Cursor      string `json:"cursor,omitempty"`
 }
 
 // GetOrderResponse represents the response from getting order information
@@ -293,25 +281,96 @@ type GetOrderResponse struct {
 	Time       int64          `json:"time"`
 }
 
+type GetOrderListResponse struct {
+	RetCode    int                `json:"retCode"`
+	RetMsg     string             `json:"retMsg"`
+	Result     GetOrderListResult `json:"result"`
+	RetExtInfo interface{}        `json:"retExtInfo"`
+	Time       int64              `json:"time"`
+}
+
+type GetOrderListResult struct {
+	Category       string           `json:"category"`
+	Symbol         string           `json:"symbol"`
+	List           []GetOrderResult `json:"list"`
+	NextPageCursor string           `json:"nextPageCursor"`
+}
+
 type GetOrderResult struct {
-	OrderId      string `json:"orderId"`
-	OrderLinkId  string `json:"orderLinkId"`
-	Symbol       string `json:"symbol"`
-	Category     string `json:"category"`
-	Side         string `json:"side"`
-	OrderType    string `json:"orderType"`
-	Qty          string `json:"qty"`
-	Price        string `json:"price"`
-	TimeInForce  string `json:"timeInForce"`
-	OrderStatus  string `json:"orderStatus"`
-	CreatedTime  string `json:"createdTime"`
-	UpdatedTime  string `json:"updatedTime"`
-	AvgPrice     string `json:"avgPrice"`
-	CumExecQty   string `json:"cumExecQty"`
-	CumExecValue string `json:"cumExecValue"`
-	CumExecFee   string `json:"cumExecFee"`
-	TakeProfit   string `json:"takeProfit"`
-	StopLoss     string `json:"stopLoss"`
+	Category            string `json:"category"`
+	Symbol              string `json:"symbol"`
+	OrderId             string `json:"orderId"`
+	OrderLinkId         string `json:"orderLinkId"`
+	BlockTradeId        string `json:"blockTradeId"`
+	Side                string `json:"side"`
+	OrderType           string `json:"orderType"`
+	Qty                 string `json:"qty"`
+	Price               string `json:"price"`
+	TimeInForce         string `json:"timeInForce"`
+	OrderStatus         string `json:"orderStatus"`
+	CreatedTime         string `json:"createdTime"`
+	UpdatedTime         string `json:"updatedTime"`
+	AvgPrice            string `json:"avgPrice"`
+	CumExecQty          string `json:"cumExecQty"`
+	CumExecValue        string `json:"cumExecValue"`
+	CumExecFee          string `json:"cumExecFee"`
+	TakeProfit          string `json:"takeProfit"`
+	StopLoss            string `json:"stopLoss"`
+	TrailingStop        string `json:"trailingStop"`
+	PositionIdx         int    `json:"positionIdx"`
+	LastPriceOnCreated  string `json:"lastPriceOnCreated"`
+	ReduceOnly          bool   `json:"reduceOnly"`
+	CloseOnTrigger      bool   `json:"closeOnTrigger"`
+	Leverage            string `json:"leverage"`
+	BasePrice           string `json:"basePrice"`
+	TriggerPrice        string `json:"triggerPrice"`
+	TriggerDirection    int    `json:"triggerDirection"`
+	TriggerBy           string `json:"triggerBy"`
+	TpslMode            string `json:"tpslMode"`
+	TpLimitPrice        string `json:"tpLimitPrice"`
+	SlLimitPrice        string `json:"slLimitPrice"`
+	TpTriggerBy         string `json:"tpTriggerBy"`
+	SlTriggerBy         string `json:"slTriggerBy"`
+	TpOrderType         string `json:"tpOrderType"`
+	SlOrderType         string `json:"slOrderType"`
+	TpSize              string `json:"tpSize"`
+	SlSize              string `json:"slSize"`
+	TpTakeProfit        string `json:"tpTakeProfit"`
+	SlStopLoss          string `json:"slStopLoss"`
+	TpTriggerPrice      string `json:"tpTriggerPrice"`
+	SlTriggerPrice      string `json:"slTriggerPrice"`
+	TpLimitPrice2       string `json:"tpLimitPrice2"`
+	SlLimitPrice2       string `json:"slLimitPrice2"`
+	TpTriggerBy2        string `json:"tpTriggerBy2"`
+	SlTriggerBy2        string `json:"slTriggerBy2"`
+	TpOrderType2        string `json:"tpOrderType2"`
+	SlOrderType2        string `json:"slOrderType2"`
+	TpSize2             string `json:"tpSize2"`
+	SlSize2             string `json:"slSize2"`
+	TpTakeProfit2       string `json:"tpTakeProfit2"`
+	SlStopLoss2         string `json:"slStopLoss2"`
+	TpTriggerPrice2     string `json:"tpTriggerPrice2"`
+	SlTriggerPrice2     string `json:"slTriggerPrice2"`
+	PlaceType           string `json:"placeType"`
+	Iv                  string `json:"iv"`
+	MarketUnit          string `json:"marketUnit"`
+	ContractType        string `json:"contractType"`
+	ContractValue       string `json:"contractValue"`
+	CategoryType        string `json:"categoryType"`
+	SmPnl               string `json:"smPnl"`
+	MmPnl               string `json:"mmPnl"`
+	Gap                 string `json:"gap"`
+	Rebate              string `json:"rebate"`
+	FromRp              string `json:"fromRp"`
+	RpId                string `json:"rpId"`
+	RpPnl               string `json:"rpPnl"`
+	StopOrderType       string `json:"stopOrderType"`
+	OcoTriggerBy        string `json:"ocoTriggerBy"`
+	CancelType          string `json:"cancelType"`
+	CanceledBy          string `json:"canceledBy"`
+	CancelReason        string `json:"cancelReason"`
+	CancelReasonCode    string `json:"cancelReasonCode"`
+	CancelReasonMessage string `json:"cancelReasonMessage"`
 }
 
 // AccountResponse represents the account information response
