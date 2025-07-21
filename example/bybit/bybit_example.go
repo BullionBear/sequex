@@ -115,18 +115,28 @@ func main() {
 		log.Printf("Failed to get account info: %v", err)
 	} else {
 		for _, account := range accountResp.Result.List {
-			fmt.Printf("Account: %s\n", account.AccountType)
-		}
-	}
+			fmt.Printf("Account Type: %s\n", account.AccountType)
+			fmt.Printf("Total Wallet Balance: %s\n", account.TotalWalletBalance)
+			fmt.Printf("Total Available Balance: %s\n", account.TotalAvailableBalance)
+			fmt.Printf("Total Equity: %s\n", account.TotalEquity)
+			fmt.Printf("Total Perp UPL: %s\n", account.TotalPerpUPL)
+			fmt.Printf("Account LTV: %s\n", account.AccountLTV)
+			fmt.Printf("Account IM Rate: %s\n", account.AccountIMRate)
+			fmt.Printf("Account MM Rate: %s\n", account.AccountMMRate)
 
-	// Example 6b: Get account information by type (backward compatibility)
-	fmt.Println("\n=== Account Information (Backward Compatibility) ===")
-	accountResp2, err := client.GetAccountByType(ctx, bybit.AccountTypeUnified)
-	if err != nil {
-		log.Printf("Failed to get account info: %v", err)
-	} else {
-		for _, account := range accountResp2.Result.List {
-			fmt.Printf("Account: %s\n", account.AccountType)
+			fmt.Println("Coin Details:")
+			for _, coin := range account.Coin {
+				fmt.Printf("  Coin: %s\n", coin.Coin)
+				fmt.Printf("  Wallet Balance: %s\n", coin.WalletBalance)
+				fmt.Printf("  Available to Withdraw: %s\n", coin.AvailableToWithdraw)
+				fmt.Printf("  Available to Borrow: %s\n", coin.AvailableToBorrow)
+				fmt.Printf("  Unrealised PnL: %s\n", coin.UnrealisedPnl)
+				fmt.Printf("  Cum Realised PnL: %s\n", coin.CumRealisedPnl)
+				fmt.Printf("  Locked: %s\n", coin.Locked)
+				fmt.Printf("  USD Value: %s\n", coin.UsdValue)
+				fmt.Printf("  Margin Collateral: %t\n", coin.MarginCollateral)
+				fmt.Printf("  Collateral Switch: %t\n", coin.CollateralSwitch)
+			}
 		}
 	}
 

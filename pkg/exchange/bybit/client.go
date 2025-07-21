@@ -305,11 +305,3 @@ func (c *Client) GetAccount(ctx context.Context, req *GetAccountRequest) (*Accou
 
 	return &accountResp, nil
 }
-
-// GetAccountByType retrieves account information by account type (backward compatibility)
-func (c *Client) GetAccountByType(ctx context.Context, accountType string) (*AccountResponse, error) {
-	req := &GetAccountRequest{
-		AccountType: accountType,
-	}
-	return c.GetAccount(ctx, req)
-}

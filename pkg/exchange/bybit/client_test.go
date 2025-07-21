@@ -169,6 +169,12 @@ func TestGetAccount(t *testing.T) {
 		account := accountResp.Result.List[0]
 		t.Logf("Total Wallet Balance: %s", account.TotalWalletBalance)
 		t.Logf("Total Available Balance: %s", account.TotalAvailableBalance)
+		t.Logf("Total Equity: %s", account.TotalEquity)
+		t.Logf("Account Type: %s", account.AccountType)
+		if len(account.Coin) > 0 {
+			coin := account.Coin[0]
+			t.Logf("Coin: %s, Wallet Balance: %s", coin.Coin, coin.WalletBalance)
+		}
 	}
 }
 
