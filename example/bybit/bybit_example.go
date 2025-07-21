@@ -138,13 +138,9 @@ func main() {
 	} else {
 		fmt.Printf("Order created successfully!\n")
 		fmt.Printf("Order ID: %s\n", createOrderResp.Result.OrderId)
-		fmt.Printf("Symbol: %s\n", createOrderResp.Result.Symbol)
-		fmt.Printf("Side: %s\n", createOrderResp.Result.Side)
-		fmt.Printf("Quantity: %s\n", createOrderResp.Result.Qty)
-		fmt.Printf("Price: %s\n", createOrderResp.Result.Price)
-		fmt.Printf("Status: %s\n", createOrderResp.Result.OrderStatus)
+		fmt.Printf("Order Link ID: %s\n", createOrderResp.Result.OrderLinkId)
 
-		// Example 8: Get order information
+		// Example 8: Get order information (UTA 2.0)
 		fmt.Println("\n=== Order Information ===")
 		getOrderReq := &bybit.GetOrderRequest{
 			Category: "inverse",
@@ -156,12 +152,37 @@ func main() {
 		if err != nil {
 			log.Printf("Failed to get order: %v", err)
 		} else {
-			fmt.Printf("Order ID: %s\n", getOrderResp.Result.OrderId)
-			fmt.Printf("Status: %s\n", getOrderResp.Result.OrderStatus)
-			fmt.Printf("Created Time: %s\n", getOrderResp.Result.CreatedTime)
-			fmt.Printf("Updated Time: %s\n", getOrderResp.Result.UpdatedTime)
-			fmt.Printf("Executed Qty: %s\n", getOrderResp.Result.CumExecQty)
-			fmt.Printf("Executed Value: %s\n", getOrderResp.Result.CumExecValue)
+			if len(getOrderResp.Result.List) > 0 {
+				order := getOrderResp.Result.List[0]
+				fmt.Printf("Order ID: %s\n", order.OrderId)
+				fmt.Printf("Status: %s\n", order.OrderStatus)
+				fmt.Printf("Created Time: %s\n", order.CreatedTime)
+				fmt.Printf("Updated Time: %s\n", order.UpdatedTime)
+				fmt.Printf("Executed Qty: %s\n", order.CumExecQty)
+				fmt.Printf("Executed Value: %s\n", order.CumExecValue)
+			} else {
+				fmt.Printf("No orders found\n")
+			}
+		}
+
+		// Example 8b: Get single order information
+		fmt.Println("\n=== Single Order Information ===")
+		getSingleOrderReq := &bybit.GetOrderRequest{
+			Category: "inverse",
+			Symbol:   "BTCUSD",
+			OrderId:  createOrderResp.Result.OrderId,
+		}
+
+		getSingleOrderResp, err := client.GetSingleOrder(ctx, getSingleOrderReq)
+		if err != nil {
+			log.Printf("Failed to get single order: %v", err)
+		} else {
+			fmt.Printf("Order ID: %s\n", getSingleOrderResp.Result.OrderId)
+			fmt.Printf("Status: %s\n", getSingleOrderResp.Result.OrderStatus)
+			fmt.Printf("Created Time: %s\n", getSingleOrderResp.Result.CreatedTime)
+			fmt.Printf("Updated Time: %s\n", getSingleOrderResp.Result.UpdatedTime)
+			fmt.Printf("Executed Qty: %s\n", getSingleOrderResp.Result.CumExecQty)
+			fmt.Printf("Executed Value: %s\n", getSingleOrderResp.Result.CumExecValue)
 		}
 
 		// Example 9: Cancel the order
@@ -198,13 +219,6 @@ func main() {
 	} else {
 		fmt.Printf("Market sell order created successfully!\n")
 		fmt.Printf("Order ID: %s\n", marketSellResp.Result.OrderId)
-		fmt.Printf("Symbol: %s\n", marketSellResp.Result.Symbol)
-		fmt.Printf("Side: %s\n", marketSellResp.Result.Side)
-		fmt.Printf("Quantity: %s\n", marketSellResp.Result.Qty)
-		fmt.Printf("Status: %s\n", marketSellResp.Result.OrderStatus)
-		fmt.Printf("Average Price: %s\n", marketSellResp.Result.AvgPrice)
-		fmt.Printf("Executed Qty: %s\n", marketSellResp.Result.CumExecQty)
-		fmt.Printf("Executed Value: %s\n", marketSellResp.Result.CumExecValue)
-		fmt.Printf("Executed Fee: %s\n", marketSellResp.Result.CumExecFee)
+		fmt.Printf("Order Link ID: %s\n", marketSellResp.Result.OrderLinkId)
 	}
 }
