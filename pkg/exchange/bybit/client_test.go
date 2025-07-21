@@ -146,7 +146,10 @@ func TestGetAccount(t *testing.T) {
 
 	// Make the request
 	ctx := context.Background()
-	accountResp, err := client.GetAccount(ctx, "UNIFIED")
+	accountReq := &GetAccountRequest{
+		AccountType: AccountTypeUnified,
+	}
+	accountResp, err := client.GetAccount(ctx, accountReq)
 	if err != nil {
 		t.Fatalf("Failed to get account: %v", err)
 	}

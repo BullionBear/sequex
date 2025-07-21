@@ -116,6 +116,14 @@ const (
 	PlaceTypeUta       = "uta"
 )
 
+// Account Types (UTA 2.0)
+const (
+	AccountTypeUnified    = "UNIFIED"    // Unified trading account
+	AccountTypeContract   = "CONTRACT"   // Contract account (classic mode)
+	AccountTypeSpot       = "SPOT"       // Spot account (classic mode)
+	AccountTypeInvestment = "INVESTMENT" // Investment account
+)
+
 // Position Side
 const (
 	PositionSideLong  = "Long"

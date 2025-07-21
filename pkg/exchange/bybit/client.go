@@ -275,12 +275,15 @@ func (c *Client) GetSingleOrder(ctx context.Context, req *GetOrderRequest) (*Get
 	return &getOrderResp, nil
 }
 
-// GetAccount retrieves account information
-func (c *Client) GetAccount(ctx context.Context, accountType string) (*AccountResponse, error) {
+// GetAccount retrieves account information (UTA 2.0)
+func (c *Client) GetAccount(ctx context.Context, req *GetAccountRequest) (*AccountResponse, error) {
 	// Build query parameters
 	params := url.Values{}
-	if accountType != "" {
-		params.Set("accountType", accountType)
+	if req.AccountType != "" {
+		params.Set("accountType", req.AccountType)
+	}
+	if req.Coin != "" {
+		params.Set("coin", req.Coin)
 	}
 
 	// Make the signed GET request
@@ -301,4 +304,12 @@ func (c *Client) GetAccount(ctx context.Context, accountType string) (*AccountRe
 	}
 
 	return &accountResp, nil
+}
+
+// GetAccountByType retrieves account information by account type (backward compatibility)
+func (c *Client) GetAccountByType(ctx context.Context, accountType string) (*AccountResponse, error) {
+	req := &GetAccountRequest{
+		AccountType: accountType,
+	}
+	return c.GetAccount(ctx, req)
 }

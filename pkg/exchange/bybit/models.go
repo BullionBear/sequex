@@ -455,3 +455,9 @@ type AccountInfo struct {
 	TotalUnrealizedPnl2     string `json:"totalUnrealizedPnl2"`
 	TotalWalletBalance2     string `json:"totalWalletBalance2"`
 }
+
+// GetAccountRequest represents the request to get account information
+type GetAccountRequest struct {
+	AccountType string `json:"accountType,omitempty"`
+	Coin        string `json:"coin,omitempty"`
+}

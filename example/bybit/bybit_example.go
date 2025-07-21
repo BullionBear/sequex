@@ -12,9 +12,9 @@ import (
 
 func main() {
 	// Create Bybit client with testnet configuration
-	config := bybit.TestnetConfig()
+	config := bybit.DefaultConfig()
 
-	config = config.WithAPIKey(os.Getenv("BYBIT_TESTNET_API_KEY")).WithAPISecret(os.Getenv("BYBIT_TESTNET_API_SECRET"))
+	config = config.WithAPIKey(os.Getenv("BYBIT_API_KEY")).WithAPISecret(os.Getenv("BYBIT_API_SECRET"))
 	client := bybit.NewClient(config)
 
 	ctx := context.Background()
@@ -67,7 +67,7 @@ func main() {
 
 	// Example 4: Get ticker information
 	fmt.Println("\n=== Ticker Information ===")
-	tickerResp, err := client.GetTickers(ctx, "inverse", "BTCUSD")
+	tickerResp, err := client.GetTickers(ctx, "spot", "ADAUSDT")
 	if err != nil {
 		log.Fatalf("Failed to get tickers: %v", err)
 	}
@@ -107,28 +107,38 @@ func main() {
 
 	// Example 6: Get account information
 	fmt.Println("\n=== Account Information ===")
-	accountResp, err := client.GetAccount(ctx, "UNIFIED")
+	accountReq := &bybit.GetAccountRequest{
+		AccountType: bybit.AccountTypeUnified,
+	}
+	accountResp, err := client.GetAccount(ctx, accountReq)
 	if err != nil {
 		log.Printf("Failed to get account info: %v", err)
 	} else {
-		if len(accountResp.Result.List) > 0 {
-			account := accountResp.Result.List[0]
-			fmt.Printf("Total Wallet Balance: %s\n", account.TotalWalletBalance)
-			fmt.Printf("Total Available Balance: %s\n", account.TotalAvailableBalance)
-			fmt.Printf("Total Unrealized PnL: %s\n", account.TotalUnrealizedPnl)
-			fmt.Printf("Total Realized PnL: %s\n", account.TotalRealizedPnl)
+		for _, account := range accountResp.Result.List {
+			fmt.Printf("Account: %s\n", account.AccountType)
+		}
+	}
+
+	// Example 6b: Get account information by type (backward compatibility)
+	fmt.Println("\n=== Account Information (Backward Compatibility) ===")
+	accountResp2, err := client.GetAccountByType(ctx, bybit.AccountTypeUnified)
+	if err != nil {
+		log.Printf("Failed to get account info: %v", err)
+	} else {
+		for _, account := range accountResp2.Result.List {
+			fmt.Printf("Account: %s\n", account.AccountType)
 		}
 	}
 
 	// Example 7: Create a limit buy order (100 USD contract value)
 	fmt.Println("\n=== Creating Limit Buy Order ===")
 	createOrderReq := &bybit.CreateOrderRequest{
-		Category:    "inverse",
-		Symbol:      "BTCUSD",
+		Category:    "spot",
+		Symbol:      "ADAUSDT",
 		Side:        "Buy",
 		OrderType:   "Limit",
-		Qty:         "100",    // 100 USD contract value
-		Price:       "118000", // Set price below current market price
+		Qty:         "10",
+		Price:       "0.8", // Set price below current market price
 		TimeInForce: "GTC",
 	}
 
@@ -143,8 +153,8 @@ func main() {
 		// Example 8: Get order information (UTA 2.0)
 		fmt.Println("\n=== Order Information ===")
 		getOrderReq := &bybit.GetOrderRequest{
-			Category: "inverse",
-			Symbol:   "BTCUSD",
+			Category: "spot",
+			Symbol:   "ADAUSDT",
 			OrderId:  createOrderResp.Result.OrderId,
 		}
 
@@ -168,8 +178,8 @@ func main() {
 		// Example 8b: Get single order information
 		fmt.Println("\n=== Single Order Information ===")
 		getSingleOrderReq := &bybit.GetOrderRequest{
-			Category: "inverse",
-			Symbol:   "BTCUSD",
+			Category: "spot",
+			Symbol:   "ADAUSDT",
 			OrderId:  createOrderResp.Result.OrderId,
 		}
 
@@ -188,8 +198,8 @@ func main() {
 		// Example 9: Cancel the order
 		fmt.Println("\n=== Canceling Order ===")
 		cancelOrderReq := &bybit.CancelOrderRequest{
-			Category: "inverse",
-			Symbol:   "BTCUSD",
+			Category: "spot",
+			Symbol:   "ADAUSDT",
 			OrderId:  createOrderResp.Result.OrderId,
 		}
 
@@ -206,8 +216,8 @@ func main() {
 	// Example 10: Create a market sell order (100 USD contract value)
 	fmt.Println("\n=== Creating Market Sell Order ===")
 	marketSellReq := &bybit.CreateOrderRequest{
-		Category:  "inverse",
-		Symbol:    "BTCUSD",
+		Category:  "spot",
+		Symbol:    "ADAUSDT",
 		Side:      "Sell",
 		OrderType: "Market",
 		Qty:       "100", // 100 USD contract value
