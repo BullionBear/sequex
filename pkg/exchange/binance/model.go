@@ -83,3 +83,15 @@ type RecentTrade struct {
 	IsBuyerMaker bool   `json:"isBuyerMaker"`
 	IsBestMatch  bool   `json:"isBestMatch"`
 }
+
+// AggTrade models a single aggregate trade in the /api/v3/aggTrades response.
+type AggTrade struct {
+	AggTradeId   int64  `json:"a"`
+	Price        string `json:"p"`
+	Quantity     string `json:"q"`
+	FirstTradeId int64  `json:"f"`
+	LastTradeId  int64  `json:"l"`
+	Timestamp    int64  `json:"T"`
+	IsBuyerMaker bool   `json:"m"`
+	IsBestMatch  bool   `json:"M"`
+}

@@ -44,6 +44,15 @@ func main() {
 		fmt.Printf("Recent trades: %+v\n", tradesResp.Data)
 	}
 
+	// Example: GetAggTrades
+	aggTradesResp, err := client.GetAggTrades(ctx, "ADAUSDT", 0, 0, 0, 5)
+	if err != nil || aggTradesResp.Code != 0 {
+		fmt.Printf("GetAggTrades error: %v\n", err)
+		fmt.Printf("Response Error: %+v\n", aggTradesResp.Message)
+	} else {
+		fmt.Printf("Aggregate trades: %+v\n", aggTradesResp.Data)
+	}
+
 	orderReq := binance.CreateOrderRequest{
 		Symbol:           "ADAUSDT",
 		Side:             binance.OrderSideSell,

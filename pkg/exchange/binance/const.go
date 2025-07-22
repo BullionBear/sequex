@@ -30,4 +30,5 @@ const (
 	PathCreateOrder     = "/v3/order"
 	PathGetDepth        = "/v3/depth"
 	PathGetRecentTrades = "/v3/trades"
+	PathGetAggTrades    = "/v3/aggTrades"
 )

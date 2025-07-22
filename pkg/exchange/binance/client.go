@@ -127,3 +127,32 @@ func (c *Client) GetRecentTrades(ctx context.Context, symbol string, limit int) 
 	}
 	return Response[[]RecentTrade]{Code: 0, Message: "success", Data: &trades}, nil
 }
+
+// GetAggTrades retrieves compressed, aggregate trades for a symbol.
+func (c *Client) GetAggTrades(ctx context.Context, symbol string, fromId int64, startTime, endTime int64, limit int) (Response[[]AggTrade], error) {
+	params := map[string]string{"symbol": symbol}
+	if fromId > 0 {
+		params["fromId"] = fmt.Sprintf("%d", fromId)
+	}
+	if startTime > 0 {
+		params["startTime"] = fmt.Sprintf("%d", startTime)
+	}
+	if endTime > 0 {
+		params["endTime"] = fmt.Sprintf("%d", endTime)
+	}
+	if limit > 0 {
+		params["limit"] = fmt.Sprintf("%d", limit)
+	}
+	body, status, err := doUnsignedGet(c.cfg, PathGetAggTrades, params)
+	if err != nil {
+		return Response[[]AggTrade]{}, err
+	}
+	if status < 200 || status >= 300 {
+		return Response[[]AggTrade]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+	var trades []AggTrade
+	if err := json.Unmarshal(body, &trades); err != nil {
+		return Response[[]AggTrade]{}, err
+	}
+	return Response[[]AggTrade]{Code: 0, Message: "success", Data: &trades}, nil
+}
