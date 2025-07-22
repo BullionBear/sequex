@@ -27,8 +27,16 @@ const (
 
 // Paths
 const (
-	PathCreateOrder     = "/v3/order"
-	PathGetDepth        = "/v3/depth"
-	PathGetRecentTrades = "/v3/trades"
-	PathGetAggTrades    = "/v3/aggTrades"
+	PathCreateOrder      = "/v3/order"
+	PathGetDepth         = "/v3/depth"
+	PathGetRecentTrades  = "/v3/trades"
+	PathGetAggTrades     = "/v3/aggTrades"
+	PathGetKlines        = "/v3/klines"
+	PathGetPriceTicker   = "/v3/ticker/price"
+	PathCancelOrder      = "/v3/order"
+	PathCancelAllOrders  = "/v3/openOrders"
+	PathQueryOrder       = "/v3/order"
+	PathGetAccountInfo   = "/v3/account"
+	PathListOpenOrders   = "/v3/openOrders"
+	PathGetAccountTrades = "/v3/myTrades"
 )
