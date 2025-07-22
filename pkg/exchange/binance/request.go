@@ -41,9 +41,6 @@ func doSignedRequest(cfg *Config, method, endpoint string, params map[string]str
 
 	// Add timestamp and recvWindow
 	params["timestamp"] = strconv.FormatInt(time.Now().UnixNano()/1e6, 10)
-	if cfg.RecvWindow > 0 {
-		params["recvWindow"] = strconv.FormatInt(cfg.RecvWindow, 10)
-	}
 
 	// Build query string
 	queryString := buildQueryString(params)

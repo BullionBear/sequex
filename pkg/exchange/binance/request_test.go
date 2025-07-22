@@ -77,10 +77,9 @@ func TestDoSignedRequest_AccountInfo(t *testing.T) {
 		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping signed request test.")
 	}
 	cfg := &Config{
-		APIKey:     apiKey,
-		APISecret:  apiSecret,
-		BaseURL:    BinanceMainnetBaseUrl,
-		RecvWindow: 5000,
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   BinanceMainnetBaseUrl,
 	}
 	params := map[string]string{}
 	resp, status, err := doSignedRequest(cfg, "GET", "/v3/account", params)
@@ -116,10 +115,9 @@ func TestDoSignedRequest_PostTestOrderWithCommissionRates(t *testing.T) {
 		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping signed request test.")
 	}
 	cfg := &Config{
-		APIKey:     apiKey,
-		APISecret:  apiSecret,
-		BaseURL:    BinanceMainnetBaseUrl,
-		RecvWindow: 5000,
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   BinanceMainnetBaseUrl,
 	}
 	params := map[string]string{
 		"symbol":      "ADAUSDT",

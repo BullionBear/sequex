@@ -6,6 +6,5 @@ type Config struct {
 	APISecret string
 
 	// API endpoints
-	BaseURL    string
-	RecvWindow int64
+	BaseURL string
 }

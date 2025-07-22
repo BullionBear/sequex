@@ -36,3 +36,13 @@ const (
 	TimeInForceIOC = "IOC" // Immediate Or Cancel
 	TimeInForceFOK = "FOK" // Fill or Kill
 )
+
+const (
+	NewOrderRespTypeAck    = "ACK"
+	NewOrderRespTypeResult = "RESULT"
+	NewOrderRespTypeFull   = "FULL"
+)
+
+const (
+	PathCreateOrder = "/v3/order"
+)
