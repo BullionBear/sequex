@@ -42,7 +42,3 @@ const (
 	NewOrderRespTypeResult = "RESULT"
 	NewOrderRespTypeFull   = "FULL"
 )
-
-const (
-	PathCreateOrder = "/v3/order"
-)

@@ -19,12 +19,30 @@ func main() {
 	cfg := &binance.Config{
 		APIKey:    apiKey,
 		APISecret: apiSecret,
-		BaseURL:   binance.BinanceMainnetBaseUrl,
+		BaseURL:   binance.MainnetBaseUrl,
 	}
 	client := binance.NewClient(cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	// Example: GetDepth (order book)
+	depthResp, err := client.GetDepth(ctx, "ADAUSDT", 5)
+	if err != nil || depthResp.Code != 0 {
+		fmt.Printf("GetDepth error: %v\n", err)
+		fmt.Printf("Response Error: %+v\n", depthResp.Message)
+	} else {
+		fmt.Printf("Order book: %+v\n", depthResp.Data)
+	}
+
+	// Example: GetRecentTrades
+	tradesResp, err := client.GetRecentTrades(ctx, "ADAUSDT", 5)
+	if err != nil || tradesResp.Code != 0 {
+		fmt.Printf("GetRecentTrades error: %v\n", err)
+		fmt.Printf("Response Error: %+v\n", tradesResp.Message)
+	} else {
+		fmt.Printf("Recent trades: %+v\n", tradesResp.Data)
+	}
 
 	orderReq := binance.CreateOrderRequest{
 		Symbol:           "ADAUSDT",

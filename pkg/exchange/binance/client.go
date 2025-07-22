@@ -87,3 +87,43 @@ func (c *Client) CreateOrder(ctx context.Context, req CreateOrderRequest) (Respo
 		Data:    &resp,
 	}, nil
 }
+
+// GetDepth retrieves the order book depth for a symbol.
+func (c *Client) GetDepth(ctx context.Context, symbol string, limit int) (Response[OrderBookDepthResponse], error) {
+	params := map[string]string{"symbol": symbol}
+	if limit > 0 {
+		params["limit"] = fmt.Sprintf("%d", limit)
+	}
+	body, status, err := doUnsignedGet(c.cfg, PathGetDepth, params)
+	if err != nil {
+		return Response[OrderBookDepthResponse]{}, err
+	}
+	if status < 200 || status >= 300 {
+		return Response[OrderBookDepthResponse]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+	var resp OrderBookDepthResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return Response[OrderBookDepthResponse]{}, err
+	}
+	return Response[OrderBookDepthResponse]{Code: 0, Message: "success", Data: &resp}, nil
+}
+
+// GetRecentTrades retrieves recent trades for a symbol.
+func (c *Client) GetRecentTrades(ctx context.Context, symbol string, limit int) (Response[[]RecentTrade], error) {
+	params := map[string]string{"symbol": symbol}
+	if limit > 0 {
+		params["limit"] = fmt.Sprintf("%d", limit)
+	}
+	body, status, err := doUnsignedGet(c.cfg, PathGetRecentTrades, params)
+	if err != nil {
+		return Response[[]RecentTrade]{}, err
+	}
+	if status < 200 || status >= 300 {
+		return Response[[]RecentTrade]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+	var trades []RecentTrade
+	if err := json.Unmarshal(body, &trades); err != nil {
+		return Response[[]RecentTrade]{}, err
+	}
+	return Response[[]RecentTrade]{Code: 0, Message: "success", Data: &trades}, nil
+}

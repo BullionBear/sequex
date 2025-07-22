@@ -11,7 +11,7 @@ func TestDoUnsignedGet_ServerTime(t *testing.T) {
 		t.Skip("skipping integration test in short mode.")
 	}
 	cfg := &Config{
-		BaseURL: BinanceMainnetBaseUrl,
+		BaseURL: MainnetBaseUrl,
 	}
 	resp, status, err := doUnsignedGet(cfg, "/v3/time", nil)
 	if err != nil {
@@ -37,7 +37,7 @@ func TestDoUnsignedGet_OrderBook(t *testing.T) {
 		t.Skip("skipping integration test in short mode.")
 	}
 	cfg := &Config{
-		BaseURL: BinanceMainnetBaseUrl,
+		BaseURL: MainnetBaseUrl,
 	}
 	params := map[string]string{
 		"symbol": "BTCUSDT",
@@ -79,7 +79,7 @@ func TestDoSignedRequest_AccountInfo(t *testing.T) {
 	cfg := &Config{
 		APIKey:    apiKey,
 		APISecret: apiSecret,
-		BaseURL:   BinanceMainnetBaseUrl,
+		BaseURL:   MainnetBaseUrl,
 	}
 	params := map[string]string{}
 	resp, status, err := doSignedRequest(cfg, "GET", "/v3/account", params)
@@ -117,7 +117,7 @@ func TestDoSignedRequest_PostTestOrderWithCommissionRates(t *testing.T) {
 	cfg := &Config{
 		APIKey:    apiKey,
 		APISecret: apiSecret,
-		BaseURL:   BinanceMainnetBaseUrl,
+		BaseURL:   MainnetBaseUrl,
 	}
 	params := map[string]string{
 		"symbol":      "ADAUSDT",

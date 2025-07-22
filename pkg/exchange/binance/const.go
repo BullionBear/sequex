@@ -2,25 +2,32 @@ package binance
 
 // Mainnet REST API base URLs
 const (
-	BinanceMainnetBaseUrl    = "https://api.binance.com/api"
-	BinanceMainnetBaseGCPUrl = "https://api-gcp.binance.com/api"
-	BinanceMainnetBaseUrl1   = "https://api1.binance.com/api"
-	BinanceMainnetBaseUrl2   = "https://api2.binance.com/api"
-	BinanceMainnetBaseUrl3   = "https://api3.binance.com/api"
-	BinanceMainnetBaseUrl4   = "https://api4.binance.com/api"
+	MainnetBaseUrl    = "https://api.binance.com/api"
+	MainnetBaseGCPUrl = "https://api-gcp.binance.com/api"
+	MainnetBaseUrl1   = "https://api1.binance.com/api"
+	MainnetBaseUrl2   = "https://api2.binance.com/api"
+	MainnetBaseUrl3   = "https://api3.binance.com/api"
+	MainnetBaseUrl4   = "https://api4.binance.com/api"
 )
 
 // Mainnet WebSocket base URLs
 const (
-	BinanceMainnetWSBaseUrl     = "wss://stream.binance.com/ws"
-	BinanceMainnetWSBaseUrl9443 = "wss://stream.binance.com:9443/ws"
+	MainnetWSBaseUrl     = "wss://stream.binance.com/ws"
+	MainnetWSBaseUrl9443 = "wss://stream.binance.com:9443/ws"
 )
 
 // Testnet REST API base URL
-const BinanceTestnetBaseUrl = "https://testnet.binance.vision/api"
+const TestnetBaseUrl = "https://testnet.binance.vision/api"
 
 // Testnet WebSocket base URLs
 const (
-	BinanceTestnetWSBaseUrl     = "wss://stream.testnet.binance.vision/ws"
-	BinanceTestnetWSBaseUrl9443 = "wss://stream.testnet.binance.vision:9443/ws"
+	TestnetWSBaseUrl     = "wss://stream.testnet.binance.vision/ws"
+	TestnetWSBaseUrl9443 = "wss://stream.testnet.binance.vision:9443/ws"
+)
+
+// Paths
+const (
+	PathCreateOrder     = "/v3/order"
+	PathGetDepth        = "/v3/depth"
+	PathGetRecentTrades = "/v3/trades"
 )

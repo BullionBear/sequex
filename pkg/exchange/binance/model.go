@@ -65,3 +65,21 @@ type OrderFill struct {
 	CommissionAsset string `json:"commissionAsset"`
 	TradeId         int64  `json:"tradeId"`
 }
+
+// OrderBookDepthResponse models the response for the /api/v3/depth endpoint.
+type OrderBookDepthResponse struct {
+	LastUpdateId int        `json:"lastUpdateId"`
+	Bids         [][]string `json:"bids"`
+	Asks         [][]string `json:"asks"`
+}
+
+// RecentTrade models a single trade in the /api/v3/trades response.
+type RecentTrade struct {
+	ID           int64  `json:"id"`
+	Price        string `json:"price"`
+	Qty          string `json:"qty"`
+	QuoteQty     string `json:"quoteQty"`
+	Time         int64  `json:"time"`
+	IsBuyerMaker bool   `json:"isBuyerMaker"`
+	IsBestMatch  bool   `json:"isBestMatch"`
+}
