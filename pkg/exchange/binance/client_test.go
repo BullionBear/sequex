@@ -228,9 +228,9 @@ func TestStartUserDataStream(t *testing.T) {
 	client := NewClient(cfg)
 	ctx := context.Background()
 
-	resp, err := client.startUserDataStream(ctx)
+	resp, err := client.StartUserDataStream(ctx)
 	if err != nil {
-		t.Fatalf("startUserDataStream error: %v", err)
+		t.Fatalf("StartUserDataStream error: %v", err)
 	}
 	if resp.Code != 0 {
 		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
@@ -258,18 +258,18 @@ func TestKeepaliveUserDataStream(t *testing.T) {
 	ctx := context.Background()
 
 	// Start a stream first to get a listenKey
-	startResp, err := client.startUserDataStream(ctx)
+	startResp, err := client.StartUserDataStream(ctx)
 	if err != nil {
-		t.Fatalf("startUserDataStream error: %v", err)
+		t.Fatalf("StartUserDataStream error: %v", err)
 	}
 	if startResp.Data == nil || startResp.Data.ListenKey == "" {
 		t.Fatal("failed to get listenKey")
 	}
 
 	// Test keepalive
-	resp, err := client.keepaliveUserDataStream(ctx, startResp.Data.ListenKey)
+	resp, err := client.KeepaliveUserDataStream(ctx, startResp.Data.ListenKey)
 	if err != nil {
-		t.Fatalf("keepaliveUserDataStream error: %v", err)
+		t.Fatalf("KeepaliveUserDataStream error: %v", err)
 	}
 	if resp.Code != 0 {
 		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
@@ -294,18 +294,18 @@ func TestCloseUserDataStream(t *testing.T) {
 	ctx := context.Background()
 
 	// Start a stream first to get a listenKey
-	startResp, err := client.startUserDataStream(ctx)
+	startResp, err := client.StartUserDataStream(ctx)
 	if err != nil {
-		t.Fatalf("startUserDataStream error: %v", err)
+		t.Fatalf("StartUserDataStream error: %v", err)
 	}
 	if startResp.Data == nil || startResp.Data.ListenKey == "" {
 		t.Fatal("failed to get listenKey")
 	}
 
 	// Test close
-	resp, err := client.closeUserDataStream(ctx, startResp.Data.ListenKey)
+	resp, err := client.CloseUserDataStream(ctx, startResp.Data.ListenKey)
 	if err != nil {
-		t.Fatalf("closeUserDataStream error: %v", err)
+		t.Fatalf("CloseUserDataStream error: %v", err)
 	}
 	if resp.Code != 0 {
 		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)

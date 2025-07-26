@@ -2,6 +2,7 @@ package binance
 
 import (
 	"context"
+	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -1121,5 +1122,102 @@ func TestWSClient_Close(t *testing.T) {
 		t.Errorf("Expected OnDisconnect to be called exactly 1 time after Close(), got %d", finalDisconnectCount)
 	} else {
 		t.Log("✅ OnDisconnect called correctly after Close()")
+	}
+}
+
+func TestSubscribeUserData(t *testing.T) {
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	apiSecret := os.Getenv("BINANCE_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping user data stream test.")
+	}
+
+	// Create REST API client
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+
+	// Create WebSocket client with REST client
+	wsClient := NewWSClientWithRESTClient(WSConfig{
+		BaseURL: TestnetWSBaseUrl, // Use testnet for testing
+	}, client)
+
+	connected := false
+	options := UserDataSubscriptionOptions{
+		OnConnect: func() {
+			t.Log("Connected to user data stream")
+			connected = true
+		},
+		OnError: func(err error) {
+			t.Logf("User data stream error: %v", err)
+		},
+		OnAccountPosition: func(event WSOutboundAccountPositionEvent) {
+			t.Logf("Account position update: %d balances", len(event.BalanceArray))
+		},
+		OnBalanceUpdate: func(event WSBalanceUpdateEvent) {
+			t.Logf("Balance update: %s delta=%s", event.Asset, event.BalanceDelta)
+		},
+		OnExecutionReport: func(event WSExecutionReportEvent) {
+			t.Logf("Execution report: %s %s %s", event.Symbol, event.Side, event.CurrentOrderStatus)
+		},
+		OnListenKeyExpired: func(event WSListenKeyExpiredEvent) {
+			t.Logf("Listen key expired: %s", event.ListenKey)
+		},
+		OnDisconnect: func() {
+			t.Log("Disconnected from user data stream")
+		},
+	}
+
+	unsubscribe, err := wsClient.SubscribeUserData(options)
+	if err != nil {
+		t.Fatalf("Failed to subscribe to user data stream: %v", err)
+	}
+
+	// Wait a bit for connection
+	time.Sleep(2 * time.Second)
+
+	if !connected {
+		t.Error("Failed to connect to user data stream")
+	}
+
+	// Test that we can't subscribe twice
+	_, err = wsClient.SubscribeUserData(options)
+	if err == nil {
+		t.Error("Expected error when subscribing twice, but got nil")
+	}
+
+	// Unsubscribe
+	unsubscribe()
+
+	// Give some time for cleanup
+	time.Sleep(100 * time.Millisecond)
+
+	// Clean up
+	wsClient.Close()
+}
+
+func TestUserDataStreamWithoutClient(t *testing.T) {
+	// Create WebSocket client without REST client
+	wsClient := NewWSClient(WSConfig{
+		BaseURL: TestnetWSBaseUrl,
+	})
+
+	options := UserDataSubscriptionOptions{
+		OnError: func(err error) {
+			t.Logf("Expected error: %v", err)
+		},
+	}
+
+	_, err := wsClient.SubscribeUserData(options)
+	if err == nil {
+		t.Error("Expected error when subscribing without REST client, but got nil")
+	}
+
+	expectedMsg := "REST API client is required for user data stream subscription"
+	if err.Error() != expectedMsg {
+		t.Errorf("Expected error message '%s', got '%s'", expectedMsg, err.Error())
 	}
 }

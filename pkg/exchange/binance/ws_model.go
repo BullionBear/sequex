@@ -148,7 +148,91 @@ const (
 // Subscription represents an active WebSocket subscription
 type Subscription struct {
 	id      string
-	conn    *BinanceWSConn
-	options interface{} // Can be KlineSubscriptionOptions, AggTradeSubscriptionOptions, TradeSubscriptionOptions, DepthSubscriptionOptions, or DepthUpdateSubscriptionOptions
+	conn    WSConnection
+	options interface{} // Can be KlineSubscriptionOptions, AggTradeSubscriptionOptions, TradeSubscriptionOptions, DepthSubscriptionOptions, DepthUpdateSubscriptionOptions, or UserDataSubscriptionOptions
 	state   ConnectionState
+}
+
+// User Data Stream Event Models
+
+// WSOutboundAccountPositionEvent represents the outboundAccountPosition WebSocket event
+type WSOutboundAccountPositionEvent struct {
+	EventType             string           `json:"e"` // Event type
+	EventTime             int64            `json:"E"` // Event Time
+	LastAccountUpdateTime int64            `json:"u"` // Time of last account update
+	BalanceArray          []AccountBalance `json:"B"` // Balances Array
+}
+
+// AccountBalance represents a balance entry in outboundAccountPosition event
+type AccountBalance struct {
+	Asset  string `json:"a"` // Asset
+	Free   string `json:"f"` // Free
+	Locked string `json:"l"` // Locked
+}
+
+// WSBalanceUpdateEvent represents the balanceUpdate WebSocket event
+type WSBalanceUpdateEvent struct {
+	EventType    string `json:"e"` // Event Type
+	EventTime    int64  `json:"E"` // Event Time
+	Asset        string `json:"a"` // Asset
+	BalanceDelta string `json:"d"` // Balance Delta
+	ClearTime    int64  `json:"T"` // Clear Time
+}
+
+// WSExecutionReportEvent represents the executionReport WebSocket event
+type WSExecutionReportEvent struct {
+	EventType                         string  `json:"e"` // Event type
+	EventTime                         int64   `json:"E"` // Event time
+	Symbol                            string  `json:"s"` // Symbol
+	ClientOrderId                     string  `json:"c"` // Client order ID
+	Side                              string  `json:"S"` // Side
+	OrderType                         string  `json:"o"` // Order type
+	TimeInForce                       string  `json:"f"` // Time in force
+	OrderQuantity                     string  `json:"q"` // Order quantity
+	OrderPrice                        string  `json:"p"` // Order price
+	StopPrice                         string  `json:"P"` // Stop price
+	IcebergQuantity                   string  `json:"F"` // Iceberg quantity
+	OrderListId                       int64   `json:"g"` // OrderListId
+	OriginalClientOrderId             string  `json:"C"` // Original client order ID
+	CurrentExecutionType              string  `json:"x"` // Current execution type
+	CurrentOrderStatus                string  `json:"X"` // Current order status
+	OrderRejectReason                 string  `json:"r"` // Order reject reason
+	OrderId                           int64   `json:"i"` // Order ID
+	LastExecutedQuantity              string  `json:"l"` // Last executed quantity
+	CumulativeFilledQuantity          string  `json:"z"` // Cumulative filled quantity
+	LastExecutedPrice                 string  `json:"L"` // Last executed price
+	CommissionAmount                  string  `json:"n"` // Commission amount
+	CommissionAsset                   *string `json:"N"` // Commission asset
+	TransactionTime                   int64   `json:"T"` // Transaction time
+	TradeId                           int64   `json:"t"` // Trade ID
+	PreventedMatchId                  int64   `json:"v"` // Prevented Match Id
+	ExecutionId                       int64   `json:"I"` // Execution Id
+	IsOrderOnBook                     bool    `json:"w"` // Is the order on the book?
+	IsMakerSide                       bool    `json:"m"` // Is this trade the maker side?
+	Ignore                            bool    `json:"M"` // Ignore
+	OrderCreationTime                 int64   `json:"O"` // Order creation time
+	CumulativeQuoteAssetTransactedQty string  `json:"Z"` // Cumulative quote asset transacted quantity
+	LastQuoteAssetTransactedQty       string  `json:"Y"` // Last quote asset transacted quantity
+	QuoteOrderQty                     string  `json:"Q"` // Quote Order Quantity
+	WorkingTime                       int64   `json:"W"` // Working Time
+	SelfTradePreventionMode           string  `json:"V"` // SelfTradePreventionMode
+}
+
+// WSListenKeyExpiredEvent represents the listenKeyExpired WebSocket event
+type WSListenKeyExpiredEvent struct {
+	EventType string `json:"e"`         // Event type
+	EventTime int64  `json:"E"`         // Event time
+	ListenKey string `json:"listenKey"` // Listen key that expired
+}
+
+// UserDataSubscriptionOptions defines the callback functions for user data subscription
+type UserDataSubscriptionOptions struct {
+	OnConnect          func()                                     // Called when connection is established
+	OnReconnect        func()                                     // Called when connection is reestablished
+	OnError            func(err error)                            // Called when an error occurs
+	OnAccountPosition  func(event WSOutboundAccountPositionEvent) // Called when account position update is received
+	OnBalanceUpdate    func(event WSBalanceUpdateEvent)           // Called when balance update is received
+	OnExecutionReport  func(event WSExecutionReportEvent)         // Called when execution report is received
+	OnListenKeyExpired func(event WSListenKeyExpiredEvent)        // Called when listen key expires (internal use)
+	OnDisconnect       func()                                     // Called when connection is disconnected
 }

@@ -1,6 +1,7 @@
 package binance
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ type WSClient struct {
 	subscriptions map[string]*Subscription
 	mu            sync.RWMutex
 	baseURL       string
+	client        *Client // REST API client for user data stream management
 }
 
 // NewWSClient creates a new WebSocket client
@@ -24,6 +26,20 @@ func NewWSClient(config WSConfig) *WSClient {
 	return &WSClient{
 		subscriptions: make(map[string]*Subscription),
 		baseURL:       config.BaseURL,
+	}
+}
+
+// NewWSClientWithRESTClient creates a new WebSocket client with a REST API client for user data streams
+func NewWSClientWithRESTClient(config WSConfig, client *Client) *WSClient {
+	// Use default URL if not provided
+	if config.BaseURL == "" {
+		config.BaseURL = MainnetWSBaseUrl
+	}
+
+	return &WSClient{
+		subscriptions: make(map[string]*Subscription),
+		baseURL:       config.BaseURL,
+		client:        client,
 	}
 }
 
@@ -115,9 +131,9 @@ func (c *WSClient) subscribe(subscriptionID, streamPath string, options interfac
 	}
 
 	// Set up message handler
-	conn.OnMessage = func(data []byte) {
+	conn.SetOnMessage(func(data []byte) {
 		c.handleMessage(subscription, data)
-	}
+	})
 
 	// Store subscription
 	c.subscriptions[subscriptionID] = subscription
@@ -315,6 +331,10 @@ func (c *WSClient) callOnError(options interface{}, err error) {
 		if opts.OnError != nil {
 			opts.OnError(err)
 		}
+	case UserDataSubscriptionOptions:
+		if opts.OnError != nil {
+			opts.OnError(err)
+		}
 	}
 }
 
@@ -338,6 +358,10 @@ func (c *WSClient) callOnDisconnect(options interface{}) {
 			opts.OnDisconnect()
 		}
 	case DepthUpdateSubscriptionOptions:
+		if opts.OnDisconnect != nil {
+			opts.OnDisconnect()
+		}
+	case UserDataSubscriptionOptions:
 		if opts.OnDisconnect != nil {
 			opts.OnDisconnect()
 		}
@@ -369,7 +393,7 @@ func (c *WSClient) unsubscribe(subscriptionID string) {
 func (c *WSClient) Close() {
 	c.mu.Lock()
 	subscriptions := make([]*Subscription, 0, len(c.subscriptions))
-	for _, sub := range c.subscriptions {
+	for _, sub := range subscriptions {
 		subscriptions = append(subscriptions, sub)
 	}
 	c.subscriptions = make(map[string]*Subscription)
@@ -381,5 +405,234 @@ func (c *WSClient) Close() {
 			sub.conn.Disconnect()
 		}
 		c.callOnDisconnect(sub.options)
+	}
+}
+
+// SubscribeUserData subscribes to user data stream using listen key
+// This method handles listen key lifecycle including refresh and reconnection
+func (c *WSClient) SubscribeUserData(options UserDataSubscriptionOptions) (func(), error) {
+	if c.client == nil {
+		return nil, fmt.Errorf("REST API client is required for user data stream subscription")
+	}
+
+	subscriptionID := "userData"
+
+	c.mu.Lock()
+	// Check if already subscribed
+	if _, exists := c.subscriptions[subscriptionID]; exists {
+		c.mu.Unlock()
+		return nil, fmt.Errorf("already subscribed to user data stream")
+	}
+	c.mu.Unlock()
+
+	// Start user data stream and get listen key
+	ctx := context.Background()
+	resp, err := c.client.StartUserDataStream(ctx)
+	if err != nil {
+		c.callOnUserDataError(options, err)
+		return nil, fmt.Errorf("failed to start user data stream: %w", err)
+	}
+
+	if resp.Data == nil || resp.Data.ListenKey == "" {
+		err := fmt.Errorf("invalid listen key received")
+		c.callOnUserDataError(options, err)
+		return nil, err
+	}
+
+	listenKey := resp.Data.ListenKey
+
+	// Create custom WebSocket connection for user data stream
+	userDataConn := NewUserDataWSConn(c.baseURL, listenKey, c.client, options)
+
+	c.mu.Lock()
+	// Create subscription
+	subscription := &Subscription{
+		id:      subscriptionID,
+		conn:    userDataConn,
+		options: options,
+		state:   StateConnecting,
+	}
+
+	// Set up message handler
+	userDataConn.SetOnMessage(func(data []byte) {
+		c.handleUserDataMessage(subscription, data)
+	})
+
+	// Store subscription
+	c.subscriptions[subscriptionID] = subscription
+	c.mu.Unlock()
+
+	// Connect to WebSocket
+	if err := userDataConn.Connect(); err != nil {
+		c.mu.Lock()
+		delete(c.subscriptions, subscriptionID)
+		c.mu.Unlock()
+		c.callOnUserDataError(options, err)
+		return nil, fmt.Errorf("failed to connect to user data stream: %w", err)
+	}
+
+	// Update state and call OnConnect
+	c.mu.Lock()
+	subscription.state = StateConnected
+	c.mu.Unlock()
+
+	c.callOnUserDataConnect(options)
+
+	// Return unsubscribe function
+	unsubscribeFunc := func() {
+		c.unsubscribeUserData(subscriptionID)
+	}
+
+	return unsubscribeFunc, nil
+}
+
+// handleUserDataMessage processes incoming user data WebSocket messages
+func (c *WSClient) handleUserDataMessage(subscription *Subscription, data []byte) {
+	// Parse as a generic map to handle any JSON structure
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(data, &rawData); err != nil {
+		log.Printf("[WSClient] Failed to parse user data JSON: %v", err)
+		c.callOnUserDataError(subscription.options, fmt.Errorf("failed to parse JSON: %w", err))
+		return
+	}
+
+	// Check if this message has an event type field
+	eventTypeRaw, hasEventType := rawData["e"]
+	if !hasEventType {
+		log.Printf("[WSClient] User data message missing event type 'e'")
+		return
+	}
+
+	eventType, ok := eventTypeRaw.(string)
+	if !ok {
+		log.Printf("[WSClient] Event type 'e' is not a string: %T %v", eventTypeRaw, eventTypeRaw)
+		return
+	}
+
+	switch eventType {
+	case "outboundAccountPosition":
+		c.handleAccountPositionMessage(subscription, data)
+	case "balanceUpdate":
+		c.handleBalanceUpdateMessage(subscription, data)
+	case "executionReport":
+		c.handleExecutionReportMessage(subscription, data)
+	case "listenKeyExpired":
+		c.handleListenKeyExpiredMessage(subscription, data)
+	default:
+		log.Printf("[WSClient] Unknown user data event type: %s", eventType)
+	}
+}
+
+// handleAccountPositionMessage processes outboundAccountPosition events
+func (c *WSClient) handleAccountPositionMessage(subscription *Subscription, data []byte) {
+	var event WSOutboundAccountPositionEvent
+	if err := json.Unmarshal(data, &event); err != nil {
+		log.Printf("[WSClient] Failed to unmarshal account position data: %v", err)
+		c.callOnUserDataError(subscription.options, fmt.Errorf("failed to unmarshal account position data: %w", err))
+		return
+	}
+
+	// Call the account position callback
+	if userDataOptions, ok := subscription.options.(UserDataSubscriptionOptions); ok && userDataOptions.OnAccountPosition != nil {
+		userDataOptions.OnAccountPosition(event)
+	}
+}
+
+// handleBalanceUpdateMessage processes balanceUpdate events
+func (c *WSClient) handleBalanceUpdateMessage(subscription *Subscription, data []byte) {
+	var event WSBalanceUpdateEvent
+	if err := json.Unmarshal(data, &event); err != nil {
+		log.Printf("[WSClient] Failed to unmarshal balance update data: %v", err)
+		c.callOnUserDataError(subscription.options, fmt.Errorf("failed to unmarshal balance update data: %w", err))
+		return
+	}
+
+	// Call the balance update callback
+	if userDataOptions, ok := subscription.options.(UserDataSubscriptionOptions); ok && userDataOptions.OnBalanceUpdate != nil {
+		userDataOptions.OnBalanceUpdate(event)
+	}
+}
+
+// handleExecutionReportMessage processes executionReport events
+func (c *WSClient) handleExecutionReportMessage(subscription *Subscription, data []byte) {
+	var event WSExecutionReportEvent
+	if err := json.Unmarshal(data, &event); err != nil {
+		log.Printf("[WSClient] Failed to unmarshal execution report data: %v", err)
+		c.callOnUserDataError(subscription.options, fmt.Errorf("failed to unmarshal execution report data: %w", err))
+		return
+	}
+
+	// Call the execution report callback
+	if userDataOptions, ok := subscription.options.(UserDataSubscriptionOptions); ok && userDataOptions.OnExecutionReport != nil {
+		userDataOptions.OnExecutionReport(event)
+	}
+}
+
+// handleListenKeyExpiredMessage processes listenKeyExpired events
+func (c *WSClient) handleListenKeyExpiredMessage(subscription *Subscription, data []byte) {
+	var event WSListenKeyExpiredEvent
+	if err := json.Unmarshal(data, &event); err != nil {
+		log.Printf("[WSClient] Failed to unmarshal listen key expired data: %v", err)
+		c.callOnUserDataError(subscription.options, fmt.Errorf("failed to unmarshal listen key expired data: %w", err))
+		return
+	}
+
+	// Call the listen key expired callback if provided
+	if userDataOptions, ok := subscription.options.(UserDataSubscriptionOptions); ok && userDataOptions.OnListenKeyExpired != nil {
+		userDataOptions.OnListenKeyExpired(event)
+	}
+
+	// Trigger reconnection with new listen key
+	if userDataConn, ok := subscription.conn.(*UserDataWSConn); ok {
+		go userDataConn.reconnectWithNewListenKey()
+	}
+}
+
+// callOnUserDataConnect calls the OnConnect callback for user data subscription
+func (c *WSClient) callOnUserDataConnect(options UserDataSubscriptionOptions) {
+	if options.OnConnect != nil {
+		options.OnConnect()
+	}
+}
+
+// callOnUserDataError calls the OnError callback for user data subscription
+func (c *WSClient) callOnUserDataError(options interface{}, err error) {
+	switch opts := options.(type) {
+	case UserDataSubscriptionOptions:
+		if opts.OnError != nil {
+			opts.OnError(err)
+		}
+	}
+}
+
+// callOnUserDataDisconnect calls the OnDisconnect callback for user data subscription
+func (c *WSClient) callOnUserDataDisconnect(options UserDataSubscriptionOptions) {
+	if options.OnDisconnect != nil {
+		options.OnDisconnect()
+	}
+}
+
+// unsubscribeUserData removes and disconnects a user data subscription
+func (c *WSClient) unsubscribeUserData(subscriptionID string) {
+	c.mu.Lock()
+	subscription, exists := c.subscriptions[subscriptionID]
+	if !exists {
+		c.mu.Unlock()
+		return
+	}
+
+	delete(c.subscriptions, subscriptionID)
+	c.mu.Unlock()
+
+	// Disconnect the WebSocket connection and close listen key
+	if userDataConn, ok := subscription.conn.(*UserDataWSConn); ok {
+		userDataConn.Disconnect()
+	} else {
+		subscription.conn.Disconnect()
+	}
+
+	// Call OnDisconnect callback
+	if userDataOptions, ok := subscription.options.(UserDataSubscriptionOptions); ok {
+		c.callOnUserDataDisconnect(userDataOptions)
 	}
 }

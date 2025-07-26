@@ -437,9 +437,9 @@ func (c *Client) GetMyTrades(ctx context.Context, req GetAccountTradesRequest) (
 	return Response[[]AccountTrade]{Code: 0, Message: "success", Data: &resp}, nil
 }
 
-// startUserDataStream starts a new user data stream and returns a listen key.
-// This is an internal method for websocket user data stream connection.
-func (c *Client) startUserDataStream(_ context.Context) (Response[UserDataStreamResponse], error) {
+// StartUserDataStream starts a new user data stream and returns a listen key.
+// This method is used for websocket user data stream connection.
+func (c *Client) StartUserDataStream(_ context.Context) (Response[UserDataStreamResponse], error) {
 	body, status, err := doAPIKeyOnlyRequest(c.cfg, http.MethodPost, PathUserDataStream, nil)
 	if err != nil {
 		return Response[UserDataStreamResponse]{}, err
@@ -463,9 +463,9 @@ func (c *Client) startUserDataStream(_ context.Context) (Response[UserDataStream
 	}, nil
 }
 
-// keepaliveUserDataStream keeps a user data stream alive to prevent timeout.
-// This is an internal method for websocket user data stream connection.
-func (c *Client) keepaliveUserDataStream(_ context.Context, listenKey string) (Response[EmptyResponse], error) {
+// KeepaliveUserDataStream keeps a user data stream alive to prevent timeout.
+// This method is used for websocket user data stream connection.
+func (c *Client) KeepaliveUserDataStream(_ context.Context, listenKey string) (Response[EmptyResponse], error) {
 	params := map[string]string{"listenKey": listenKey}
 	body, status, err := doAPIKeyOnlyRequest(c.cfg, http.MethodPut, PathUserDataStream, params)
 	if err != nil {
@@ -486,9 +486,9 @@ func (c *Client) keepaliveUserDataStream(_ context.Context, listenKey string) (R
 	}, nil
 }
 
-// closeUserDataStream closes a user data stream.
-// This is an internal method for websocket user data stream connection.
-func (c *Client) closeUserDataStream(_ context.Context, listenKey string) (Response[EmptyResponse], error) {
+// CloseUserDataStream closes a user data stream.
+// This method is used for websocket user data stream connection.
+func (c *Client) CloseUserDataStream(_ context.Context, listenKey string) (Response[EmptyResponse], error) {
 	params := map[string]string{"listenKey": listenKey}
 	body, status, err := doAPIKeyOnlyRequest(c.cfg, http.MethodDelete, PathUserDataStream, params)
 	if err != nil {
