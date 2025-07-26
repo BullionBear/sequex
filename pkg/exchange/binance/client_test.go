@@ -2,549 +2,315 @@ package binance
 
 import (
 	"context"
-	"fmt"
-	"io"
-	"net/http"
-	"strings"
+	"os"
 	"testing"
-	"time"
 )
 
-// mockHTTPClient is a mock implementation of HTTPClient for testing
-type mockHTTPClient struct {
-	responses map[string]*http.Response
-	errors    map[string]error
-}
-
-func newMockHTTPClient() *mockHTTPClient {
-	return &mockHTTPClient{
-		responses: make(map[string]*http.Response),
-		errors:    make(map[string]error),
+func TestGetDepth(t *testing.T) {
+	cfg := &Config{
+		BaseURL: MainnetBaseUrl,
 	}
-}
-
-func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	url := req.URL.String()
-
-	// Check for errors first
-	if err, exists := m.errors[url]; exists {
-		return nil, err
-	}
-
-	// Return response if exists
-	if resp, exists := m.responses[url]; exists {
-		return resp, nil
-	}
-
-	// Default 404 response
-	return &http.Response{
-		StatusCode: http.StatusNotFound,
-		Body:       io.NopCloser(strings.NewReader(`{"code":-1000,"msg":"Not found"}`)),
-	}, nil
-}
-
-func (m *mockHTTPClient) setResponse(url string, statusCode int, body string) {
-	m.responses[url] = &http.Response{
-		StatusCode: statusCode,
-		Body:       io.NopCloser(strings.NewReader(body)),
-	}
-}
-
-func (m *mockHTTPClient) setError(url string, err error) {
-	m.errors[url] = err
-}
-
-// createTestClient creates a client with mock HTTP client
-func createTestClient() (*Client, *mockHTTPClient) {
-	config := DefaultConfig()
-	config.BaseURL = "https://api.binance.com"
-
-	client := NewClient(config)
-	mockClient := newMockHTTPClient()
-	client.requestService.httpClient = mockClient
-
-	return client, mockClient
-}
-
-func TestClient_GetServerTime_Success(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Mock successful response
-	expectedTimestamp := time.Now().UnixNano() / int64(time.Millisecond)
-	responseBody := fmt.Sprintf(`{"serverTime":%d}`, expectedTimestamp)
-	mockClient.setResponse("https://api.binance.com/api/v3/time", http.StatusOK, responseBody)
-
-	// Test GetServerTime
+	client := NewClient(cfg)
 	ctx := context.Background()
-	result, err := client.GetServerTime(ctx)
-
-	// Assertions
+	resp, err := client.GetDepth(ctx, "BTCUSDT", 5)
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatalf("GetDepth error: %v", err)
 	}
-
-	if result == nil {
-		t.Fatal("expected result, got nil")
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
 	}
-
-	if result.ServerTime != expectedTimestamp {
-		t.Errorf("expected server time %d, got %d", expectedTimestamp, result.ServerTime)
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
 	}
-
-	// Test the GetTime() method
-	expectedTime := time.Unix(0, expectedTimestamp*int64(time.Millisecond))
-	actualTime := result.GetTime()
-
-	if !actualTime.Equal(expectedTime) {
-		t.Errorf("expected time %v, got %v", expectedTime, actualTime)
+	if len(resp.Data.Bids) == 0 || len(resp.Data.Asks) == 0 {
+		t.Fatal("bids or asks are empty")
 	}
 }
 
-func TestClient_GetServerTime_APIError(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Mock API error response
-	responseBody := `{"code":-1003,"msg":"Too many requests"}`
-	mockClient.setResponse("https://api.binance.com/api/v3/time", http.StatusTooManyRequests, responseBody)
-
-	// Test GetServerTime
+func TestGetRecentTrades(t *testing.T) {
+	cfg := &Config{
+		BaseURL: MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
 	ctx := context.Background()
-	result, err := client.GetServerTime(ctx)
-
-	// Assertions
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-
-	if result != nil {
-		t.Errorf("expected nil result, got %v", result)
-	}
-
-	// Check if it's an API error
-	apiErr, ok := err.(*APIError)
-	if !ok {
-		t.Errorf("expected APIError, got %T", err)
-	} else {
-		if apiErr.Code != -1003 {
-			t.Errorf("expected error code -1003, got %d", apiErr.Code)
-		}
-		if apiErr.Message != "Too many requests" {
-			t.Errorf("expected error message 'Too many requests', got %s", apiErr.Message)
-		}
-	}
-}
-
-func TestClient_GetServerTime_NetworkError(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Mock network error
-	networkErr := fmt.Errorf("network connection failed")
-	mockClient.setError("https://api.binance.com/api/v3/time", networkErr)
-
-	// Test GetServerTime
-	ctx := context.Background()
-	result, err := client.GetServerTime(ctx)
-
-	// Assertions
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-
-	if result != nil {
-		t.Errorf("expected nil result, got %v", result)
-	}
-
-	// Check error message contains network error
-	if !strings.Contains(err.Error(), "network connection failed") {
-		t.Errorf("expected error to contain 'network connection failed', got %v", err)
-	}
-}
-
-func TestClient_GetServerTime_InvalidJSON(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Mock invalid JSON response
-	responseBody := `{"serverTime":invalid_json}`
-	mockClient.setResponse("https://api.binance.com/api/v3/time", http.StatusOK, responseBody)
-
-	// Test GetServerTime
-	ctx := context.Background()
-	result, err := client.GetServerTime(ctx)
-
-	// Assertions
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-
-	if result != nil {
-		t.Errorf("expected nil result, got %v", result)
-	}
-
-	// Check error message contains parsing error
-	if !strings.Contains(err.Error(), "failed to parse server time response") {
-		t.Errorf("expected parsing error, got %v", err)
-	}
-}
-
-func TestClient_Ping_Success(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Mock successful ping response
-	mockClient.setResponse("https://api.binance.com/api/v3/ping", http.StatusOK, `{}`)
-
-	// Test Ping
-	ctx := context.Background()
-	err := client.Ping(ctx)
-
-	// Assertions
+	resp, err := client.GetRecentTrades(ctx, "BTCUSDT", 5)
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatalf("GetRecentTrades error: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+	if len(*resp.Data) == 0 {
+		t.Fatal("no trades returned")
 	}
 }
 
-func TestClient_Ping_Error(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Mock error response
-	responseBody := `{"code":-1000,"msg":"Server error"}`
-	mockClient.setResponse("https://api.binance.com/api/v3/ping", http.StatusInternalServerError, responseBody)
-
-	// Test Ping
-	ctx := context.Background()
-	err := client.Ping(ctx)
-
-	// Assertions
-	if err == nil {
-		t.Fatal("expected error, got nil")
+func TestGetAggTrades(t *testing.T) {
+	cfg := &Config{
+		BaseURL: MainnetBaseUrl,
 	}
-
-	// Check if it's an API error
-	apiErr, ok := err.(*APIError)
-	if !ok {
-		t.Errorf("expected APIError, got %T", err)
-	} else {
-		if apiErr.Code != -1000 {
-			t.Errorf("expected error code -1000, got %d", apiErr.Code)
-		}
-	}
-}
-
-func TestClient_GetTickerPrice_SingleSymbol_Success(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Mock successful response for single symbol
-	responseBody := `{"symbol":"BTCUSDT","price":"45000.00"}`
-	mockClient.setResponse("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", http.StatusOK, responseBody)
-
-	// Test GetTickerPrice for single symbol
+	client := NewClient(cfg)
 	ctx := context.Background()
-	result, err := client.GetTickerPrice(ctx, "BTCUSDT")
-
-	// Assertions
+	resp, err := client.GetAggTrades(ctx, "BTCUSDT", 0, 0, 0, 5)
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatalf("GetAggTrades error: %v", err)
 	}
-
-	if !result.IsSingle() {
-		t.Fatal("expected single ticker result")
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
 	}
-
-	ticker := result.GetSingle()
-	if ticker.Symbol != "BTCUSDT" {
-		t.Errorf("expected symbol BTCUSDT, got %s", ticker.Symbol)
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
 	}
-
-	if ticker.Price != "45000.00" {
-		t.Errorf("expected price 45000.00, got %s", ticker.Price)
+	if len(*resp.Data) == 0 {
+		t.Fatal("no aggregate trades returned")
 	}
 }
 
-func TestClient_GetTickerPrice_AllSymbols_Success(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Mock successful response for all symbols
-	responseBody := `[{"symbol":"BTCUSDT","price":"45000.00"},{"symbol":"ETHUSDT","price":"3000.00"}]`
-	mockClient.setResponse("https://api.binance.com/api/v3/ticker/price", http.StatusOK, responseBody)
-
-	// Test GetTickerPrice for all symbols
+func TestGetKlines(t *testing.T) {
+	cfg := &Config{
+		BaseURL: MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
 	ctx := context.Background()
-	result, err := client.GetTickerPrice(ctx, "")
-
-	// Assertions
+	resp, err := client.GetKlines(ctx, "BTCUSDT", "1m", 0, 0, "", 5)
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatalf("GetKlines error: %v", err)
 	}
-
-	if !result.IsArray() {
-		t.Fatal("expected array ticker result")
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
 	}
-
-	tickers := result.GetArray()
-	if len(tickers) != 2 {
-		t.Errorf("expected 2 tickers, got %d", len(tickers))
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
 	}
-
-	if tickers[0].Symbol != "BTCUSDT" {
-		t.Errorf("expected first ticker symbol BTCUSDT, got %s", tickers[0].Symbol)
+	if len(*resp.Data) == 0 {
+		t.Fatal("no klines returned")
 	}
 }
 
-func TestClient_GetExchangeInfo_Success(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Mock successful response
-	responseBody := `{
-		"timezone":"UTC",
-		"serverTime":1635724800000,
-		"rateLimits":[],
-		"symbols":[
-			{
-				"symbol":"BTCUSDT",
-				"status":"TRADING",
-				"baseAsset":"BTC",
-				"baseAssetPrecision":8,
-				"quoteAsset":"USDT",
-				"quoteAssetPrecision":8,
-				"orderTypes":["LIMIT","MARKET"],
-				"icebergAllowed":true,
-				"ocoAllowed":true,
-				"isSpotTradingAllowed":true,
-				"isMarginTradingAllowed":true,
-				"filters":[],
-				"permissions":["SPOT"]
-			}
-		]
-	}`
-	mockClient.setResponse("https://api.binance.com/api/v3/exchangeInfo", http.StatusOK, responseBody)
-
-	// Test GetExchangeInfo
+func TestGetPriceTicker(t *testing.T) {
+	cfg := &Config{
+		BaseURL: MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
 	ctx := context.Background()
-	result, err := client.GetExchangeInfo(ctx)
 
-	// Assertions
+	// Single symbol
+	resp, err := client.GetPriceTicker(ctx, "BTCUSDT")
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatalf("GetPriceTicker error: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil || len(*resp.Data) == 0 {
+		t.Fatal("no price ticker returned (single)")
 	}
 
-	if result == nil {
-		t.Fatal("expected result, got nil")
+	// Multiple symbols
+	resp2, err := client.GetPriceTicker(ctx, "BTCUSDT", "ETHBTC")
+	if err != nil {
+		t.Fatalf("GetPriceTicker (multi) error: %v", err)
 	}
-
-	if result.Timezone != "UTC" {
-		t.Errorf("expected timezone UTC, got %s", result.Timezone)
+	if resp2.Code != 0 {
+		t.Fatalf("unexpected response code (multi): %d, msg: %s", resp2.Code, resp2.Message)
 	}
-
-	if len(result.Symbols) != 1 {
-		t.Errorf("expected 1 symbol, got %d", len(result.Symbols))
-	}
-
-	if result.Symbols[0].Symbol != "BTCUSDT" {
-		t.Errorf("expected symbol BTCUSDT, got %s", result.Symbols[0].Symbol)
-	}
-}
-
-// Test with context cancellation
-func TestClient_GetServerTime_ContextCancellation(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Create cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // Cancel immediately
-
-	// Mock the client to return context cancelled error
-	mockClient.setError("https://api.binance.com/api/v3/time", context.Canceled)
-
-	// Test GetServerTime with cancelled context
-	result, err := client.GetServerTime(ctx)
-
-	// Assertions
-	if err == nil {
-		t.Fatal("expected error due to context cancellation, got nil")
-	}
-
-	if result != nil {
-		t.Errorf("expected nil result, got %v", result)
-	}
-
-	// Check error is context related
-	if !strings.Contains(err.Error(), "context canceled") {
-		t.Errorf("expected context cancellation error, got %v", err)
+	if resp2.Data == nil || len(*resp2.Data) == 0 {
+		t.Fatal("no price ticker returned (multi)")
 	}
 }
 
-func TestClient_GetKlines_Success(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Mock successful response for klines
-	responseBody := `[
-		[1635724800000,"45000.00","45100.00","44900.00","45050.00","100.5",1635724859999,"4525025.00",1000,"50.25","50.25"],
-		[1635724860000,"45050.00","45200.00","45000.00","45150.00","150.2",1635724919999,"6780300.00",1200,"75.10","75.10"]
-	]`
-	mockClient.setResponse("https://api.binance.com/api/v3/klines?interval=1m&limit=2&symbol=BTCUSDT", http.StatusOK, responseBody)
-
-	// Test GetKlines
+func TestGetAccountInfo(t *testing.T) {
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	apiSecret := os.Getenv("BINANCE_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping signed request test.")
+	}
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
 	ctx := context.Background()
-	result, err := client.GetKlines(ctx, "BTCUSDT", "1m", 2)
 
-	// Assertions
+	resp, err := client.GetAccountInfo(ctx, GetAccountInfoRequest{})
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatalf("GetAccountInfo error: %v", err)
 	}
-
-	if result == nil {
-		t.Fatal("expected result, got nil")
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
 	}
-
-	if len(*result) != 2 {
-		t.Errorf("expected 2 klines, got %d", len(*result))
-	}
-
-	// Check first kline
-	firstKline := (*result)[0]
-	if firstKline.Open != "45000.00" {
-		t.Errorf("expected open 45000.00, got %s", firstKline.Open)
-	}
-
-	if firstKline.High != "45100.00" {
-		t.Errorf("expected high 45100.00, got %s", firstKline.High)
-	}
-
-	if firstKline.Low != "44900.00" {
-		t.Errorf("expected low 44900.00, got %s", firstKline.Low)
-	}
-
-	if firstKline.Close != "45050.00" {
-		t.Errorf("expected close 45050.00, got %s", firstKline.Close)
-	}
-
-	if firstKline.Volume != "100.5" {
-		t.Errorf("expected volume 100.5, got %s", firstKline.Volume)
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
 	}
 }
 
-func TestClient_GetOrderBook_Success(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Mock successful response for order book
-	responseBody := `{
-		"lastUpdateId": 123456789,
-		"bids": [
-			["45000.00", "1.5"],
-			["44999.00", "2.0"]
-		],
-		"asks": [
-			["45001.00", "1.0"],
-			["45002.00", "2.5"]
-		]
-	}`
-	mockClient.setResponse("https://api.binance.com/api/v3/depth?limit=5&symbol=BTCUSDT", http.StatusOK, responseBody)
-
-	// Test GetOrderBook
+func TestListOpenOrders(t *testing.T) {
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	apiSecret := os.Getenv("BINANCE_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping signed request test.")
+	}
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
 	ctx := context.Background()
-	result, err := client.GetOrderBook(ctx, "BTCUSDT", 5)
 
-	// Assertions
+	// All symbols
+	resp, err := client.ListOpenOrders(ctx, ListOpenOrdersRequest{})
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatalf("ListOpenOrders error (all): %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code (all): %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil (all)")
 	}
 
-	if result == nil {
-		t.Fatal("expected result, got nil")
+	// Single symbol (replace with a real symbol for your account)
+	resp2, err := client.ListOpenOrders(ctx, ListOpenOrdersRequest{Symbol: "BTCUSDT"})
+	if err != nil {
+		t.Fatalf("ListOpenOrders error (symbol): %v", err)
 	}
-
-	if result.LastUpdateId != 123456789 {
-		t.Errorf("expected lastUpdateId 123456789, got %d", result.LastUpdateId)
+	if resp2.Code != 0 {
+		t.Fatalf("unexpected response code (symbol): %d, msg: %s", resp2.Code, resp2.Message)
 	}
-
-	if len(result.Bids) != 2 {
-		t.Errorf("expected 2 bids, got %d", len(result.Bids))
-	}
-
-	if len(result.Asks) != 2 {
-		t.Errorf("expected 2 asks, got %d", len(result.Asks))
-	}
-
-	// Check first bid
-	if result.Bids[0][0] != "45000.00" {
-		t.Errorf("expected first bid price 45000.00, got %s", result.Bids[0][0])
-	}
-
-	if result.Bids[0][1] != "1.5" {
-		t.Errorf("expected first bid quantity 1.5, got %s", result.Bids[0][1])
-	}
-
-	// Check first ask
-	if result.Asks[0][0] != "45001.00" {
-		t.Errorf("expected first ask price 45001.00, got %s", result.Asks[0][0])
-	}
-
-	if result.Asks[0][1] != "1.0" {
-		t.Errorf("expected first ask quantity 1.0, got %s", result.Asks[0][1])
+	if resp2.Data == nil {
+		t.Fatal("resp.Data is nil (symbol)")
 	}
 }
 
-func TestClient_GetTrades_Success(t *testing.T) {
-	client, mockClient := createTestClient()
-
-	// Mock successful response for trades
-	responseBody := `[
-		{
-			"id": 12345,
-			"price": "45000.00",
-			"qty": "1.5",
-			"quoteQty": "67500.00",
-			"time": 1635724800000,
-			"isBuyerMaker": false,
-			"isBestMatch": true
-		},
-		{
-			"id": 12346,
-			"price": "45001.00",
-			"qty": "0.5",
-			"quoteQty": "22500.50",
-			"time": 1635724801000,
-			"isBuyerMaker": true,
-			"isBestMatch": false
-		}
-	]`
-	mockClient.setResponse("https://api.binance.com/api/v3/trades?limit=2&symbol=BTCUSDT", http.StatusOK, responseBody)
-
-	// Test GetTrades
+func TestGetMyTrades(t *testing.T) {
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	apiSecret := os.Getenv("BINANCE_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping signed request test.")
+	}
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
 	ctx := context.Background()
-	result, err := client.GetTrades(ctx, "BTCUSDT", 2)
 
-	// Assertions
+	// Replace with a real symbol for your account
+	resp, err := client.GetMyTrades(ctx, GetAccountTradesRequest{Symbol: "BTCUSDT", Limit: 5})
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatalf("GetMyTrades error: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+}
+
+func TestStartUserDataStream(t *testing.T) {
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	apiSecret := os.Getenv("BINANCE_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping signed request test.")
+	}
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+	ctx := context.Background()
+
+	resp, err := client.StartUserDataStream(ctx)
+	if err != nil {
+		t.Fatalf("StartUserDataStream error: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+	if resp.Data.ListenKey == "" {
+		t.Fatal("listenKey is empty")
+	}
+}
+
+func TestKeepaliveUserDataStream(t *testing.T) {
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	apiSecret := os.Getenv("BINANCE_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping signed request test.")
+	}
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+	ctx := context.Background()
+
+	// Start a stream first to get a listenKey
+	startResp, err := client.StartUserDataStream(ctx)
+	if err != nil {
+		t.Fatalf("StartUserDataStream error: %v", err)
+	}
+	if startResp.Data == nil || startResp.Data.ListenKey == "" {
+		t.Fatal("failed to get listenKey")
 	}
 
-	if result == nil {
-		t.Fatal("expected result, got nil")
+	// Test keepalive
+	resp, err := client.KeepaliveUserDataStream(ctx, startResp.Data.ListenKey)
+	if err != nil {
+		t.Fatalf("KeepaliveUserDataStream error: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+}
+
+func TestCloseUserDataStream(t *testing.T) {
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	apiSecret := os.Getenv("BINANCE_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping signed request test.")
+	}
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+	ctx := context.Background()
+
+	// Start a stream first to get a listenKey
+	startResp, err := client.StartUserDataStream(ctx)
+	if err != nil {
+		t.Fatalf("StartUserDataStream error: %v", err)
+	}
+	if startResp.Data == nil || startResp.Data.ListenKey == "" {
+		t.Fatal("failed to get listenKey")
 	}
 
-	if len(result) != 2 {
-		t.Errorf("expected 2 trades, got %d", len(result))
+	// Test close
+	resp, err := client.CloseUserDataStream(ctx, startResp.Data.ListenKey)
+	if err != nil {
+		t.Fatalf("CloseUserDataStream error: %v", err)
 	}
-
-	// Check first trade
-	firstTrade := result[0]
-	if firstTrade.Id != 12345 {
-		t.Errorf("expected trade id 12345, got %d", firstTrade.Id)
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
 	}
-
-	if firstTrade.Price != "45000.00" {
-		t.Errorf("expected trade price 45000.00, got %s", firstTrade.Price)
-	}
-
-	if firstTrade.Qty != "1.5" {
-		t.Errorf("expected trade qty 1.5, got %s", firstTrade.Qty)
-	}
-
-	if firstTrade.IsBuyerMaker != false {
-		t.Errorf("expected isBuyerMaker false, got %v", firstTrade.IsBuyerMaker)
-	}
-
-	if firstTrade.IsBestMatch != true {
-		t.Errorf("expected isBestMatch true, got %v", firstTrade.IsBestMatch)
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
 	}
 }

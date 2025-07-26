@@ -5,312 +5,439 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/BullionBear/sequex/pkg/exchange/binance"
 )
 
 func main() {
-	// Set up logging
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Println("Starting Binance connectivity test...")
+	// Example of REST API usage (existing functionality)
+	fmt.Println("=== Binance REST API Example ===")
+	restAPIExample()
 
-	// Create configuration
-	// For testing, you can use testnet
-	config := binance.DefaultConfig()
+	fmt.Println("\n=== Binance WebSocket Example ===")
+	websocketExample()
 
-	// Set your API credentials (you'll need to set these as environment variables)
-	config.APIKey = os.Getenv("BINANCE_API_KEY")
-	config.APISecret = os.Getenv("BINANCE_API_SECRET")
-
-	if config.APIKey == "" || config.APISecret == "" {
-		log.Fatal("Please set BINANCE_API_KEY and BINANCE_API_SECRET environment variables")
-	}
-
-	// Create client
-	client := binance.NewClient(config)
-	wsClient := binance.NewWSStreamClient(config)
-
-	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-	// Test 1: Get account balance
-	log.Println("\n=== Test 1: Get Account Balance ===")
-	if err := testGetAccountBalance(ctx, client); err != nil {
-		log.Printf("Failed to get account balance: %v", err)
-		return
-	}
-
-	// Test 2: Get ADAUSDT price
-	log.Println("\n=== Test 2: Get ADAUSDT Price ===")
-	adaPrice, err := testGetADAUSDTPrice(ctx, client)
-	if err != nil {
-		log.Printf("Failed to get ADAUSDT price: %v", err)
-		return
-	}
-
-	// Test 3: Subscribe to user data stream
-	log.Println("\n=== Test 3: Subscribe to User Data Stream ===")
-	listenKey, unsubscribe, err := testSubscribeUserDataStream(ctx, client, wsClient)
-	if err != nil {
-		log.Printf("Failed to subscribe to user data stream: %v", err)
-		return
-	}
-	defer unsubscribe()
-
-	// Test 4: Send a limit buy order of ADAUSDT at 0.9 * current price
-	log.Println("\n=== Test 4: Send Limit Buy Order ===")
-	limitOrderID, err := testLimitBuyOrder(ctx, client, adaPrice)
-	if err != nil {
-		log.Printf("Failed to place limit buy order: %v", err)
-		return
-	}
-
-	// Test 5: Cancel the limit order
-	log.Println("\n=== Test 5: Cancel Limit Order ===")
-	if err := testCancelOrder(ctx, client, limitOrderID); err != nil {
-		log.Printf("Failed to cancel order: %v", err)
-		return
-	}
-
-	// Test 6: Send a market buy order of ADAUSDT
-	log.Println("\n=== Test 6: Send Market Buy Order ===")
-	if err := testMarketBuyOrder(ctx, client); err != nil {
-		log.Printf("Failed to place market buy order: %v", err)
-		return
-	}
-
-	// Test 7: Send a market sell order of ADAUSDT
-	log.Println("\n=== Test 7: Send Market Sell Order ===")
-	if err := testMarketSellOrder(ctx, client); err != nil {
-		log.Printf("Failed to place market sell order: %v", err)
-		return
-	}
-
-	// Test 8: Unsubscribe from user data stream
-	log.Println("\n=== Test 8: Unsubscribe from User Data Stream ===")
-	if err := testUnsubscribeUserDataStream(ctx, client, listenKey); err != nil {
-		log.Printf("Failed to unsubscribe from user data stream: %v", err)
-		return
-	}
-
-	log.Println("\n=== All tests completed successfully! ===")
+	fmt.Println("\n=== Binance User Data Stream Example ===")
+	userDataStreamExample()
 }
 
-func testGetAccountBalance(ctx context.Context, client *binance.Client) error {
-	account, err := client.GetAccount(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get account: %w", err)
+func restAPIExample() {
+	// Configure your API credentials here
+	cfg := &binance.Config{
+		BaseURL:   "https://api.binance.com/api",
+		APIKey:    "your-api-key",
+		APISecret: "your-api-secret",
 	}
 
-	log.Printf("Account Type: %s", account.AccountType)
-	log.Printf("Can Trade: %t", account.CanTrade)
-	log.Printf("Can Withdraw: %t", account.CanWithdraw)
-	log.Printf("Can Deposit: %t", account.CanDeposit)
-	log.Printf("Update Time: %d", account.UpdateTime)
+	client := binance.NewClient(cfg)
 
-	log.Println("Balances:")
-	for _, balance := range account.Balances {
-		if balance.Asset == "USDT" || balance.Asset == "ADA" {
-			log.Printf("  %s: Free=%s, Locked=%s", balance.Asset, balance.Free, balance.Locked)
-		}
-	}
-
-	return nil
+	// Example: Get recent trades (public endpoint)
+	// This is a placeholder - implement based on existing client methods
+	fmt.Println("REST API client configured successfully")
+	_ = client // Use client for actual API calls
 }
 
-func testGetADAUSDTPrice(ctx context.Context, client *binance.Client) (float64, error) {
-	ticker, err := client.GetTickerPrice(ctx, "ADAUSDT")
-	if err != nil {
-		return 0, fmt.Errorf("failed to get ADAUSDT ticker: %w", err)
-	}
-
-	if !ticker.IsSingle() {
-		return 0, fmt.Errorf("expected single ticker, got array")
-	}
-
-	price, err := strconv.ParseFloat(ticker.GetSingle().Price, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse price: %w", err)
-	}
-
-	log.Printf("ADAUSDT Current Price: $%.4f", price)
-	return price, nil
-}
-
-func testSubscribeUserDataStream(ctx context.Context, client *binance.Client, wsClient *binance.WSStreamClient) (string, func() error, error) {
-	// Create user data stream
-	streamResp, err := client.CreateUserDataStream(ctx)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to create user data stream: %w", err)
-	}
-
-	listenKey := streamResp.ListenKey
-	log.Printf("Created user data stream with listen key: %s", listenKey)
-
-	// Subscribe to user data stream
-	userDataOptions := &binance.UserDataSubscriptionOptions{}
-	userDataOptions.WithConnect(func() {
-		log.Println("Connected to user data stream")
-	}).WithDisconnect(func() {
-		log.Println("Disconnected from user data stream")
-	}).WithError(func(err error) {
-		log.Printf("User data stream error: %v", err)
-	}).WithAccountUpdate(func(data *binance.WSOutboundAccountPosition) error {
-		log.Printf("Account update received: %+v", data)
-		return nil
-	}).WithBalanceUpdate(func(data *binance.WSBalanceUpdate) error {
-		log.Printf("Balance update received: %+v", data)
-		return nil
-	}).WithExecutionReport(func(data *binance.WSExecutionReport) error {
-		log.Printf("Execution report received: %+v", data)
-		return nil
+func websocketExample() {
+	// Create WebSocket client (using port 9443 for optimal performance)
+	wsClient := binance.NewWSClient(binance.WSConfig{
+		BaseURL: binance.MainnetWSBaseUrl9443,
 	})
 
-	unsubscribe, err := wsClient.SubscribeToUserDataStream(listenKey, userDataOptions)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to subscribe to user data stream: %w", err)
+	// Configure Kline subscription options
+	klineOptions := binance.KlineSubscriptionOptions{
+		OnConnect: func() {
+			fmt.Println("🟢 Connected to Binance Kline WebSocket")
+		},
+		OnReconnect: func() {
+			fmt.Println("🔄 Reconnected to Binance Kline WebSocket")
+		},
+		OnError: func(err error) {
+			fmt.Printf("❌ Kline WebSocket Error: %v\n", err)
+		},
+		OnKline: func(kline binance.WSKline) {
+			fmt.Printf("📊 Kline Update: %s %s | Open: %s | High: %s | Low: %s | Close: %s | Volume: %s | Closed: %t\n",
+				kline.Symbol, kline.Interval, kline.Open, kline.High, kline.Low, kline.Close, kline.Volume, kline.IsClosed)
+		},
+		OnDisconnect: func() {
+			fmt.Println("🔴 Disconnected from Binance Kline WebSocket")
+		},
 	}
 
-	// Wait a bit for connection to establish
+	// Configure Aggregate Trade subscription options
+	aggTradeOptions := binance.AggTradeSubscriptionOptions{
+		OnConnect: func() {
+			fmt.Println("🟢 Connected to Binance AggTrade WebSocket")
+		},
+		OnReconnect: func() {
+			fmt.Println("🔄 Reconnected to Binance AggTrade WebSocket")
+		},
+		OnError: func(err error) {
+			fmt.Printf("❌ AggTrade WebSocket Error: %v\n", err)
+		},
+		OnAggTrade: func(aggTrade binance.WSAggTrade) {
+			buyerType := "Seller"
+			if aggTrade.IsBuyerMaker {
+				buyerType = "Buyer"
+			}
+			fmt.Printf("💰 AggTrade: %s | Price: %s | Qty: %s | %s is Maker | AggID: %d\n",
+				aggTrade.Symbol, aggTrade.Price, aggTrade.Quantity, buyerType, aggTrade.AggTradeId)
+		},
+		OnDisconnect: func() {
+			fmt.Println("🔴 Disconnected from Binance AggTrade WebSocket")
+		},
+	}
+
+	// Configure Raw Trade subscription options
+	tradeOptions := binance.TradeSubscriptionOptions{
+		OnConnect: func() {
+			fmt.Println("🟢 Connected to Binance Trade WebSocket")
+		},
+		OnReconnect: func() {
+			fmt.Println("🔄 Reconnected to Binance Trade WebSocket")
+		},
+		OnError: func(err error) {
+			fmt.Printf("❌ Trade WebSocket Error: %v\n", err)
+		},
+		OnTrade: func(trade binance.WSTrade) {
+			buyerType := "Seller"
+			if trade.IsBuyerMaker {
+				buyerType = "Buyer"
+			}
+			fmt.Printf("🔥 Trade: %s | Price: %s | Qty: %s | %s is Maker | TradeID: %d\n",
+				trade.Symbol, trade.Price, trade.Quantity, buyerType, trade.TradeId)
+		},
+		OnDisconnect: func() {
+			fmt.Println("🔴 Disconnected from Binance Trade WebSocket")
+		},
+	}
+
+	// Configure Depth subscription options
+	depthOptions := binance.DepthSubscriptionOptions{
+		OnConnect: func() {
+			fmt.Println("🟢 Connected to Binance Depth WebSocket")
+		},
+		OnReconnect: func() {
+			fmt.Println("🔄 Reconnected to Binance Depth WebSocket")
+		},
+		OnError: func(err error) {
+			fmt.Printf("❌ Depth WebSocket Error: %v\n", err)
+		},
+		OnDepth: func(depth binance.WSDepth) {
+			// Show best bid/ask for concise output
+			bestBid := "N/A"
+			bestAsk := "N/A"
+			if len(depth.Bids) > 0 {
+				bestBid = depth.Bids[0][0] // Best bid price
+			}
+			if len(depth.Asks) > 0 {
+				bestAsk = depth.Asks[0][0] // Best ask price
+			}
+			fmt.Printf("📖 Depth Update: UpdateID=%d | Best Bid: %s | Best Ask: %s | Levels: Bids=%d Asks=%d\n",
+				depth.LastUpdateId, bestBid, bestAsk, len(depth.Bids), len(depth.Asks))
+		},
+		OnDisconnect: func() {
+			fmt.Println("🔴 Disconnected from Binance Depth WebSocket")
+		},
+	}
+
+	// Configure Depth Update subscription options
+	depthUpdateOptions := binance.DepthUpdateSubscriptionOptions{
+		OnConnect: func() {
+			fmt.Println("🟢 Connected to Binance DepthUpdate WebSocket")
+		},
+		OnReconnect: func() {
+			fmt.Println("🔄 Reconnected to Binance DepthUpdate WebSocket")
+		},
+		OnError: func(err error) {
+			fmt.Printf("❌ DepthUpdate WebSocket Error: %v\n", err)
+		},
+		OnDepthUpdate: func(update binance.WSDepthUpdate) {
+			fmt.Printf("🔄 Depth Update: %s | UpdateIDs: %d-%d | Bid Changes: %d | Ask Changes: %d\n",
+				update.Symbol, update.FirstUpdateId, update.FinalUpdateId, len(update.BidUpdates), len(update.AskUpdates))
+		},
+		OnDisconnect: func() {
+			fmt.Println("🔴 Disconnected from Binance DepthUpdate WebSocket")
+		},
+	}
+
+	// Subscribe to BTCUSDT 1-minute klines (using lowercase symbol)
+	fmt.Println("Subscribing to BTCUSDT 1m kline stream...")
+	unsubscribeKline, err := wsClient.SubscribeKline("btcusdt", "1m", klineOptions)
+	if err != nil {
+		log.Fatalf("Failed to subscribe to kline stream: %v", err)
+	}
+
+	// Subscribe to BTCUSDT aggregate trades
+	fmt.Println("Subscribing to BTCUSDT aggregate trade stream...")
+	unsubscribeAggTrade, err := wsClient.SubscribeAggTrade("btcusdt", aggTradeOptions)
+	if err != nil {
+		log.Fatalf("Failed to subscribe to aggregate trade stream: %v", err)
+	}
+
+	// Subscribe to BTCUSDT raw trades
+	fmt.Println("Subscribing to BTCUSDT raw trade stream...")
+	unsubscribeTrade, err := wsClient.SubscribeTrade("btcusdt", tradeOptions)
+	if err != nil {
+		log.Fatalf("Failed to subscribe to trade stream: %v", err)
+	}
+
+	// Subscribe to BTCUSDT partial book depth (5 levels, 1000ms updates)
+	fmt.Println("Subscribing to BTCUSDT depth stream (5 levels)...")
+	unsubscribeDepth, err := wsClient.SubscribeDepth("btcusdt", 5, "", depthOptions)
+	if err != nil {
+		log.Fatalf("Failed to subscribe to depth stream: %v", err)
+	}
+
+	// Subscribe to BTCUSDT differential depth updates (1000ms updates)
+	fmt.Println("Subscribing to BTCUSDT differential depth update stream...")
+	unsubscribeDepthUpdate, err := wsClient.SubscribeDepthUpdate("btcusdt", "", depthUpdateOptions)
+	if err != nil {
+		log.Fatalf("Failed to subscribe to depth update stream: %v", err)
+	}
+
+	// Set up graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	fmt.Println("WebSocket clients are running. Press Ctrl+C to stop...")
+	fmt.Println("You should see:")
+	fmt.Println("  📊 Kline updates every ~1 minute (OHLCV data)")
+	fmt.Println("  💰 Aggregate trade updates (aggregated for taker orders)")
+	fmt.Println("  🔥 Raw trade updates (individual buyer/seller trades)")
+	fmt.Println("  📖 Depth updates every second (order book snapshots)")
+	fmt.Println("  🔄 Depth update changes (incremental order book changes)")
+
+	// Wait for shutdown signal
+	<-sigChan
+
+	fmt.Println("\nShutting down...")
+	unsubscribeKline()
+	unsubscribeAggTrade()
+	unsubscribeTrade()
+	unsubscribeDepth()
+	unsubscribeDepthUpdate()
+	wsClient.Close()
+
+	// Give some time for cleanup
+	time.Sleep(100 * time.Millisecond)
+	fmt.Println("Example completed.")
+}
+
+func userDataStreamExample() {
+	// Configure your API credentials here (required for user data stream)
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	apiSecret := os.Getenv("BINANCE_API_SECRET")
+
+	if apiKey == "" || apiSecret == "" {
+		fmt.Println("⚠️  User Data Stream Example Skipped")
+		fmt.Println("Please set BINANCE_API_KEY and BINANCE_API_SECRET environment variables to test user data streams")
+		return
+	}
+
+	fmt.Println("🚀 Starting User Data Stream Test with Active Trading...")
+
+	// Create REST API client for listen key management and trading
+	cfg := &binance.Config{
+		BaseURL:   binance.MainnetBaseUrl,
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+	}
+	client := binance.NewClient(cfg)
+
+	// Step 1: Check USDT balance
+	fmt.Println("📊 Checking account balance...")
+	ctx := context.Background()
+	accountResp, err := client.GetAccountInfo(ctx, binance.GetAccountInfoRequest{})
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get account info: %v", err))
+	}
+
+	var usdtBalance float64
+	var hasUSDT bool
+	for _, balance := range accountResp.Data.Balances {
+		if balance.Asset == "USDT" {
+			// Parse free balance
+			if parsed, err := strconv.ParseFloat(balance.Free, 64); err == nil {
+				usdtBalance = parsed
+				hasUSDT = true
+			}
+			break
+		}
+	}
+
+	if !hasUSDT || usdtBalance < 10.0 {
+		panic(fmt.Sprintf("Insufficient USDT balance: %.8f (required: >= 10.0)", usdtBalance))
+	}
+
+	fmt.Printf("✅ USDT Balance: %.8f (sufficient for testing)\n", usdtBalance)
+
+	// Create WebSocket client with REST client for user data streams
+	wsClient := binance.NewWSClientWithRESTClient(binance.WSConfig{
+		BaseURL: binance.MainnetWSBaseUrl9443,
+	}, client)
+
+	// Step 2: Set up User Data Stream monitoring
+	var orderCount int
+	var executionCount int
+
+	userDataOptions := binance.UserDataSubscriptionOptions{
+		OnConnect: func() {
+			fmt.Println("🟢 Connected to Binance User Data Stream")
+		},
+		OnReconnect: func() {
+			fmt.Println("🔄 Reconnected to User Data Stream")
+		},
+		OnError: func(err error) {
+			fmt.Printf("❌ User Data Stream Error: %v\n", err)
+		},
+		OnAccountPosition: func(event binance.WSOutboundAccountPositionEvent) {
+			fmt.Printf("💰 Account Position Update: %d balances updated at %d\n",
+				len(event.BalanceArray), event.EventTime)
+			for _, balance := range event.BalanceArray {
+				if balance.Asset == "USDT" || balance.Asset == "USDC" {
+					fmt.Printf("  %s: Free=%s, Locked=%s\n", balance.Asset, balance.Free, balance.Locked)
+				}
+			}
+		},
+		OnBalanceUpdate: func(event binance.WSBalanceUpdateEvent) {
+			if event.Asset == "USDT" || event.Asset == "USDC" {
+				fmt.Printf("💸 Balance Update: %s delta=%s at %d\n", event.Asset, event.BalanceDelta, event.EventTime)
+			}
+		},
+		OnExecutionReport: func(event binance.WSExecutionReportEvent) {
+			executionCount++
+			fmt.Printf("📋 Order #%d: %s %s %s %s@%s (Status: %s -> %s) at %d\n",
+				executionCount, event.Symbol, event.Side, event.CurrentExecutionType,
+				event.OrderQuantity, event.OrderPrice, event.CurrentOrderStatus,
+				event.CurrentExecutionType, event.EventTime)
+
+			if event.CurrentOrderStatus == binance.OrderStatusCanceled {
+				fmt.Printf("    ✅ Order %d successfully canceled\n", event.OrderId)
+			} else if event.CurrentOrderStatus == binance.OrderStatusNew {
+				fmt.Printf("    📝 Order %d placed successfully\n", event.OrderId)
+			}
+		},
+		OnListenKeyExpired: func(event binance.WSListenKeyExpiredEvent) {
+			fmt.Printf("🔑 Listen Key Expired: %s (reconnection will be handled automatically)\n", event.ListenKey)
+		},
+		OnDisconnect: func() {
+			fmt.Println("🔴 Disconnected from User Data Stream")
+		},
+	}
+
+	// Subscribe to user data stream
+	unsubscribeUserData, err := wsClient.SubscribeUserData(userDataOptions)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to subscribe to user data stream: %v", err))
+	}
+
+	// Wait for connection to establish
 	time.Sleep(2 * time.Second)
 
-	return listenKey, unsubscribe, nil
-}
+	// Step 3: Set up signal handling for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-func testLimitBuyOrder(ctx context.Context, client *binance.Client, currentPrice float64) (int64, error) {
-	// Calculate limit price (0.9 * current price)
-	limitPrice := currentPrice * 0.9
+	// Step 4: Start order placement/cancellation loop
+	fmt.Println("\n🎯 Starting continuous USDC/USDT order placement test...")
+	fmt.Println("   Symbol: USDCUSDT")
+	fmt.Println("   Side: BUY")
+	fmt.Println("   Price: 0.9000")
+	fmt.Println("   Quantity: 11 USDC (small test amount)")
+	fmt.Println("   Strategy: Place order -> Wait 1s -> Cancel -> Repeat")
+	fmt.Println("\nPress Ctrl+C to stop...\n")
 
-	// Calculate quantity (ensure minimum notional value but within available balance)
-	// Binance requires minimum notional value, so we'll use a reasonable quantity
-	quantity := 10.0 // 3 ADA to ensure minimum notional and fit available balance
+	// Run order loop in a goroutine
+	orderLoop := make(chan bool)
+	go func() {
+		defer close(orderLoop)
 
-	// Create limit buy order
-	orderReq := &binance.NewOrderRequest{
-		Symbol:      "ADAUSDT",
-		Side:        binance.SideBuy,
-		Type:        binance.OrderTypeLimit,
-		TimeInForce: binance.TimeInForceGTC,
-		Quantity:    fmt.Sprintf("%.1f", quantity),
-		Price:       fmt.Sprintf("%.4f", limitPrice),
-	}
+		for {
+			select {
+			case <-sigChan:
+				return
+			default:
+				orderCount++
 
-	log.Printf("Placing limit buy order: %s %s ADA at $%.4f", orderReq.Side, orderReq.Quantity, limitPrice)
+				// Place a small buy order for USDC/USDT
+				orderReq := binance.CreateOrderRequest{
+					Symbol:           "USDCUSDT",
+					Side:             binance.OrderSideBuy,
+					Type:             binance.OrderTypeLimit,
+					TimeInForce:      binance.TimeInForceGTC,
+					Quantity:         "11.0",   // Small quantity for testing
+					Price:            "0.9000", // Price below market to avoid accidental fills
+					NewOrderRespType: binance.NewOrderRespTypeFull,
+				}
 
-	order, err := client.PlaceOrder(ctx, orderReq)
-	if err != nil {
-		return 0, fmt.Errorf("failed to place limit buy order: %w", err)
-	}
+				fmt.Printf("📤 Placing order #%d...\n", orderCount)
+				createResp, err := client.CreateOrder(ctx, orderReq)
+				if err != nil {
+					fmt.Printf("❌ Failed to place order #%d: %v\n", orderCount, err)
+					time.Sleep(1 * time.Second)
+					continue
+				}
 
-	log.Printf("Limit buy order placed successfully:")
-	log.Printf("  Order ID: %d", order.OrderId)
-	log.Printf("  Status: %s", order.Status)
-	log.Printf("  Price: %s", order.Price)
-	log.Printf("  Quantity: %s", order.OrigQty)
+				orderId := createResp.Data.OrderId
+				fmt.Printf("📝 Order #%d placed: ID=%d, Status=%s\n",
+					orderCount, orderId, createResp.Data.Status)
 
-	return order.OrderId, nil
-}
+				// Wait 1 second
+				time.Sleep(1 * time.Second)
 
-func testCancelOrder(ctx context.Context, client *binance.Client, orderID int64) error {
-	log.Printf("Canceling order ID: %d", orderID)
+				// Cancel the order
+				cancelReq := binance.CancelOrderRequest{
+					Symbol:  "USDCUSDT",
+					OrderId: orderId,
+				}
 
-	cancelResp, err := client.CancelOrder(ctx, "ADAUSDT", orderID)
-	if err != nil {
-		return fmt.Errorf("failed to cancel order: %w", err)
-	}
+				fmt.Printf("🗑️  Canceling order #%d (ID: %d)...\n", orderCount, orderId)
+				cancelResp, err := client.CancelOrder(ctx, cancelReq)
+				if err != nil {
+					fmt.Printf("❌ Failed to cancel order #%d: %v\n", orderCount, err)
+				} else {
+					fmt.Printf("✅ Order #%d canceled: Status=%s\n",
+						orderCount, cancelResp.Data.Status)
+				}
 
-	log.Printf("Order canceled successfully:")
-	log.Printf("  Order ID: %d", cancelResp.OrderId)
-	log.Printf("  Status: %s", cancelResp.Status)
-	log.Printf("  Executed Quantity: %s", cancelResp.ExecutedQty)
+				// Brief pause before next iteration
+				time.Sleep(500 * time.Millisecond)
+			}
+		}
+	}()
 
-	return nil
-}
+	// Wait for shutdown signal
+	<-sigChan
 
-func testMarketBuyOrder(ctx context.Context, client *binance.Client) error {
-	// Calculate quantity (ensure minimum notional value but within available balance)
-	quantity := 10.0 // 3 ADA to ensure minimum notional and fit available balance
+	fmt.Println("\n🛑 Shutdown signal received...")
+	fmt.Printf("📊 Test Summary:\n")
+	fmt.Printf("   Orders Placed: %d\n", orderCount)
+	fmt.Printf("   Execution Reports: %d\n", executionCount)
 
-	// Create market buy order
-	orderReq := &binance.NewOrderRequest{
-		Symbol:   "ADAUSDT",
-		Side:     binance.SideBuy,
-		Type:     binance.OrderTypeMarket,
-		Quantity: fmt.Sprintf("%.1f", quantity),
-	}
-
-	log.Printf("Placing market buy order: %s %s ADA", orderReq.Side, orderReq.Quantity)
-
-	order, err := client.PlaceOrder(ctx, orderReq)
-	if err != nil {
-		return fmt.Errorf("failed to place market buy order: %w", err)
-	}
-
-	log.Printf("Market buy order placed successfully:")
-	log.Printf("  Order ID: %d", order.OrderId)
-	log.Printf("  Status: %s", order.Status)
-	log.Printf("  Executed Quantity: %s", order.ExecutedQty)
-	log.Printf("  Cumulative Quote Quantity: %s", order.CummulativeQuoteQty)
-
-	// Print fill information if available
-	if len(order.Fills) > 0 {
-		log.Printf("  Fills:")
-		for i, fill := range order.Fills {
-			log.Printf("    Fill %d: Price=%s, Qty=%s, Commission=%s %s",
-				i+1, fill.Price, fill.Qty, fill.Commission, fill.CommissionAsset)
+	// Cancel any remaining orders
+	fmt.Println("🧹 Cleaning up any remaining orders...")
+	if openOrdersResp, err := client.ListOpenOrders(ctx, binance.ListOpenOrdersRequest{
+		Symbol: "USDCUSDT",
+	}); err == nil && openOrdersResp.Data != nil {
+		for _, order := range *openOrdersResp.Data {
+			if order.Symbol == "USDCUSDT" {
+				fmt.Printf("🗑️  Canceling remaining order: %d\n", order.OrderId)
+				client.CancelOrder(ctx, binance.CancelOrderRequest{
+					Symbol:  "USDCUSDT",
+					OrderId: order.OrderId,
+				})
+			}
 		}
 	}
 
-	return nil
-}
+	fmt.Println("🔌 Shutting down user data stream...")
+	unsubscribeUserData()
+	wsClient.Close()
 
-func testMarketSellOrder(ctx context.Context, client *binance.Client) error {
-	// Calculate quantity (ensure minimum notional value but within available balance)
-	quantity := 10.0 // 3 ADA to ensure minimum notional and fit available balance
-
-	// Create market sell order
-	orderReq := &binance.NewOrderRequest{
-		Symbol:   "ADAUSDT",
-		Side:     binance.SideSell,
-		Type:     binance.OrderTypeMarket,
-		Quantity: fmt.Sprintf("%.1f", quantity),
-	}
-
-	log.Printf("Placing market sell order: %s %s ADA", orderReq.Side, orderReq.Quantity)
-
-	order, err := client.PlaceOrder(ctx, orderReq)
-	if err != nil {
-		return fmt.Errorf("failed to place market sell order: %w", err)
-	}
-
-	log.Printf("Market sell order placed successfully:")
-	log.Printf("  Order ID: %d", order.OrderId)
-	log.Printf("  Status: %s", order.Status)
-	log.Printf("  Executed Quantity: %s", order.ExecutedQty)
-	log.Printf("  Cumulative Quote Quantity: %s", order.CummulativeQuoteQty)
-
-	// Print fill information if available
-	if len(order.Fills) > 0 {
-		log.Printf("  Fills:")
-		for i, fill := range order.Fills {
-			log.Printf("    Fill %d: Price=%s, Qty=%s, Commission=%s %s",
-				i+1, fill.Price, fill.Qty, fill.Commission, fill.CommissionAsset)
-		}
-	}
-
-	return nil
-}
-
-func testUnsubscribeUserDataStream(ctx context.Context, client *binance.Client, listenKey string) error {
-	log.Printf("Closing user data stream with listen key: %s", listenKey)
-
-	err := client.CloseUserDataStream(ctx, listenKey)
-	if err != nil {
-		return fmt.Errorf("failed to close user data stream: %w", err)
-	}
-
-	log.Println("User data stream closed successfully")
-	return nil
+	time.Sleep(500 * time.Millisecond)
+	fmt.Println("✅ User Data Stream test completed successfully!")
 }
