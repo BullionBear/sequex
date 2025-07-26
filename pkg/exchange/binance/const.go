@@ -39,4 +39,5 @@ const (
 	PathGetAccountInfo   = "/v3/account"
 	PathListOpenOrders   = "/v3/openOrders"
 	PathGetAccountTrades = "/v3/myTrades"
+	PathUserDataStream   = "/v3/userDataStream"
 )

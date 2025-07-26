@@ -260,3 +260,11 @@ type AccountTrade struct {
 	IsMaker         bool   `json:"isMaker"`
 	IsBestMatch     bool   `json:"isBestMatch"`
 }
+
+// UserDataStreamResponse models the response for starting a user data stream.
+type UserDataStreamResponse struct {
+	ListenKey string `json:"listenKey"`
+}
+
+// EmptyResponse models empty responses for keepalive and close stream operations.
+type EmptyResponse struct{}

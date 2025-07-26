@@ -76,6 +76,38 @@ func doSignedRequest(cfg *Config, method, endpoint string, params map[string]str
 	return body, resp.StatusCode, err
 }
 
+// doAPIKeyOnlyRequest handles requests that only need API key header (no signing)
+// Used for user data stream endpoints that don't require timestamp/signature
+func doAPIKeyOnlyRequest(cfg *Config, method, endpoint string, params map[string]string) ([]byte, int, error) {
+	baseURL := strings.TrimRight(cfg.BaseURL, "/")
+	fullURL := baseURL + endpoint
+
+	// Build query string from params (no timestamp or signature added)
+	if len(params) > 0 {
+		q := url.Values{}
+		for k, v := range params {
+			q.Set(k, v)
+		}
+		fullURL += "?" + q.Encode()
+	}
+
+	req, err := http.NewRequest(method, fullURL, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	// Set API key header
+	req.Header.Set("X-MBX-APIKEY", cfg.APIKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	return body, resp.StatusCode, err
+}
+
 // buildQueryString sorts and encodes params
 func buildQueryString(params map[string]string) string {
 	var keys []string

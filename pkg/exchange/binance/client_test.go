@@ -213,3 +213,104 @@ func TestGetMyTrades(t *testing.T) {
 		t.Fatal("resp.Data is nil")
 	}
 }
+
+func TestStartUserDataStream(t *testing.T) {
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	apiSecret := os.Getenv("BINANCE_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping signed request test.")
+	}
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+	ctx := context.Background()
+
+	resp, err := client.startUserDataStream(ctx)
+	if err != nil {
+		t.Fatalf("startUserDataStream error: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+	if resp.Data.ListenKey == "" {
+		t.Fatal("listenKey is empty")
+	}
+}
+
+func TestKeepaliveUserDataStream(t *testing.T) {
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	apiSecret := os.Getenv("BINANCE_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping signed request test.")
+	}
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+	ctx := context.Background()
+
+	// Start a stream first to get a listenKey
+	startResp, err := client.startUserDataStream(ctx)
+	if err != nil {
+		t.Fatalf("startUserDataStream error: %v", err)
+	}
+	if startResp.Data == nil || startResp.Data.ListenKey == "" {
+		t.Fatal("failed to get listenKey")
+	}
+
+	// Test keepalive
+	resp, err := client.keepaliveUserDataStream(ctx, startResp.Data.ListenKey)
+	if err != nil {
+		t.Fatalf("keepaliveUserDataStream error: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+}
+
+func TestCloseUserDataStream(t *testing.T) {
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	apiSecret := os.Getenv("BINANCE_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping signed request test.")
+	}
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+	ctx := context.Background()
+
+	// Start a stream first to get a listenKey
+	startResp, err := client.startUserDataStream(ctx)
+	if err != nil {
+		t.Fatalf("startUserDataStream error: %v", err)
+	}
+	if startResp.Data == nil || startResp.Data.ListenKey == "" {
+		t.Fatal("failed to get listenKey")
+	}
+
+	// Test close
+	resp, err := client.closeUserDataStream(ctx, startResp.Data.ListenKey)
+	if err != nil {
+		t.Fatalf("closeUserDataStream error: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+}
