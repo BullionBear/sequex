@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -236,7 +238,9 @@ func userDataStreamExample() {
 		return
 	}
 
-	// Create REST API client for listen key management
+	fmt.Println("🚀 Starting User Data Stream Test with Active Trading...")
+
+	// Create REST API client for listen key management and trading
 	cfg := &binance.Config{
 		BaseURL:   binance.MainnetBaseUrl,
 		APIKey:    apiKey,
@@ -244,12 +248,42 @@ func userDataStreamExample() {
 	}
 	client := binance.NewClient(cfg)
 
+	// Step 1: Check USDT balance
+	fmt.Println("📊 Checking account balance...")
+	ctx := context.Background()
+	accountResp, err := client.GetAccountInfo(ctx, binance.GetAccountInfoRequest{})
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get account info: %v", err))
+	}
+
+	var usdtBalance float64
+	var hasUSDT bool
+	for _, balance := range accountResp.Data.Balances {
+		if balance.Asset == "USDT" {
+			// Parse free balance
+			if parsed, err := strconv.ParseFloat(balance.Free, 64); err == nil {
+				usdtBalance = parsed
+				hasUSDT = true
+			}
+			break
+		}
+	}
+
+	if !hasUSDT || usdtBalance < 10.0 {
+		panic(fmt.Sprintf("Insufficient USDT balance: %.8f (required: >= 10.0)", usdtBalance))
+	}
+
+	fmt.Printf("✅ USDT Balance: %.8f (sufficient for testing)\n", usdtBalance)
+
 	// Create WebSocket client with REST client for user data streams
 	wsClient := binance.NewWSClientWithRESTClient(binance.WSConfig{
 		BaseURL: binance.MainnetWSBaseUrl9443,
 	}, client)
 
-	// Configure user data subscription options
+	// Step 2: Set up User Data Stream monitoring
+	var orderCount int
+	var executionCount int
+
 	userDataOptions := binance.UserDataSubscriptionOptions{
 		OnConnect: func() {
 			fmt.Println("🟢 Connected to Binance User Data Stream")
@@ -261,20 +295,31 @@ func userDataStreamExample() {
 			fmt.Printf("❌ User Data Stream Error: %v\n", err)
 		},
 		OnAccountPosition: func(event binance.WSOutboundAccountPositionEvent) {
-			fmt.Printf("💰 Account Position Update: %d balances updated\n", len(event.BalanceArray))
+			fmt.Printf("💰 Account Position Update: %d balances updated at %d\n",
+				len(event.BalanceArray), event.EventTime)
 			for _, balance := range event.BalanceArray {
-				if balance.Free != "0.00000000" || balance.Locked != "0.00000000" {
+				if balance.Asset == "USDT" || balance.Asset == "USDC" {
 					fmt.Printf("  %s: Free=%s, Locked=%s\n", balance.Asset, balance.Free, balance.Locked)
 				}
 			}
 		},
 		OnBalanceUpdate: func(event binance.WSBalanceUpdateEvent) {
-			fmt.Printf("💸 Balance Update: %s delta=%s\n", event.Asset, event.BalanceDelta)
+			if event.Asset == "USDT" || event.Asset == "USDC" {
+				fmt.Printf("💸 Balance Update: %s delta=%s at %d\n", event.Asset, event.BalanceDelta, event.EventTime)
+			}
 		},
 		OnExecutionReport: func(event binance.WSExecutionReportEvent) {
-			fmt.Printf("📋 Order Update: %s %s %s %s@%s (Status: %s)\n",
-				event.Symbol, event.Side, event.CurrentExecutionType,
-				event.OrderQuantity, event.OrderPrice, event.CurrentOrderStatus)
+			executionCount++
+			fmt.Printf("📋 Order #%d: %s %s %s %s@%s (Status: %s -> %s) at %d\n",
+				executionCount, event.Symbol, event.Side, event.CurrentExecutionType,
+				event.OrderQuantity, event.OrderPrice, event.CurrentOrderStatus,
+				event.CurrentExecutionType, event.EventTime)
+
+			if event.CurrentOrderStatus == binance.OrderStatusCanceled {
+				fmt.Printf("    ✅ Order %d successfully canceled\n", event.OrderId)
+			} else if event.CurrentOrderStatus == binance.OrderStatusNew {
+				fmt.Printf("    📝 Order %d placed successfully\n", event.OrderId)
+			}
 		},
 		OnListenKeyExpired: func(event binance.WSListenKeyExpiredEvent) {
 			fmt.Printf("🔑 Listen Key Expired: %s (reconnection will be handled automatically)\n", event.ListenKey)
@@ -287,32 +332,112 @@ func userDataStreamExample() {
 	// Subscribe to user data stream
 	unsubscribeUserData, err := wsClient.SubscribeUserData(userDataOptions)
 	if err != nil {
-		fmt.Printf("❌ Failed to subscribe to user data stream: %v\n", err)
-		return
+		panic(fmt.Sprintf("Failed to subscribe to user data stream: %v", err))
 	}
 
-	// Set up shutdown signal handler
+	// Wait for connection to establish
+	time.Sleep(2 * time.Second)
+
+	// Step 3: Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	fmt.Println("User Data Stream is active. Press Ctrl+C to stop...")
-	fmt.Println("You should see:")
-	fmt.Println("  💰 Account position updates when balances change")
-	fmt.Println("  💸 Balance updates when funds are deposited/withdrawn/transferred")
-	fmt.Println("  📋 Order execution reports when orders are placed/filled/cancelled")
-	fmt.Println("  🔑 Listen key expiry notifications (handled automatically)")
-	fmt.Println("\nTo see user data events, try:")
-	fmt.Println("  - Place a test order on Binance")
-	fmt.Println("  - Transfer funds between Spot and other accounts")
-	fmt.Println("  - Deposit or withdraw funds")
+	// Step 4: Start order placement/cancellation loop
+	fmt.Println("\n🎯 Starting continuous USDC/USDT order placement test...")
+	fmt.Println("   Symbol: USDCUSDT")
+	fmt.Println("   Side: BUY")
+	fmt.Println("   Price: 0.9000")
+	fmt.Println("   Quantity: 11 USDC (small test amount)")
+	fmt.Println("   Strategy: Place order -> Wait 1s -> Cancel -> Repeat")
+	fmt.Println("\nPress Ctrl+C to stop...\n")
+
+	// Run order loop in a goroutine
+	orderLoop := make(chan bool)
+	go func() {
+		defer close(orderLoop)
+
+		for {
+			select {
+			case <-sigChan:
+				return
+			default:
+				orderCount++
+
+				// Place a small buy order for USDC/USDT
+				orderReq := binance.CreateOrderRequest{
+					Symbol:           "USDCUSDT",
+					Side:             binance.OrderSideBuy,
+					Type:             binance.OrderTypeLimit,
+					TimeInForce:      binance.TimeInForceGTC,
+					Quantity:         "11.0",   // Small quantity for testing
+					Price:            "0.9000", // Price below market to avoid accidental fills
+					NewOrderRespType: binance.NewOrderRespTypeFull,
+				}
+
+				fmt.Printf("📤 Placing order #%d...\n", orderCount)
+				createResp, err := client.CreateOrder(ctx, orderReq)
+				if err != nil {
+					fmt.Printf("❌ Failed to place order #%d: %v\n", orderCount, err)
+					time.Sleep(1 * time.Second)
+					continue
+				}
+
+				orderId := createResp.Data.OrderId
+				fmt.Printf("📝 Order #%d placed: ID=%d, Status=%s\n",
+					orderCount, orderId, createResp.Data.Status)
+
+				// Wait 1 second
+				time.Sleep(1 * time.Second)
+
+				// Cancel the order
+				cancelReq := binance.CancelOrderRequest{
+					Symbol:  "USDCUSDT",
+					OrderId: orderId,
+				}
+
+				fmt.Printf("🗑️  Canceling order #%d (ID: %d)...\n", orderCount, orderId)
+				cancelResp, err := client.CancelOrder(ctx, cancelReq)
+				if err != nil {
+					fmt.Printf("❌ Failed to cancel order #%d: %v\n", orderCount, err)
+				} else {
+					fmt.Printf("✅ Order #%d canceled: Status=%s\n",
+						orderCount, cancelResp.Data.Status)
+				}
+
+				// Brief pause before next iteration
+				time.Sleep(500 * time.Millisecond)
+			}
+		}
+	}()
 
 	// Wait for shutdown signal
 	<-sigChan
 
-	fmt.Println("\nShutting down user data stream...")
+	fmt.Println("\n🛑 Shutdown signal received...")
+	fmt.Printf("📊 Test Summary:\n")
+	fmt.Printf("   Orders Placed: %d\n", orderCount)
+	fmt.Printf("   Execution Reports: %d\n", executionCount)
+
+	// Cancel any remaining orders
+	fmt.Println("🧹 Cleaning up any remaining orders...")
+	if openOrdersResp, err := client.ListOpenOrders(ctx, binance.ListOpenOrdersRequest{
+		Symbol: "USDCUSDT",
+	}); err == nil && openOrdersResp.Data != nil {
+		for _, order := range *openOrdersResp.Data {
+			if order.Symbol == "USDCUSDT" {
+				fmt.Printf("🗑️  Canceling remaining order: %d\n", order.OrderId)
+				client.CancelOrder(ctx, binance.CancelOrderRequest{
+					Symbol:  "USDCUSDT",
+					OrderId: order.OrderId,
+				})
+			}
+		}
+	}
+
+	fmt.Println("🔌 Shutting down user data stream...")
 	unsubscribeUserData()
 	wsClient.Close()
 
-	time.Sleep(100 * time.Millisecond)
-	fmt.Println("User Data Stream example completed.")
+	time.Sleep(500 * time.Millisecond)
+	fmt.Println("✅ User Data Stream test completed successfully!")
 }
