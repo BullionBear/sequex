@@ -27,3 +27,6 @@ type Trade struct {
 
 type MyTrade struct {
 }
+
+type Position struct {
+}

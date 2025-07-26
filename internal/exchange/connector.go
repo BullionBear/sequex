@@ -20,4 +20,5 @@ type Connector interface {
 
 	GetOrderBook(symbol string, limit int) (OrderBook, error)
 	GetTrades(symbol string) ([]Trade, error)
+	GetPositions(symbol string) ([]Position, error)
 }
