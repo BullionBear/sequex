@@ -224,7 +224,7 @@ func (c *Client) GetAggTrades(ctx context.Context, symbol string, fromId int64, 
 }
 
 // GetCandles retrieves kline/candlestick bars for a symbol.
-func (c *Client) GetCandles(ctx context.Context, symbol, interval string, startTime, endTime int64, timeZone string, limit int) (Response[[]Kline], error) {
+func (c *Client) GetKlines(ctx context.Context, symbol, interval string, startTime, endTime int64, timeZone string, limit int) (Response[[]Kline], error) {
 	params := map[string]string{"symbol": symbol, "interval": interval}
 	if startTime > 0 {
 		params["startTime"] = fmt.Sprintf("%d", startTime)

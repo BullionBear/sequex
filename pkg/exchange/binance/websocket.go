@@ -9,8 +9,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var BinanceWssBase = "wss://stream.binance.com:9443"
-
 const (
 	pingInterval   = 20 * time.Second
 	reconnectDelay = 5 * time.Second

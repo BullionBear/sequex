@@ -69,15 +69,15 @@ func TestGetAggTrades(t *testing.T) {
 	}
 }
 
-func TestGetCandles(t *testing.T) {
+func TestGetKlines(t *testing.T) {
 	cfg := &Config{
 		BaseURL: MainnetBaseUrl,
 	}
 	client := NewClient(cfg)
 	ctx := context.Background()
-	resp, err := client.GetCandles(ctx, "BTCUSDT", "1m", 0, 0, "", 5)
+	resp, err := client.GetKlines(ctx, "BTCUSDT", "1m", 0, 0, "", 5)
 	if err != nil {
-		t.Fatalf("GetCandles error: %v", err)
+		t.Fatalf("GetKlines error: %v", err)
 	}
 	if resp.Code != 0 {
 		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
