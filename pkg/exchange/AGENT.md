@@ -52,8 +52,6 @@ Each exchange implementation should cover, **at minimum**, the following structu
 ## Testing Guidelines
 
 - After implementing each **high-level API** (`client.go`, `ws_client.go`), add **unit tests** to cover the **happy path and critical edge cases**.
-- **Target test coverage: ≥ 80%**.
-  - If coverage is insufficient, **add more test cases until the target is reached**.
 - **Do not use mocks for unit tests**:
   - Tests requiring credentials should load them from a `test_config.yml`.
   - All tests should be run under **testnet environments** to avoid impacting real accounts.
