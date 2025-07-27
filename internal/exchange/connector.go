@@ -6,14 +6,10 @@ type Connector interface {
 	GetOrder(orderID string) (Order, error)
 	GetMyTrades(symbol string) ([]MyTrade, error)
 
-	CreateLimitBuy(symbol string, price, quantity string, timeInForce string) (Order, error)
-	CreateLimitSell(symbol string, price, quantity string, timeInForce string) (Order, error)
-	CreateMarketBuy(symbol string, quantity string) error
-	CreateMarketSell(symbol string, quantity string) error
-	CreateLimitMakerBuy(symbol string, price, quantity string) (Order, error)
-	CreateLimitMakerSell(symbol string, price, quantity string) (Order, error)
-	CreateStopLimitBuy(symbol string, price, quantity string, timeInForce string) (Order, error)
-	CreateStopLimitSell(symbol string, price, quantity string, timeInForce string) (Order, error)
+	CreateLimitOrder(symbol string, side string, price, quantity string, timeInForce string) (Order, error)
+	CreateLimitMakerOrder(symbol string, side string, price, quantity string) (Order, error)
+	CreateStopLimitOrder(symbol string, side string, price, quantity string, timeInForce string) (Order, error)
+	CreateMarketOrder(symbol string, side string, quantity string) (Order, error)
 
 	CancelOrder(orderID string) error
 	CancelAllOrders() error
