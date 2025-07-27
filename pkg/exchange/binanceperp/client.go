@@ -253,3 +253,31 @@ func (c *Client) GetBookTicker(ctx context.Context, req GetBookTickerRequest) (R
 
 	return Response[[]BookTicker]{Code: 0, Message: "success", Data: &bookTickers}, nil
 }
+
+// GetAccountBalance queries account balance info (USER_DATA - signed endpoint).
+func (c *Client) GetAccountBalance(ctx context.Context, req GetAccountBalanceRequest) (Response[[]AccountBalance], error) {
+	params := map[string]string{}
+	if req.RecvWindow > 0 {
+		params["recvWindow"] = fmt.Sprintf("%d", req.RecvWindow)
+	}
+
+	body, status, err := doSignedRequest(c.cfg, "GET", PathGetAccountBalance, params)
+	if err != nil {
+		return Response[[]AccountBalance]{}, err
+	}
+	if status != http.StatusOK {
+		// For signed requests, check if the response contains an error message
+		var errResp Response[[]AccountBalance]
+		if json.Unmarshal(body, &errResp) == nil && errResp.Code != 0 {
+			return errResp, fmt.Errorf("api error: %d - %s", errResp.Code, errResp.Message)
+		}
+		return Response[[]AccountBalance]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+
+	var balances []AccountBalance
+	if err := json.Unmarshal(body, &balances); err != nil {
+		return Response[[]AccountBalance]{}, err
+	}
+
+	return Response[[]AccountBalance]{Code: 0, Message: "success", Data: &balances}, nil
+}

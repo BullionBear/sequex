@@ -2,6 +2,7 @@ package binanceperp
 
 import (
 	"context"
+	"os"
 	"testing"
 )
 
@@ -1053,5 +1054,138 @@ func TestGetBookTicker_InvalidSymbol(t *testing.T) {
 	// Test error != nil (should have error for invalid symbol)
 	if err == nil {
 		t.Fatal("expected error for invalid symbol, got nil")
+	}
+}
+
+func TestGetAccountBalance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode.")
+	}
+
+	apiKey := os.Getenv("BINANCEPERP_API_KEY")
+	apiSecret := os.Getenv("BINANCEPERP_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCEPERP_API_KEY or BINANCEPERP_API_SECRET not set; skipping signed request test.")
+	}
+
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+
+	req := GetAccountBalanceRequest{
+		RecvWindow: 5000,
+	}
+	resp, err := client.GetAccountBalance(context.Background(), req)
+
+	// Test error != nil (should be nil for successful request)
+	if err != nil {
+		t.Fatalf("GetAccountBalance error: %v", err)
+	}
+
+	// Test Response.Code == 0 (success)
+	if resp.Code != 0 {
+		t.Fatalf("expected response code 0, got %d", resp.Code)
+	}
+
+	// Test Data is marshaled correctly
+	if resp.Data == nil {
+		t.Fatal("response data is nil, expected account balance data")
+	}
+
+	if len(*resp.Data) == 0 {
+		t.Fatal("account balance list is empty, expected at least one balance entry")
+	}
+
+	// Verify account balance structure
+	balance := (*resp.Data)[0]
+	if balance.AccountAlias == "" {
+		t.Error("account alias is empty, expected non-empty value")
+	}
+
+	if balance.Asset == "" {
+		t.Error("asset is empty, expected non-empty value")
+	}
+
+	if balance.Balance == "" {
+		t.Error("balance is empty, expected non-empty value")
+	}
+
+	if balance.CrossWalletBalance == "" {
+		t.Error("cross wallet balance is empty, expected non-empty value")
+	}
+
+	if balance.AvailableBalance == "" {
+		t.Error("available balance is empty, expected non-empty value")
+	}
+
+	if balance.MaxWithdrawAmount == "" {
+		t.Error("max withdraw amount is empty, expected non-empty value")
+	}
+
+	if balance.UpdateTime == 0 {
+		t.Error("update time is zero, expected non-zero timestamp")
+	}
+}
+
+func TestGetAccountBalance_DefaultRecvWindow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode.")
+	}
+
+	apiKey := os.Getenv("BINANCEPERP_API_KEY")
+	apiSecret := os.Getenv("BINANCEPERP_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCEPERP_API_KEY or BINANCEPERP_API_SECRET not set; skipping signed request test.")
+	}
+
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+
+	req := GetAccountBalanceRequest{
+		// No recvWindow specified, should use default
+	}
+	resp, err := client.GetAccountBalance(context.Background(), req)
+
+	// Test error != nil (should be nil for successful request)
+	if err != nil {
+		t.Fatalf("GetAccountBalance error: %v", err)
+	}
+
+	// Test Response.Code == 0 (success)
+	if resp.Code != 0 {
+		t.Fatalf("expected response code 0, got %d", resp.Code)
+	}
+
+	// Test Data is marshaled correctly
+	if resp.Data == nil {
+		t.Fatal("response data is nil, expected account balance data")
+	}
+}
+
+func TestGetAccountBalance_InvalidCredentials(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode.")
+	}
+
+	cfg := &Config{
+		APIKey:    "invalid_api_key",
+		APISecret: "invalid_api_secret",
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+
+	req := GetAccountBalanceRequest{}
+	_, err := client.GetAccountBalance(context.Background(), req)
+
+	// Test error != nil (should have error for invalid credentials)
+	if err == nil {
+		t.Fatal("expected error for invalid credentials, got nil")
 	}
 }

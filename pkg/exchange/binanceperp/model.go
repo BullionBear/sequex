@@ -131,3 +131,21 @@ type BookTicker struct {
 	AskQty   string `json:"askQty"`   // Best ask quantity
 	Time     int64  `json:"time"`     // Transaction time
 }
+
+// GetAccountBalanceRequest defines the parameters for getting account balance.
+type GetAccountBalanceRequest struct {
+	RecvWindow int64 // optional, default 5000
+}
+
+// AccountBalance represents account balance information for a single asset.
+type AccountBalance struct {
+	AccountAlias       string `json:"accountAlias"`       // Unique account code
+	Asset              string `json:"asset"`              // Asset name
+	Balance            string `json:"balance"`            // Wallet balance
+	CrossWalletBalance string `json:"crossWalletBalance"` // Crossed wallet balance
+	CrossUnPnl         string `json:"crossUnPnl"`         // Unrealized profit of crossed positions
+	AvailableBalance   string `json:"availableBalance"`   // Available balance
+	MaxWithdrawAmount  string `json:"maxWithdrawAmount"`  // Maximum amount for transfer out
+	MarginAvailable    bool   `json:"marginAvailable"`    // Whether the asset can be used as margin in Multi-Assets mode
+	UpdateTime         int64  `json:"updateTime"`         // Update timestamp
+}

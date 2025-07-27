@@ -14,12 +14,13 @@ const TestnetWSBaseUrl = "wss://fstream.binancefuture.com"
 
 // Paths
 const (
-	PathGetServerTime   = "/fapi/v1/time"
-	PathGetDepth        = "/fapi/v1/depth"
-	PathGetRecentTrades = "/fapi/v1/trades"
-	PathGetAggTrades    = "/fapi/v1/aggTrades"
-	PathGetKlines       = "/fapi/v1/klines"
-	PathGetMarkPrice    = "/fapi/v1/premiumIndex"
-	PathGetPriceTicker  = "/fapi/v2/ticker/price"
-	PathGetBookTicker   = "/fapi/v1/ticker/bookTicker"
+	PathGetServerTime     = "/fapi/v1/time"
+	PathGetDepth          = "/fapi/v1/depth"
+	PathGetRecentTrades   = "/fapi/v1/trades"
+	PathGetAggTrades      = "/fapi/v1/aggTrades"
+	PathGetKlines         = "/fapi/v1/klines"
+	PathGetMarkPrice      = "/fapi/v1/premiumIndex"
+	PathGetPriceTicker    = "/fapi/v2/ticker/price"
+	PathGetBookTicker     = "/fapi/v1/ticker/bookTicker"
+	PathGetAccountBalance = "/fapi/v3/balance"
 )

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/BullionBear/sequex/pkg/exchange/binanceperp"
 )
@@ -239,4 +240,43 @@ func restAPIExample() {
 		fmt.Printf("  Best Ask: %s @ %s\n", ticker.AskQty, ticker.AskPrice)
 		fmt.Printf("  Time: %d\n", ticker.Time)
 	}
+
+	// Example 9: Get Account Balance (signed request - requires API credentials)
+	fmt.Println("\n--- Get Account Balance (Signed Request) ---")
+	// This example requires API credentials to be set in the config
+	// Uncomment and set your credentials to test this
+
+	// Update config with credentials for signed requests
+	cfg.APIKey = os.Getenv("BINANCEPERP_API_KEY")
+	cfg.APISecret = os.Getenv("BINANCEPERP_API_SECRET")
+
+	balanceReq := binanceperp.GetAccountBalanceRequest{
+		RecvWindow: 5000,
+	}
+	balanceResp, err := client.GetAccountBalance(context.Background(), balanceReq)
+	if err != nil {
+		log.Printf("GetAccountBalance error: %v", err)
+		return
+	}
+
+	if balanceResp.Code != 0 {
+		log.Printf("GetAccountBalance failed with code %d: %s", balanceResp.Code, balanceResp.Message)
+		return
+	}
+
+	fmt.Printf("Number of Account Balance Entries: %d\n", len(*balanceResp.Data))
+	for i, balance := range *balanceResp.Data {
+		fmt.Printf("Balance %d:\n", i+1)
+		fmt.Printf("  Account Alias: %s\n", balance.AccountAlias)
+		fmt.Printf("  Asset: %s\n", balance.Asset)
+		fmt.Printf("  Balance: %s\n", balance.Balance)
+		fmt.Printf("  Cross Wallet Balance: %s\n", balance.CrossWalletBalance)
+		fmt.Printf("  Cross UnPnL: %s\n", balance.CrossUnPnl)
+		fmt.Printf("  Available Balance: %s\n", balance.AvailableBalance)
+		fmt.Printf("  Max Withdraw Amount: %s\n", balance.MaxWithdrawAmount)
+		fmt.Printf("  Margin Available: %t\n", balance.MarginAvailable)
+		fmt.Printf("  Update Time: %d\n", balance.UpdateTime)
+		fmt.Println()
+	}
+
 }
