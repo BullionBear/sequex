@@ -371,10 +371,183 @@ func restAPIExample() {
 	*/
 	fmt.Println("Cancel All Orders example is commented out - cancels ALL open orders!")
 
+	// Example 13: Query Order (USER_DATA - signed request - requires API credentials)
+	fmt.Println("\n--- Query Order (USER_DATA - Signed Request) ---")
+	/*
+		// Query an order by order ID
+		queryOrderReq := binanceperp.QueryOrderRequest{
+			Symbol:  "BTCUSDT",
+			OrderId: createResp.Data.OrderId,  // Use the order ID from create order
+		}
+
+		queryResp, err := client.QueryOrder(context.Background(), queryOrderReq)
+		if err != nil {
+			log.Printf("QueryOrder error: %v", err)
+			return
+		}
+
+		if queryResp.Code != 0 {
+			log.Printf("QueryOrder failed with code %d: %s", queryResp.Code, queryResp.Message)
+			return
+		}
+
+		fmt.Printf("Order Status Query Successful:\n")
+		fmt.Printf("  Order ID: %d\n", queryResp.Data.OrderId)
+		fmt.Printf("  Client Order ID: %s\n", queryResp.Data.ClientOrderId)
+		fmt.Printf("  Symbol: %s\n", queryResp.Data.Symbol)
+		fmt.Printf("  Side: %s\n", queryResp.Data.Side)
+		fmt.Printf("  Type: %s\n", queryResp.Data.Type)
+		fmt.Printf("  Status: %s\n", queryResp.Data.Status)
+		fmt.Printf("  Original Quantity: %s\n", queryResp.Data.OrigQty)
+		fmt.Printf("  Executed Quantity: %s\n", queryResp.Data.ExecutedQty)
+		fmt.Printf("  Price: %s\n", queryResp.Data.Price)
+		fmt.Printf("  Average Price: %s\n", queryResp.Data.AvgPrice)
+		fmt.Printf("  Order Time: %d\n", queryResp.Data.Time)
+		fmt.Printf("  Update Time: %d\n", queryResp.Data.UpdateTime)
+	*/
+	fmt.Println("Query Order example is commented out - requires existing order!")
+
+	// Example 14: Query Current Open Order (USER_DATA - signed request - requires API credentials)
+	fmt.Println("\n--- Query Current Open Order (USER_DATA - Signed Request) ---")
+	/*
+		// Query a current open order by order ID
+		// This will only work if the order is still open (not filled or cancelled)
+		queryOpenOrderReq := binanceperp.QueryCurrentOpenOrderRequest{
+			Symbol:  "BTCUSDT",
+			OrderId: createResp.Data.OrderId,  // Use the order ID from create order
+		}
+
+		queryOpenResp, err := client.QueryCurrentOpenOrder(context.Background(), queryOpenOrderReq)
+		if err != nil {
+			log.Printf("QueryCurrentOpenOrder error: %v", err)
+			return
+		}
+
+		if queryOpenResp.Code != 0 {
+			log.Printf("QueryCurrentOpenOrder failed with code %d: %s", queryOpenResp.Code, queryOpenResp.Message)
+			return
+		}
+
+		fmt.Printf("Open Order Query Successful:\n")
+		fmt.Printf("  Order ID: %d\n", queryOpenResp.Data.OrderId)
+		fmt.Printf("  Client Order ID: %s\n", queryOpenResp.Data.ClientOrderId)
+		fmt.Printf("  Symbol: %s\n", queryOpenResp.Data.Symbol)
+		fmt.Printf("  Side: %s\n", queryOpenResp.Data.Side)
+		fmt.Printf("  Type: %s\n", queryOpenResp.Data.Type)
+		fmt.Printf("  Status: %s\n", queryOpenResp.Data.Status)
+		fmt.Printf("  Original Quantity: %s\n", queryOpenResp.Data.OrigQty)
+		fmt.Printf("  Executed Quantity: %s\n", queryOpenResp.Data.ExecutedQty)
+		fmt.Printf("  Price: %s\n", queryOpenResp.Data.Price)
+		fmt.Printf("  Average Price: %s\n", queryOpenResp.Data.AvgPrice)
+		fmt.Printf("  Order Time: %d\n", queryOpenResp.Data.Time)
+		fmt.Printf("  Update Time: %d\n", queryOpenResp.Data.UpdateTime)
+	*/
+	fmt.Println("Query Current Open Order example is commented out - requires existing OPEN order!")
+
+	// Example 15: Get My Trades (USER_DATA - signed request - requires API credentials)
+	fmt.Println("\n--- Get My Trades (USER_DATA - Signed Request) ---")
+	/*
+		// Get recent trades for a symbol
+		myTradesReq := binanceperp.GetMyTradesRequest{
+			Symbol: "BTCUSDT",
+			Limit:  10, // Get last 10 trades
+		}
+
+		myTradesResp, err := client.GetMyTrades(context.Background(), myTradesReq)
+		if err != nil {
+			log.Printf("GetMyTrades error: %v", err)
+			return
+		}
+
+		if myTradesResp.Code != 0 {
+			log.Printf("GetMyTrades failed with code %d: %s", myTradesResp.Code, myTradesResp.Message)
+			return
+		}
+
+		fmt.Printf("My Trades Retrieved Successfully:\n")
+		fmt.Printf("Number of Trades: %d\n", len(*myTradesResp.Data))
+		for i, trade := range *myTradesResp.Data {
+			fmt.Printf("\nTrade %d:\n", i+1)
+			fmt.Printf("  Trade ID: %d\n", trade.Id)
+			fmt.Printf("  Order ID: %d\n", trade.OrderId)
+			fmt.Printf("  Symbol: %s\n", trade.Symbol)
+			fmt.Printf("  Side: %s\n", trade.Side)
+			fmt.Printf("  Position Side: %s\n", trade.PositionSide)
+			fmt.Printf("  Price: %s\n", trade.Price)
+			fmt.Printf("  Quantity: %s\n", trade.Qty)
+			fmt.Printf("  Quote Quantity: %s\n", trade.QuoteQty)
+			fmt.Printf("  Commission: %s %s\n", trade.Commission, trade.CommissionAsset)
+			fmt.Printf("  Realized PnL: %s\n", trade.RealizedPnl)
+			fmt.Printf("  Maker: %t\n", trade.Maker)
+			fmt.Printf("  Buyer: %t\n", trade.Buyer)
+			fmt.Printf("  Time: %d\n", trade.Time)
+		}
+	*/
+	fmt.Println("Get My Trades example is commented out - requires API credentials!")
+
+	// Example 16: Get Positions (USER_DATA - signed request - requires API credentials)
+	fmt.Println("\n--- Get Positions (USER_DATA - Signed Request) ---")
+	/*
+		// Get all current positions
+		positionsReq := binanceperp.GetPositionsRequest{
+			// Leave empty to get all positions
+			// Symbol: "BTCUSDT", // Uncomment to get specific symbol position
+		}
+
+		positionsResp, err := client.GetPositions(context.Background(), positionsReq)
+		if err != nil {
+			log.Printf("GetPositions error: %v", err)
+			return
+		}
+
+		if positionsResp.Code != 0 {
+			log.Printf("GetPositions failed with code %d: %s", positionsResp.Code, positionsResp.Message)
+			return
+		}
+
+		fmt.Printf("Positions Retrieved Successfully:\n")
+		fmt.Printf("Number of Positions: %d\n", len(*positionsResp.Data))
+
+		// Filter and display non-zero positions
+		activePositions := 0
+		for i, position := range *positionsResp.Data {
+			// Only show positions with non-zero amount
+			if position.PositionAmt != "0" {
+				activePositions++
+				fmt.Printf("\nActive Position %d:\n", activePositions)
+				fmt.Printf("  Symbol: %s\n", position.Symbol)
+				fmt.Printf("  Position Side: %s\n", position.PositionSide)
+				fmt.Printf("  Position Amount: %s\n", position.PositionAmt)
+				fmt.Printf("  Entry Price: %s\n", position.EntryPrice)
+				fmt.Printf("  Break Even Price: %s\n", position.BreakEvenPrice)
+				fmt.Printf("  Mark Price: %s\n", position.MarkPrice)
+				fmt.Printf("  Unrealized PnL: %s\n", position.UnRealizedProfit)
+				fmt.Printf("  Liquidation Price: %s\n", position.LiquidationPrice)
+				fmt.Printf("  Leverage: %s\n", position.Leverage)
+				fmt.Printf("  Margin Type: %s\n", position.MarginType)
+				fmt.Printf("  Update Time: %d\n", position.UpdateTime)
+			} else if i < 3 { // Show first few zero positions as examples
+				fmt.Printf("\nPosition %d (Zero):\n", i+1)
+				fmt.Printf("  Symbol: %s\n", position.Symbol)
+				fmt.Printf("  Position Side: %s\n", position.PositionSide)
+				fmt.Printf("  Position Amount: %s\n", position.PositionAmt)
+			}
+		}
+
+		if activePositions == 0 {
+			fmt.Println("No active positions found.")
+		}
+	*/
+	fmt.Println("Get Positions example is commented out - requires API credentials!")
+
 	fmt.Println("\nTo test trading functions:")
 	fmt.Println("1. Set your API credentials in environment variables")
 	fmt.Println("2. Uncomment the trading example code")
 	fmt.Println("3. Use testnet for safe testing: https://testnet.binancefuture.com")
 	fmt.Println("4. Be careful with real trading - orders can lose money!")
 	fmt.Println("5. Cancel All Orders will close ALL your open orders for the symbol!")
+	fmt.Println("6. Query Order requires an existing order ID to check status!")
+	fmt.Println("7. Query Current Open Order only works for orders that are still open!")
+	fmt.Println("8. Get My Trades shows your historical trading activity!")
+	fmt.Println("9. Get Positions shows your current futures positions and P&L!")
 }

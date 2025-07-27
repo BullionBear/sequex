@@ -252,3 +252,108 @@ type CancelAllOrdersResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 }
+
+// QueryOrderRequest defines the parameters for querying an order.
+type QueryOrderRequest struct {
+	Symbol            string // required
+	OrderId           int64  // optional, either orderId or origClientOrderId must be sent
+	OrigClientOrderId string // optional, either orderId or origClientOrderId must be sent
+	RecvWindow        int64  // optional, default 5000
+}
+
+// QueryOrderResponse represents the response from querying an order.
+type QueryOrderResponse struct {
+	AvgPrice                string `json:"avgPrice"`
+	ClientOrderId           string `json:"clientOrderId"`
+	CumQuote                string `json:"cumQuote"`
+	ExecutedQty             string `json:"executedQty"`
+	OrderId                 int64  `json:"orderId"`
+	OrigQty                 string `json:"origQty"`
+	OrigType                string `json:"origType"`
+	Price                   string `json:"price"`
+	ReduceOnly              bool   `json:"reduceOnly"`
+	Side                    string `json:"side"`
+	PositionSide            string `json:"positionSide"`
+	Status                  string `json:"status"`
+	StopPrice               string `json:"stopPrice"`
+	ClosePosition           bool   `json:"closePosition"`
+	Symbol                  string `json:"symbol"`
+	Time                    int64  `json:"time"` // order time
+	TimeInForce             string `json:"timeInForce"`
+	Type                    string `json:"type"`
+	ActivatePrice           string `json:"activatePrice,omitempty"` // only with TRAILING_STOP_MARKET
+	PriceRate               string `json:"priceRate,omitempty"`     // only with TRAILING_STOP_MARKET
+	UpdateTime              int64  `json:"updateTime"`              // update time
+	WorkingType             string `json:"workingType"`
+	PriceProtect            bool   `json:"priceProtect"`
+	PriceMatch              string `json:"priceMatch"`
+	SelfTradePreventionMode string `json:"selfTradePreventionMode"`
+	GoodTillDate            int64  `json:"goodTillDate,omitempty"` // only with GTD orders
+}
+
+// QueryCurrentOpenOrderRequest defines the parameters for querying a current open order.
+// This is identical to QueryOrderRequest but represents a different endpoint.
+type QueryCurrentOpenOrderRequest struct {
+	Symbol            string // required
+	OrderId           int64  // optional, either orderId or origClientOrderId must be sent
+	OrigClientOrderId string // optional, either orderId or origClientOrderId must be sent
+	RecvWindow        int64  // optional, default 5000
+}
+
+// QueryCurrentOpenOrderResponse represents the response from querying a current open order.
+// This is identical to QueryOrderResponse but represents a different endpoint that only returns open orders.
+type QueryCurrentOpenOrderResponse = QueryOrderResponse
+
+// GetMyTradesRequest defines the parameters for getting account trade list.
+type GetMyTradesRequest struct {
+	Symbol     string // required
+	OrderId    int64  // optional, can only be used in combination with symbol
+	StartTime  int64  // optional, timestamp in ms
+	EndTime    int64  // optional, timestamp in ms
+	FromId     int64  // optional, trade id to fetch from. Default gets most recent trades
+	Limit      int    // optional, default 500; max 1000
+	RecvWindow int64  // optional, default 5000
+}
+
+// MyTrade represents a single trade from the user's trade history.
+type MyTrade struct {
+	Buyer           bool   `json:"buyer"`           // Whether the user is the buyer
+	Commission      string `json:"commission"`      // Commission amount
+	CommissionAsset string `json:"commissionAsset"` // Commission asset
+	Id              int64  `json:"id"`              // Trade ID
+	Maker           bool   `json:"maker"`           // Whether the user is the maker
+	OrderId         int64  `json:"orderId"`         // Order ID
+	Price           string `json:"price"`           // Trade price
+	Qty             string `json:"qty"`             // Trade quantity
+	QuoteQty        string `json:"quoteQty"`        // Quote quantity
+	RealizedPnl     string `json:"realizedPnl"`     // Realized PnL
+	Side            string `json:"side"`            // Trade side (BUY/SELL)
+	PositionSide    string `json:"positionSide"`    // Position side (LONG/SHORT/BOTH)
+	Symbol          string `json:"symbol"`          // Trading symbol
+	Time            int64  `json:"time"`            // Trade timestamp
+}
+
+// GetPositionsRequest defines the parameters for getting position information.
+type GetPositionsRequest struct {
+	MarginAsset string // optional, if neither marginAsset nor symbol is sent, positions of all symbols will be returned
+	Symbol      string // optional, if neither marginAsset nor symbol is sent, positions of all symbols will be returned
+	RecvWindow  int64  // optional, default 5000
+}
+
+// Position represents position information for a single symbol.
+type Position struct {
+	Symbol           string `json:"symbol"`           // Symbol
+	PositionAmt      string `json:"positionAmt"`      // Position amount
+	EntryPrice       string `json:"entryPrice"`       // Entry price
+	BreakEvenPrice   string `json:"breakEvenPrice"`   // Break-even price
+	MarkPrice        string `json:"markPrice"`        // Mark price
+	UnRealizedProfit string `json:"unRealizedProfit"` // Unrealized profit
+	LiquidationPrice string `json:"liquidationPrice"` // Liquidation price
+	Leverage         string `json:"leverage"`         // Leverage
+	MaxQty           string `json:"maxQty"`           // Maximum quantity of base asset
+	MarginType       string `json:"marginType"`       // Margin type (cross/isolated)
+	IsolatedMargin   string `json:"isolatedMargin"`   // Isolated margin
+	IsAutoAddMargin  string `json:"isAutoAddMargin"`  // Auto add margin ("true"/"false")
+	PositionSide     string `json:"positionSide"`     // Position side (BOTH/LONG/SHORT)
+	UpdateTime       int64  `json:"updateTime"`       // Update timestamp
+}

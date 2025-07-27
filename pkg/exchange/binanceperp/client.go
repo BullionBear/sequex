@@ -432,3 +432,164 @@ func (c *Client) CancelAllOrders(ctx context.Context, req CancelAllOrdersRequest
 
 	return Response[CancelAllOrdersResponse]{Code: 0, Message: "success", Data: &cancelResp}, nil
 }
+
+// QueryOrder checks an order's status (USER_DATA - signed endpoint).
+func (c *Client) QueryOrder(ctx context.Context, req QueryOrderRequest) (Response[QueryOrderResponse], error) {
+	params := map[string]string{
+		"symbol": req.Symbol,
+	}
+
+	// Either orderId or origClientOrderId must be sent
+	if req.OrderId > 0 {
+		params["orderId"] = fmt.Sprintf("%d", req.OrderId)
+	}
+	if req.OrigClientOrderId != "" {
+		params["origClientOrderId"] = req.OrigClientOrderId
+	}
+	if req.RecvWindow > 0 {
+		params["recvWindow"] = fmt.Sprintf("%d", req.RecvWindow)
+	}
+
+	body, status, err := doSignedRequest(c.cfg, "GET", PathQueryOrder, params)
+	if err != nil {
+		return Response[QueryOrderResponse]{}, err
+	}
+	if status != http.StatusOK {
+		// For signed requests, check if the response contains an error message
+		var errResp Response[QueryOrderResponse]
+		if json.Unmarshal(body, &errResp) == nil && errResp.Code != 0 {
+			return errResp, fmt.Errorf("api error: %d - %s", errResp.Code, errResp.Message)
+		}
+		return Response[QueryOrderResponse]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+
+	var order QueryOrderResponse
+	if err := json.Unmarshal(body, &order); err != nil {
+		return Response[QueryOrderResponse]{}, err
+	}
+
+	return Response[QueryOrderResponse]{Code: 0, Message: "success", Data: &order}, nil
+}
+
+// QueryCurrentOpenOrder queries a current open order (USER_DATA - signed endpoint).
+// This endpoint only returns open orders. If the queried order has been filled or cancelled,
+// the error message "Order does not exist" will be returned.
+func (c *Client) QueryCurrentOpenOrder(ctx context.Context, req QueryCurrentOpenOrderRequest) (Response[QueryCurrentOpenOrderResponse], error) {
+	params := map[string]string{
+		"symbol": req.Symbol,
+	}
+
+	// Either orderId or origClientOrderId must be sent
+	if req.OrderId > 0 {
+		params["orderId"] = fmt.Sprintf("%d", req.OrderId)
+	}
+	if req.OrigClientOrderId != "" {
+		params["origClientOrderId"] = req.OrigClientOrderId
+	}
+	if req.RecvWindow > 0 {
+		params["recvWindow"] = fmt.Sprintf("%d", req.RecvWindow)
+	}
+
+	body, status, err := doSignedRequest(c.cfg, "GET", PathQueryCurrentOpenOrder, params)
+	if err != nil {
+		return Response[QueryCurrentOpenOrderResponse]{}, err
+	}
+	if status != http.StatusOK {
+		// For signed requests, check if the response contains an error message
+		var errResp Response[QueryCurrentOpenOrderResponse]
+		if json.Unmarshal(body, &errResp) == nil && errResp.Code != 0 {
+			return errResp, fmt.Errorf("api error: %d - %s", errResp.Code, errResp.Message)
+		}
+		return Response[QueryCurrentOpenOrderResponse]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+
+	var order QueryCurrentOpenOrderResponse
+	if err := json.Unmarshal(body, &order); err != nil {
+		return Response[QueryCurrentOpenOrderResponse]{}, err
+	}
+
+	return Response[QueryCurrentOpenOrderResponse]{Code: 0, Message: "success", Data: &order}, nil
+}
+
+// GetMyTrades gets trades for a specific account and symbol (USER_DATA - signed endpoint).
+func (c *Client) GetMyTrades(ctx context.Context, req GetMyTradesRequest) (Response[[]MyTrade], error) {
+	params := map[string]string{
+		"symbol": req.Symbol,
+	}
+
+	// Add optional parameters
+	if req.OrderId > 0 {
+		params["orderId"] = fmt.Sprintf("%d", req.OrderId)
+	}
+	if req.StartTime > 0 {
+		params["startTime"] = fmt.Sprintf("%d", req.StartTime)
+	}
+	if req.EndTime > 0 {
+		params["endTime"] = fmt.Sprintf("%d", req.EndTime)
+	}
+	if req.FromId > 0 {
+		params["fromId"] = fmt.Sprintf("%d", req.FromId)
+	}
+	if req.Limit > 0 {
+		params["limit"] = fmt.Sprintf("%d", req.Limit)
+	}
+	if req.RecvWindow > 0 {
+		params["recvWindow"] = fmt.Sprintf("%d", req.RecvWindow)
+	}
+
+	body, status, err := doSignedRequest(c.cfg, "GET", PathGetMyTrades, params)
+	if err != nil {
+		return Response[[]MyTrade]{}, err
+	}
+	if status != http.StatusOK {
+		// For signed requests, check if the response contains an error message
+		var errResp Response[[]MyTrade]
+		if json.Unmarshal(body, &errResp) == nil && errResp.Code != 0 {
+			return errResp, fmt.Errorf("api error: %d - %s", errResp.Code, errResp.Message)
+		}
+		return Response[[]MyTrade]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+
+	var trades []MyTrade
+	if err := json.Unmarshal(body, &trades); err != nil {
+		return Response[[]MyTrade]{}, err
+	}
+
+	return Response[[]MyTrade]{Code: 0, Message: "success", Data: &trades}, nil
+}
+
+// GetPositions gets current position information (USER_DATA - signed endpoint).
+func (c *Client) GetPositions(ctx context.Context, req GetPositionsRequest) (Response[[]Position], error) {
+	params := map[string]string{}
+
+	// Add optional parameters
+	if req.MarginAsset != "" {
+		params["marginAsset"] = req.MarginAsset
+	}
+	if req.Symbol != "" {
+		params["symbol"] = req.Symbol
+	}
+	if req.RecvWindow > 0 {
+		params["recvWindow"] = fmt.Sprintf("%d", req.RecvWindow)
+	}
+
+	body, status, err := doSignedRequest(c.cfg, "GET", PathGetPositions, params)
+	if err != nil {
+		return Response[[]Position]{}, err
+	}
+	if status != http.StatusOK {
+		// For signed requests, check if the response contains an error message
+		var errResp Response[[]Position]
+		if json.Unmarshal(body, &errResp) == nil && errResp.Code != 0 {
+			return errResp, fmt.Errorf("api error: %d - %s", errResp.Code, errResp.Message)
+		}
+		return Response[[]Position]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+
+	var positions []Position
+	if err := json.Unmarshal(body, &positions); err != nil {
+		return Response[[]Position]{}, err
+	}
+
+	return Response[[]Position]{Code: 0, Message: "success", Data: &positions}, nil
+}
