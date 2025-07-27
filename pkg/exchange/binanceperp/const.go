@@ -30,4 +30,5 @@ const (
 	PathGetMyTrades           = "/fapi/v1/userTrades"
 	PathGetPositions          = "/fapi/v2/positionRisk"
 	PathCancelAllOrders       = "/fapi/v1/allOpenOrders"
+	PathListenKey             = "/fapi/v1/listenKey"
 )

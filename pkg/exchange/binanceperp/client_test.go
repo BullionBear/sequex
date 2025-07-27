@@ -1189,3 +1189,192 @@ func TestGetAccountBalance_InvalidCredentials(t *testing.T) {
 		t.Fatal("expected error for invalid credentials, got nil")
 	}
 }
+
+func TestStartUserDataStream(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode.")
+	}
+
+	apiKey := os.Getenv("BINANCEPERP_API_KEY")
+	apiSecret := os.Getenv("BINANCEPERP_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCEPERP_API_KEY or BINANCEPERP_API_SECRET not set; skipping signed request test.")
+	}
+
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+
+	resp, err := client.StartUserDataStream(context.Background())
+
+	// Test error != nil (should be nil for successful request)
+	if err != nil {
+		t.Fatalf("StartUserDataStream error: %v", err)
+	}
+
+	// Test Response.Code == 0 (success)
+	if resp.Code != 0 {
+		t.Fatalf("expected response code 0, got %d", resp.Code)
+	}
+
+	// Test Data is marshaled correctly
+	if resp.Data == nil {
+		t.Fatal("response data is nil, expected listen key data")
+	}
+
+	if resp.Data.ListenKey == "" {
+		t.Fatal("listen key is empty, expected non-empty value")
+	}
+
+	t.Logf("✓ Successfully started user data stream with listen key: %s", resp.Data.ListenKey[:10]+"...")
+}
+
+func TestKeepaliveUserDataStream(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode.")
+	}
+
+	apiKey := os.Getenv("BINANCEPERP_API_KEY")
+	apiSecret := os.Getenv("BINANCEPERP_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCEPERP_API_KEY or BINANCEPERP_API_SECRET not set; skipping signed request test.")
+	}
+
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+
+	resp, err := client.KeepaliveUserDataStream(context.Background())
+
+	// Test error != nil (should be nil for successful request)
+	if err != nil {
+		t.Fatalf("KeepaliveUserDataStream error: %v", err)
+	}
+
+	// Test Response.Code == 0 (success)
+	if resp.Code != 0 {
+		t.Fatalf("expected response code 0, got %d", resp.Code)
+	}
+
+	// Test Data is marshaled correctly
+	if resp.Data == nil {
+		t.Fatal("response data is nil, expected listen key data")
+	}
+
+	if resp.Data.ListenKey == "" {
+		t.Fatal("listen key is empty, expected non-empty value")
+	}
+
+	t.Logf("✓ Successfully keepalive user data stream with listen key: %s", resp.Data.ListenKey[:10]+"...")
+}
+
+func TestCloseUserDataStream(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode.")
+	}
+
+	apiKey := os.Getenv("BINANCEPERP_API_KEY")
+	apiSecret := os.Getenv("BINANCEPERP_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCEPERP_API_KEY or BINANCEPERP_API_SECRET not set; skipping signed request test.")
+	}
+
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+
+	resp, err := client.CloseUserDataStream(context.Background())
+
+	// Test error != nil (should be nil for successful request)
+	if err != nil {
+		t.Fatalf("CloseUserDataStream error: %v", err)
+	}
+
+	// Test Response.Code == 0 (success)
+	if resp.Code != 0 {
+		t.Fatalf("expected response code 0, got %d", resp.Code)
+	}
+
+	// Test Data is marshaled correctly (empty response)
+	if resp.Data == nil {
+		t.Fatal("response data is nil, expected empty data structure")
+	}
+
+	t.Log("✓ Successfully closed user data stream")
+}
+
+func TestUserDataStreamLifecycle(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode.")
+	}
+
+	apiKey := os.Getenv("BINANCEPERP_API_KEY")
+	apiSecret := os.Getenv("BINANCEPERP_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCEPERP_API_KEY or BINANCEPERP_API_SECRET not set; skipping signed request test.")
+	}
+
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+
+	// Step 1: Start user data stream
+	startResp, err := client.StartUserDataStream(context.Background())
+	if err != nil {
+		t.Fatalf("StartUserDataStream error: %v", err)
+	}
+	if startResp.Code != 0 {
+		t.Fatalf("StartUserDataStream failed with code %d", startResp.Code)
+	}
+	if startResp.Data.ListenKey == "" {
+		t.Fatal("listen key is empty after start")
+	}
+
+	listenKey1 := startResp.Data.ListenKey
+	t.Logf("✓ Step 1: Started user data stream with listen key: %s", listenKey1[:10]+"...")
+
+	// Step 2: Keepalive user data stream
+	keepaliveResp, err := client.KeepaliveUserDataStream(context.Background())
+	if err != nil {
+		t.Fatalf("KeepaliveUserDataStream error: %v", err)
+	}
+	if keepaliveResp.Code != 0 {
+		t.Fatalf("KeepaliveUserDataStream failed with code %d", keepaliveResp.Code)
+	}
+	if keepaliveResp.Data.ListenKey == "" {
+		t.Fatal("listen key is empty after keepalive")
+	}
+
+	listenKey2 := keepaliveResp.Data.ListenKey
+	t.Logf("✓ Step 2: Keepalive user data stream with listen key: %s", listenKey2[:10]+"...")
+
+	// Verify the listen key is the same (or potentially new if active one was extended)
+	if listenKey1 != listenKey2 {
+		t.Logf("Note: Listen key changed from %s to %s (this may be normal)",
+			listenKey1[:10]+"...", listenKey2[:10]+"...")
+	}
+
+	// Step 3: Close user data stream
+	closeResp, err := client.CloseUserDataStream(context.Background())
+	if err != nil {
+		t.Fatalf("CloseUserDataStream error: %v", err)
+	}
+	if closeResp.Code != 0 {
+		t.Fatalf("CloseUserDataStream failed with code %d", closeResp.Code)
+	}
+
+	t.Log("✓ Step 3: Successfully closed user data stream")
+	t.Log("✓ User data stream lifecycle test completed successfully")
+}

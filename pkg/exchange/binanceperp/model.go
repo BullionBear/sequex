@@ -357,3 +357,16 @@ type Position struct {
 	PositionSide     string `json:"positionSide"`     // Position side (BOTH/LONG/SHORT)
 	UpdateTime       int64  `json:"updateTime"`       // Update timestamp
 }
+
+// StartUserDataStreamResponse represents the response for starting a user data stream.
+type StartUserDataStreamResponse struct {
+	ListenKey string `json:"listenKey"`
+}
+
+// KeepaliveUserDataStreamResponse represents the response for keepalive user data stream.
+type KeepaliveUserDataStreamResponse struct {
+	ListenKey string `json:"listenKey"`
+}
+
+// CloseUserDataStreamResponse represents the empty response for closing user data stream.
+type CloseUserDataStreamResponse struct{}

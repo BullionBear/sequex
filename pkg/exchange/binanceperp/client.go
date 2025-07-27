@@ -593,3 +593,75 @@ func (c *Client) GetPositions(ctx context.Context, req GetPositionsRequest) (Res
 
 	return Response[[]Position]{Code: 0, Message: "success", Data: &positions}, nil
 }
+
+// StartUserDataStream starts a new user data stream.
+// The stream will close after 60 minutes unless a keepalive is sent.
+// If the account has an active listenKey, that listenKey will be returned and its validity will be extended for 60 minutes.
+func (c *Client) StartUserDataStream(ctx context.Context) (Response[StartUserDataStreamResponse], error) {
+	body, status, err := doSignedRequest(c.cfg, "POST", PathListenKey, map[string]string{})
+	if err != nil {
+		return Response[StartUserDataStreamResponse]{}, err
+	}
+	if status != http.StatusOK {
+		// For signed requests, check if the response contains an error message
+		var errResp Response[StartUserDataStreamResponse]
+		if json.Unmarshal(body, &errResp) == nil && errResp.Code != 0 {
+			return errResp, fmt.Errorf("api error: %d - %s", errResp.Code, errResp.Message)
+		}
+		return Response[StartUserDataStreamResponse]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+
+	var resp StartUserDataStreamResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return Response[StartUserDataStreamResponse]{}, err
+	}
+
+	return Response[StartUserDataStreamResponse]{Code: 0, Message: "success", Data: &resp}, nil
+}
+
+// KeepaliveUserDataStream keepalive a user data stream to prevent a time out.
+// User data streams will close after 60 minutes. It's recommended to send a ping about every 60 minutes.
+func (c *Client) KeepaliveUserDataStream(ctx context.Context) (Response[KeepaliveUserDataStreamResponse], error) {
+	body, status, err := doSignedRequest(c.cfg, "PUT", PathListenKey, map[string]string{})
+	if err != nil {
+		return Response[KeepaliveUserDataStreamResponse]{}, err
+	}
+	if status != http.StatusOK {
+		// For signed requests, check if the response contains an error message
+		var errResp Response[KeepaliveUserDataStreamResponse]
+		if json.Unmarshal(body, &errResp) == nil && errResp.Code != 0 {
+			return errResp, fmt.Errorf("api error: %d - %s", errResp.Code, errResp.Message)
+		}
+		return Response[KeepaliveUserDataStreamResponse]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+
+	var resp KeepaliveUserDataStreamResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return Response[KeepaliveUserDataStreamResponse]{}, err
+	}
+
+	return Response[KeepaliveUserDataStreamResponse]{Code: 0, Message: "success", Data: &resp}, nil
+}
+
+// CloseUserDataStream closes out a user data stream.
+func (c *Client) CloseUserDataStream(ctx context.Context) (Response[CloseUserDataStreamResponse], error) {
+	body, status, err := doSignedRequest(c.cfg, "DELETE", PathListenKey, map[string]string{})
+	if err != nil {
+		return Response[CloseUserDataStreamResponse]{}, err
+	}
+	if status != http.StatusOK {
+		// For signed requests, check if the response contains an error message
+		var errResp Response[CloseUserDataStreamResponse]
+		if json.Unmarshal(body, &errResp) == nil && errResp.Code != 0 {
+			return errResp, fmt.Errorf("api error: %d - %s", errResp.Code, errResp.Message)
+		}
+		return Response[CloseUserDataStreamResponse]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+
+	var resp CloseUserDataStreamResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return Response[CloseUserDataStreamResponse]{}, err
+	}
+
+	return Response[CloseUserDataStreamResponse]{Code: 0, Message: "success", Data: &resp}, nil
+}

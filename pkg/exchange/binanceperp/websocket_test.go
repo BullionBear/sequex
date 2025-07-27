@@ -7,19 +7,7 @@ import (
 	"time"
 )
 
-// AggTradeEvent represents the aggregate trade WebSocket event for perpetual futures
-type AggTradeEvent struct {
-	EventType    string `json:"e"` // Event type
-	EventTime    int64  `json:"E"` // Event time
-	Symbol       string `json:"s"` // Symbol
-	AggTradeID   int64  `json:"a"` // Aggregate trade ID
-	Price        string `json:"p"` // Price
-	Quantity     string `json:"q"` // Quantity
-	FirstTradeID int64  `json:"f"` // First trade ID
-	LastTradeID  int64  `json:"l"` // Last trade ID
-	TradeTime    int64  `json:"T"` // Trade time
-	IsBuyerMaker bool   `json:"m"` // Is the buyer the market maker?
-}
+// Use WSAggTradeEvent from ws_model.go
 
 func TestBinancePerpWSConn_AggTradePayload(t *testing.T) {
 	// Test configuration for Binance perpetual futures (lowercase symbols)
@@ -28,7 +16,7 @@ func TestBinancePerpWSConn_AggTradePayload(t *testing.T) {
 	timeout := 10 * time.Second
 
 	// Create message channel for testing
-	msgCh := make(chan AggTradeEvent, 1)
+	msgCh := make(chan WSAggTradeEvent, 1)
 	errorCh := make(chan error, 1)
 
 	// Create subscription with test callbacks
@@ -45,7 +33,7 @@ func TestBinancePerpWSConn_AggTradePayload(t *testing.T) {
 			}
 		}).
 		WithMessage(func(data []byte) {
-			var event AggTradeEvent
+			var event WSAggTradeEvent
 			if err := json.Unmarshal(data, &event); err == nil && event.EventType == "aggTrade" {
 				t.Logf("Received raw message: %s", string(data))
 				select {
