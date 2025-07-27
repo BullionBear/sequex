@@ -3,6 +3,8 @@ package binanceperp
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -261,4 +263,122 @@ func TestBinancePerpWSConn_InvalidStream(t *testing.T) {
 
 	// Clean up
 	conn.Disconnect()
+}
+
+func TestBinancePerpUserDataStream_ConnectionLifecycle(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode.")
+	}
+
+	// Check for API credentials
+	apiKey := os.Getenv("BINANCEPERP_API_KEY")
+	apiSecret := os.Getenv("BINANCEPERP_API_SECRET")
+	if apiKey == "" || apiSecret == "" {
+		t.Skip("BINANCEPERP_API_KEY or BINANCEPERP_API_SECRET not set; skipping user data stream test.")
+	}
+
+	// Create REST client for listen key management
+	cfg := &Config{
+		APIKey:    apiKey,
+		APISecret: apiSecret,
+		BaseURL:   MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+
+	// Create WebSocket config
+	wsConfig := &WSConfig{
+		BaseWSUrl:      MainnetWSBaseUrl,
+		ReconnectDelay: 1 * time.Second,
+		PingInterval:   30 * time.Second,
+		MaxReconnects:  3,
+	}
+
+	// Track connection events
+	var connectCount int64
+	var messageCount int64
+	var disconnectCount int64
+	var errorCount int64
+
+	// Create subscription with callbacks
+	subscription := &Subscription{}
+	subscription.
+		WithConnect(func() {
+			atomic.AddInt64(&connectCount, 1)
+			t.Log("✓ User data stream connected")
+		}).
+		WithMessage(func(data []byte) {
+			count := atomic.AddInt64(&messageCount, 1)
+			t.Logf("User data message #%d received (%d bytes)", count, len(data))
+		}).
+		WithError(func(err error) {
+			atomic.AddInt64(&errorCount, 1)
+			t.Logf("User data stream error: %v", err)
+		}).
+		WithClose(func() {
+			atomic.AddInt64(&disconnectCount, 1)
+			t.Log("✓ User data stream disconnected")
+		})
+
+	// Create user data stream
+	userDataStream := NewBinancePerpUserDataStream(client, wsConfig, subscription)
+
+	// Test connection
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	err := userDataStream.Connect(ctx)
+	if err != nil {
+		t.Fatalf("Failed to connect user data stream: %v", err)
+	}
+
+	// Verify connected
+	if !userDataStream.IsConnected() {
+		t.Error("User data stream should be connected")
+	}
+
+	// Wait a bit to receive any potential messages
+	t.Log("Waiting 5 seconds for user data...")
+	time.Sleep(5 * time.Second)
+
+	// Disconnect
+	err = userDataStream.Disconnect()
+	if err != nil {
+		t.Errorf("Failed to disconnect user data stream: %v", err)
+	}
+
+	// Verify disconnected
+	if userDataStream.IsConnected() {
+		t.Error("User data stream should be disconnected")
+	}
+
+	// Wait for disconnect to be processed
+	time.Sleep(500 * time.Millisecond)
+
+	// Verify callback counts
+	finalConnectCount := atomic.LoadInt64(&connectCount)
+	finalMessageCount := atomic.LoadInt64(&messageCount)
+	finalDisconnectCount := atomic.LoadInt64(&disconnectCount)
+	finalErrorCount := atomic.LoadInt64(&errorCount)
+
+	t.Logf("Callback counts:")
+	t.Logf("  OnConnect: %d", finalConnectCount)
+	t.Logf("  OnMessage: %d", finalMessageCount)
+	t.Logf("  OnError: %d", finalErrorCount)
+	t.Logf("  OnDisconnect: %d", finalDisconnectCount)
+
+	// Verify basic lifecycle
+	if finalConnectCount != 1 {
+		t.Errorf("Expected 1 connect event, got %d", finalConnectCount)
+	}
+
+	if finalDisconnectCount != 1 {
+		t.Errorf("Expected 1 disconnect event, got %d", finalDisconnectCount)
+	}
+
+	// Errors should be minimal for normal operation
+	if finalErrorCount > 1 {
+		t.Logf("Note: %d errors occurred (this may be normal for connection management)", finalErrorCount)
+	}
+
+	t.Log("✓ User data stream lifecycle test completed successfully")
 }

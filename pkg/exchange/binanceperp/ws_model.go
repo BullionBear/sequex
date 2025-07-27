@@ -345,6 +345,146 @@ type DiffDepthSubscriptionOptions struct {
 	onDisconnect func()                  // Called when connection is disconnected
 }
 
+// User Data Stream Events
+
+// WSListenKeyExpiredEvent represents a listen key expiration event (handled internally)
+type WSListenKeyExpiredEvent struct {
+	EventType string `json:"e"`         // Event type ("listenKeyExpired")
+	EventTime int64  `json:"E"`         // Event time
+	ListenKey string `json:"listenKey"` // Expired listen key
+}
+
+// WSAccountUpdateEvent represents an account update event
+type WSAccountUpdateEvent struct {
+	EventType       string              `json:"e"` // Event type ("ACCOUNT_UPDATE")
+	EventTime       int64               `json:"E"` // Event time
+	TransactionTime int64               `json:"T"` // Transaction time
+	UpdateData      WSAccountUpdateData `json:"a"` // Update data
+}
+
+// WSAccountUpdateData represents the update data in account update event
+type WSAccountUpdateData struct {
+	EventReasonType string              `json:"m"` // Event reason type
+	Balances        []WSAccountBalance  `json:"B"` // Balances
+	Positions       []WSAccountPosition `json:"P"` // Positions
+}
+
+// WSAccountBalance represents balance information in account update
+type WSAccountBalance struct {
+	Asset              string `json:"a"`  // Asset
+	WalletBalance      string `json:"wb"` // Wallet Balance
+	CrossWalletBalance string `json:"cw"` // Cross Wallet Balance
+	BalanceChange      string `json:"bc"` // Balance Change except PnL and Commission
+}
+
+// WSAccountPosition represents position information in account update
+type WSAccountPosition struct {
+	Symbol              string `json:"s"`   // Symbol
+	PositionAmount      string `json:"pa"`  // Position Amount
+	EntryPrice          string `json:"ep"`  // Entry Price
+	BreakEvenPrice      string `json:"bep"` // Breakeven Price
+	AccumulatedRealized string `json:"cr"`  // (Pre-fee) Accumulated Realized
+	UnrealizedPnL       string `json:"up"`  // Unrealized PnL
+	MarginType          string `json:"mt"`  // Margin Type
+	IsolatedWallet      string `json:"iw"`  // Isolated Wallet (if isolated position)
+	PositionSide        string `json:"ps"`  // Position Side
+}
+
+// WSMarginCallEvent represents a margin call event
+type WSMarginCallEvent struct {
+	EventType          string                 `json:"e"`  // Event type ("MARGIN_CALL")
+	EventTime          int64                  `json:"E"`  // Event time
+	CrossWalletBalance string                 `json:"cw"` // Cross Wallet Balance
+	Positions          []WSMarginCallPosition `json:"p"`  // Position(s) of Margin Call
+}
+
+// WSMarginCallPosition represents position information in margin call
+type WSMarginCallPosition struct {
+	Symbol                    string `json:"s"`  // Symbol
+	PositionSide              string `json:"ps"` // Position Side
+	PositionAmount            string `json:"pa"` // Position Amount
+	MarginType                string `json:"mt"` // Margin Type
+	IsolatedWallet            string `json:"iw"` // Isolated Wallet (if isolated position)
+	MarkPrice                 string `json:"mp"` // Mark Price
+	UnrealizedPnL             string `json:"up"` // Unrealized PnL
+	MaintenanceMarginRequired string `json:"mm"` // Maintenance Margin Required
+}
+
+// WSOrderTradeUpdateEvent represents an order trade update event
+type WSOrderTradeUpdateEvent struct {
+	EventType       string             `json:"e"` // Event type ("ORDER_TRADE_UPDATE")
+	EventTime       int64              `json:"E"` // Event time
+	TransactionTime int64              `json:"T"` // Transaction time
+	Order           WSOrderTradeUpdate `json:"o"` // Order information
+}
+
+// WSOrderTradeUpdate represents order information in order trade update
+type WSOrderTradeUpdate struct {
+	Symbol                    string `json:"s"`   // Symbol
+	ClientOrderID             string `json:"c"`   // Client Order Id
+	Side                      string `json:"S"`   // Side
+	OrderType                 string `json:"o"`   // Order Type
+	TimeInForce               string `json:"f"`   // Time in Force
+	OriginalQuantity          string `json:"q"`   // Original Quantity
+	OriginalPrice             string `json:"p"`   // Original Price
+	AveragePrice              string `json:"ap"`  // Average Price
+	StopPrice                 string `json:"sp"`  // Stop Price
+	ExecutionType             string `json:"x"`   // Execution Type
+	OrderStatus               string `json:"X"`   // Order Status
+	OrderID                   int64  `json:"i"`   // Order Id
+	LastFilledQuantity        string `json:"l"`   // Order Last Filled Quantity
+	FilledAccumulatedQuantity string `json:"z"`   // Order Filled Accumulated Quantity
+	LastFilledPrice           string `json:"L"`   // Last Filled Price
+	CommissionAsset           string `json:"N"`   // Commission Asset
+	Commission                string `json:"n"`   // Commission
+	OrderTradeTime            int64  `json:"T"`   // Order Trade Time
+	TradeID                   int64  `json:"t"`   // Trade Id
+	BidsNotional              string `json:"b"`   // Bids Notional
+	AskNotional               string `json:"a"`   // Ask Notional
+	IsMakerSide               bool   `json:"m"`   // Is this trade the maker side?
+	IsReduceOnly              bool   `json:"R"`   // Is this reduce only
+	StopPriceWorkingType      string `json:"wt"`  // Stop Price Working Type
+	OriginalOrderType         string `json:"ot"`  // Original Order Type
+	PositionSide              string `json:"ps"`  // Position Side
+	IsCloseAll                bool   `json:"cp"`  // If Close-All, pushed with conditional order
+	ActivationPrice           string `json:"AP"`  // Activation Price, only pushed with TRAILING_STOP_MARKET order
+	CallbackRate              string `json:"cr"`  // Callback Rate, only pushed with TRAILING_STOP_MARKET order
+	IsPriceProtection         bool   `json:"pP"`  // If price protection is turned on
+	RealizedProfit            string `json:"rp"`  // Realized Profit of the trade
+	STPMode                   string `json:"V"`   // STP mode
+	PriceMatchMode            string `json:"pm"`  // Price match mode
+	GTDOrderAutoCancelTime    int64  `json:"gtd"` // TIF GTD order auto cancel time
+}
+
+// WSTradeLiteEvent represents a trade lite update event
+type WSTradeLiteEvent struct {
+	EventType          string `json:"e"` // Event type ("TRADE_LITE")
+	EventTime          int64  `json:"E"` // Event time
+	TransactionTime    int64  `json:"T"` // Transaction time
+	Symbol             string `json:"s"` // Symbol
+	OriginalQuantity   string `json:"q"` // Original Quantity
+	OriginalPrice      string `json:"p"` // Original Price
+	IsMakerSide        bool   `json:"m"` // Is this trade the maker side?
+	ClientOrderID      string `json:"c"` // Client Order Id
+	Side               string `json:"S"` // Side
+	LastFilledPrice    string `json:"L"` // Last Filled Price
+	LastFilledQuantity string `json:"l"` // Order Last Filled Quantity
+	TradeID            int64  `json:"t"` // Trade Id
+	OrderID            int64  `json:"i"` // Order Id
+}
+
+// UserDataSubscriptionOptions defines callbacks for user data stream events
+type UserDataSubscriptionOptions struct {
+	onConnect       func()                                    // Called when connection is established
+	onReconnect     func()                                    // Called when connection is reestablished (includes unexpected disconnects and listen key refreshes)
+	onError         func(err error)                           // Called when an error occurs
+	onAccountUpdate func(accountUpdate WSAccountUpdateEvent)  // Called when account update is received
+	onMarginCall    func(marginCall WSMarginCallEvent)        // Called when margin call is received
+	onOrderUpdate   func(orderUpdate WSOrderTradeUpdateEvent) // Called when order trade update is received
+	onTradeLite     func(tradeLite WSTradeLiteEvent)          // Called when trade lite update is received
+	onDisconnect    func()                                    // Called when connection is disconnected
+}
+
 // WithConnect sets the OnConnect callback using chain method
 func (dd *DiffDepthSubscriptionOptions) WithConnect(onConnect func()) *DiffDepthSubscriptionOptions {
 	dd.onConnect = onConnect
@@ -381,4 +521,52 @@ type WSSubscription struct {
 	conn    *BinancePerpWSConn
 	options interface{} // Can be KlineSubscriptionOptions, AggTradeSubscriptionOptions, TickerSubscriptionOptions, LiquidationSubscriptionOptions, DepthSubscriptionOptions, DiffDepthSubscriptionOptions, or other subscription types
 	state   ConnectionState
+}
+
+// WithConnect sets the OnConnect callback for user data subscription
+func (o *UserDataSubscriptionOptions) WithConnect(onConnect func()) *UserDataSubscriptionOptions {
+	o.onConnect = onConnect
+	return o
+}
+
+// WithReconnect sets the OnReconnect callback for user data subscription
+func (o *UserDataSubscriptionOptions) WithReconnect(onReconnect func()) *UserDataSubscriptionOptions {
+	o.onReconnect = onReconnect
+	return o
+}
+
+// WithError sets the OnError callback for user data subscription
+func (o *UserDataSubscriptionOptions) WithError(onError func(error)) *UserDataSubscriptionOptions {
+	o.onError = onError
+	return o
+}
+
+// WithAccountUpdate sets the OnAccountUpdate callback for user data subscription
+func (o *UserDataSubscriptionOptions) WithAccountUpdate(onAccountUpdate func(WSAccountUpdateEvent)) *UserDataSubscriptionOptions {
+	o.onAccountUpdate = onAccountUpdate
+	return o
+}
+
+// WithMarginCall sets the OnMarginCall callback for user data subscription
+func (o *UserDataSubscriptionOptions) WithMarginCall(onMarginCall func(WSMarginCallEvent)) *UserDataSubscriptionOptions {
+	o.onMarginCall = onMarginCall
+	return o
+}
+
+// WithOrderUpdate sets the OnOrderUpdate callback for user data subscription
+func (o *UserDataSubscriptionOptions) WithOrderUpdate(onOrderUpdate func(WSOrderTradeUpdateEvent)) *UserDataSubscriptionOptions {
+	o.onOrderUpdate = onOrderUpdate
+	return o
+}
+
+// WithTradeLite sets the OnTradeLite callback for user data subscription
+func (o *UserDataSubscriptionOptions) WithTradeLite(onTradeLite func(WSTradeLiteEvent)) *UserDataSubscriptionOptions {
+	o.onTradeLite = onTradeLite
+	return o
+}
+
+// WithDisconnect sets the OnDisconnect callback for user data subscription
+func (o *UserDataSubscriptionOptions) WithDisconnect(onDisconnect func()) *UserDataSubscriptionOptions {
+	o.onDisconnect = onDisconnect
+	return o
 }

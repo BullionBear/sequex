@@ -360,3 +360,469 @@ func (c *BinancePerpWSConn) handleDisconnect() {
 		}
 	}
 }
+
+// User Data Stream Constants
+const (
+	listenKeyRefreshInterval = 55 * time.Minute // Refresh every 55 minutes (5 minutes before expiry)
+	listenKeyRetryDelay      = 30 * time.Second // Retry delay for listen key operations
+)
+
+// BinancePerpUserDataStream manages WebSocket connection to Binance perpetual futures user data streams
+type BinancePerpUserDataStream struct {
+	client       *Client // REST client for listen key management
+	conn         *websocket.Conn
+	mu           sync.RWMutex
+	done         chan struct{}
+	reconnect    chan struct{}
+	logger       *log.Logger
+	config       *WSConfig
+	subscription *Subscription
+
+	// Connection state
+	connected       bool
+	listenKey       string
+	ctx             context.Context
+	cancel          context.CancelFunc
+	shouldReconnect bool
+	reconnectCount  int
+
+	// Listen key management
+	refreshTicker *time.Ticker
+	refreshDone   chan struct{}
+}
+
+// NewBinancePerpUserDataStream creates a new user data stream manager
+func NewBinancePerpUserDataStream(client *Client, config *WSConfig, subscription *Subscription) *BinancePerpUserDataStream {
+	if config == nil {
+		config = &WSConfig{
+			BaseWSUrl:      MainnetWSBaseUrl,
+			ReconnectDelay: reconnectDelay,
+			PingInterval:   pingInterval,
+			MaxReconnects:  -1, // No max reconnects by default
+		}
+	}
+
+	// Set defaults if not provided
+	if config.BaseWSUrl == "" {
+		config.BaseWSUrl = MainnetWSBaseUrl
+	}
+	if config.ReconnectDelay == 0 {
+		config.ReconnectDelay = reconnectDelay
+	}
+	if config.PingInterval == 0 {
+		config.PingInterval = pingInterval
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	return &BinancePerpUserDataStream{
+		client:          client,
+		config:          config,
+		subscription:    subscription,
+		ctx:             ctx,
+		cancel:          cancel,
+		done:            make(chan struct{}),
+		reconnect:       make(chan struct{}),
+		refreshDone:     make(chan struct{}),
+		logger:          log.Default(),
+		shouldReconnect: true,
+	}
+}
+
+// Connect establishes user data stream connection to Binance
+func (u *BinancePerpUserDataStream) Connect(ctx context.Context) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	if u.connected {
+		return nil // Already connected
+	}
+
+	// Step 1: Get listen key from REST API
+	if err := u.ensureListenKey(ctx); err != nil {
+		if u.subscription != nil && u.subscription.onError != nil {
+			u.subscription.onError(err)
+		}
+		return fmt.Errorf("failed to get listen key: %w", err)
+	}
+
+	// Step 2: Connect WebSocket with listen key
+	if err := u.connectWebSocket(ctx); err != nil {
+		if u.subscription != nil && u.subscription.onError != nil {
+			u.subscription.onError(err)
+		}
+		return err
+	}
+
+	u.connected = true
+	u.reconnectCount = 0
+
+	// Step 3: Start background routines
+	go u.readLoop()
+	go u.pingLoop()
+	go u.reconnectLoop()
+	go u.listenKeyRefreshLoop()
+
+	// Call OnConnect callback
+	if u.subscription != nil && u.subscription.onConnect != nil {
+		u.subscription.onConnect()
+	}
+
+	u.logger.Printf("[BinancePerpUserData] Connected with listen key: %s", u.listenKey[:10]+"...")
+	return nil
+}
+
+// Disconnect closes the user data stream connection gracefully
+func (u *BinancePerpUserDataStream) Disconnect() error {
+	u.mu.Lock()
+	u.shouldReconnect = false
+	conn := u.conn
+	u.conn = nil
+	u.connected = false
+	u.mu.Unlock()
+
+	// Cancel context and stop refresh timer
+	u.cancel()
+	if u.refreshTicker != nil {
+		u.refreshTicker.Stop()
+	}
+
+	// Signal refresh loop to stop
+	select {
+	case <-u.refreshDone:
+	default:
+		close(u.refreshDone)
+	}
+
+	// Wait a moment for goroutines to stop
+	time.Sleep(10 * time.Millisecond)
+
+	// Close WebSocket connection
+	if conn != nil {
+		err := conn.WriteMessage(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		if err != nil {
+			u.logger.Printf("[BinancePerpUserData] Error sending close message: %v", err)
+		}
+		conn.Close()
+	}
+
+	// Close done channel
+	select {
+	case <-u.done:
+	default:
+		close(u.done)
+	}
+
+	// Close listen key via REST API
+	if u.listenKey != "" {
+		if err := u.closeListenKey(); err != nil {
+			u.logger.Printf("[BinancePerpUserData] Error closing listen key: %v", err)
+		}
+	}
+
+	// Call OnClose callback
+	if u.subscription != nil && u.subscription.onClose != nil {
+		u.subscription.onClose()
+	}
+
+	u.logger.Printf("[BinancePerpUserData] Disconnected")
+	return nil
+}
+
+// IsConnected returns the current connection status
+func (u *BinancePerpUserDataStream) IsConnected() bool {
+	u.mu.RLock()
+	defer u.mu.RUnlock()
+	return u.connected
+}
+
+// ensureListenKey gets or creates a listen key using REST API
+func (u *BinancePerpUserDataStream) ensureListenKey(ctx context.Context) error {
+	if u.listenKey != "" {
+		// Try to refresh existing listen key first
+		if err := u.refreshListenKey(ctx); err != nil {
+			u.logger.Printf("[BinancePerpUserData] Failed to refresh listen key, creating new one: %v", err)
+			// If refresh fails, create a new one
+			return u.createListenKey(ctx)
+		}
+		return nil
+	}
+
+	// No existing listen key, create a new one
+	return u.createListenKey(ctx)
+}
+
+// createListenKey creates a new listen key using REST API
+func (u *BinancePerpUserDataStream) createListenKey(ctx context.Context) error {
+	resp, err := u.client.StartUserDataStream(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start user data stream: %w", err)
+	}
+
+	if resp.Code != 0 {
+		return fmt.Errorf("failed to start user data stream: code %d, message: %s", resp.Code, resp.Message)
+	}
+
+	if resp.Data == nil || resp.Data.ListenKey == "" {
+		return fmt.Errorf("empty listen key received from API")
+	}
+
+	u.listenKey = resp.Data.ListenKey
+	u.logger.Printf("[BinancePerpUserData] Created new listen key: %s", u.listenKey[:10]+"...")
+	return nil
+}
+
+// refreshListenKey extends the validity of existing listen key
+func (u *BinancePerpUserDataStream) refreshListenKey(ctx context.Context) error {
+	resp, err := u.client.KeepaliveUserDataStream(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to keepalive user data stream: %w", err)
+	}
+
+	if resp.Code != 0 {
+		// Check for specific error -1125 (listen key doesn't exist)
+		if resp.Code == -1125 {
+			return fmt.Errorf("listen key does not exist, need to recreate")
+		}
+		return fmt.Errorf("failed to keepalive user data stream: code %d, message: %s", resp.Code, resp.Message)
+	}
+
+	if resp.Data != nil && resp.Data.ListenKey != "" {
+		u.listenKey = resp.Data.ListenKey
+	}
+
+	u.logger.Printf("[BinancePerpUserData] Refreshed listen key: %s", u.listenKey[:10]+"...")
+	return nil
+}
+
+// closeListenKey closes the listen key using REST API
+func (u *BinancePerpUserDataStream) closeListenKey() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	resp, err := u.client.CloseUserDataStream(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to close user data stream: %w", err)
+	}
+
+	if resp.Code != 0 {
+		return fmt.Errorf("failed to close user data stream: code %d, message: %s", resp.Code, resp.Message)
+	}
+
+	u.logger.Printf("[BinancePerpUserData] Closed listen key: %s", u.listenKey[:10]+"...")
+	u.listenKey = ""
+	return nil
+}
+
+// connectWebSocket establishes WebSocket connection using listen key
+func (u *BinancePerpUserDataStream) connectWebSocket(ctx context.Context) error {
+	if u.listenKey == "" {
+		return fmt.Errorf("no listen key available")
+	}
+
+	// Construct WebSocket URL for user data stream
+	url := u.config.BaseWSUrl + "/ws/" + u.listenKey
+
+	dialer := websocket.DefaultDialer
+	conn, _, err := dialer.DialContext(ctx, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to connect to user data stream: %w", err)
+	}
+
+	u.conn = conn
+	u.logger.Printf("[BinancePerpUserData] WebSocket connected to %s", url)
+	return nil
+}
+
+// readLoop continuously reads messages from the user data stream
+func (u *BinancePerpUserDataStream) readLoop() {
+	for {
+		select {
+		case <-u.ctx.Done():
+			return
+		case <-u.done:
+			return
+		default:
+		}
+
+		u.mu.RLock()
+		conn := u.conn
+		u.mu.RUnlock()
+
+		if conn == nil {
+			return
+		}
+
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			// Check if this is a graceful shutdown
+			if u.ctx.Err() != nil {
+				return
+			}
+
+			u.logger.Printf("[BinancePerpUserData] Read error: %v", err)
+			if u.subscription != nil && u.subscription.onError != nil {
+				u.subscription.onError(err)
+			}
+
+			u.handleDisconnect()
+			return
+		}
+
+		// Call the message handler if set
+		if u.subscription != nil && u.subscription.onMessage != nil {
+			u.subscription.onMessage(message)
+		}
+	}
+}
+
+// pingLoop handles ping/pong frames for user data stream
+func (u *BinancePerpUserDataStream) pingLoop() {
+	ticker := time.NewTicker(u.config.PingInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-u.ctx.Done():
+			return
+		case <-u.done:
+			return
+		case <-ticker.C:
+			u.mu.RLock()
+			conn := u.conn
+			connected := u.connected
+			u.mu.RUnlock()
+
+			if !connected || conn == nil {
+				continue
+			}
+
+			// Send pong frame (unsolicited pong frames are allowed)
+			err := conn.WriteMessage(websocket.PongMessage, nil)
+			if err != nil {
+				u.logger.Printf("[BinancePerpUserData] Pong error: %v", err)
+				// Don't call error callback for pong errors during shutdown
+				if u.ctx.Err() == nil && u.subscription != nil && u.subscription.onError != nil {
+					u.subscription.onError(err)
+				}
+			}
+		}
+	}
+}
+
+// reconnectLoop handles automatic reconnection for user data stream
+func (u *BinancePerpUserDataStream) reconnectLoop() {
+	for {
+		select {
+		case <-u.ctx.Done():
+			return
+		case <-u.done:
+			return
+		case <-u.reconnect:
+			if !u.shouldReconnect {
+				continue
+			}
+
+			// Check if we've exceeded max reconnects
+			if u.config.MaxReconnects > 0 && u.reconnectCount >= u.config.MaxReconnects {
+				u.logger.Printf("[BinancePerpUserData] Max reconnects (%d) exceeded", u.config.MaxReconnects)
+				if u.subscription != nil && u.subscription.onError != nil {
+					u.subscription.onError(fmt.Errorf("max reconnects exceeded"))
+				}
+				return
+			}
+
+			u.logger.Printf("[BinancePerpUserData] Reconnecting in %v... (attempt %d)",
+				u.config.ReconnectDelay, u.reconnectCount+1)
+
+			time.Sleep(u.config.ReconnectDelay)
+
+			if err := u.Connect(u.ctx); err != nil {
+				u.logger.Printf("[BinancePerpUserData] Reconnect failed: %v", err)
+				u.reconnectCount++
+				// Trigger another reconnect attempt
+				select {
+				case u.reconnect <- struct{}{}:
+				default:
+				}
+			} else {
+				u.logger.Printf("[BinancePerpUserData] Reconnected successfully")
+				if u.subscription != nil && u.subscription.onReconnect != nil {
+					u.subscription.onReconnect()
+				}
+			}
+		}
+	}
+}
+
+// listenKeyRefreshLoop periodically refreshes the listen key to prevent expiry
+func (u *BinancePerpUserDataStream) listenKeyRefreshLoop() {
+	u.refreshTicker = time.NewTicker(listenKeyRefreshInterval)
+	defer u.refreshTicker.Stop()
+
+	for {
+		select {
+		case <-u.ctx.Done():
+			return
+		case <-u.done:
+			return
+		case <-u.refreshDone:
+			return
+		case <-u.refreshTicker.C:
+			u.logger.Printf("[BinancePerpUserData] Refreshing listen key...")
+
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			err := u.refreshListenKey(ctx)
+			cancel()
+
+			if err != nil {
+				u.logger.Printf("[BinancePerpUserData] Listen key refresh failed: %v", err)
+
+				// If refresh fails with -1125 error (listen key doesn't exist), try to recreate
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				if createErr := u.createListenKey(ctx); createErr != nil {
+					u.logger.Printf("[BinancePerpUserData] Failed to recreate listen key: %v", createErr)
+					if u.subscription != nil && u.subscription.onError != nil {
+						u.subscription.onError(fmt.Errorf("listen key refresh and recreation failed: %w", createErr))
+					}
+					// Trigger reconnection to recover
+					select {
+					case u.reconnect <- struct{}{}:
+					default:
+					}
+				} else {
+					u.logger.Printf("[BinancePerpUserData] Successfully recreated listen key after refresh failure")
+					// Trigger reconnection with new listen key
+					select {
+					case u.reconnect <- struct{}{}:
+					default:
+					}
+				}
+			} else {
+				u.logger.Printf("[BinancePerpUserData] Listen key refreshed successfully")
+			}
+		}
+	}
+}
+
+// handleDisconnect handles connection loss and triggers reconnection for user data stream
+func (u *BinancePerpUserDataStream) handleDisconnect() {
+	u.mu.Lock()
+	if u.conn != nil {
+		u.conn.Close()
+		u.conn = nil
+	}
+	u.connected = false
+	shouldReconnect := u.shouldReconnect && u.ctx.Err() == nil
+	u.mu.Unlock()
+
+	if shouldReconnect {
+		// Trigger reconnection
+		select {
+		case u.reconnect <- struct{}{}:
+		default:
+		}
+	}
+}

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync/atomic"
+	"time"
 
 	"github.com/BullionBear/sequex/pkg/exchange/binanceperp"
 )
@@ -542,4 +544,362 @@ func restAPIExample() {
 	fmt.Println("7. Query Current Open Order only works for orders that are still open!")
 	fmt.Println("8. Get My Trades shows your historical trading activity!")
 	fmt.Println("9. Get Positions shows your current futures positions and P&L!")
+}
+
+func aggTradeExample() {
+	fmt.Println("=== AggTrade Stream Example ===")
+
+	client := binanceperp.NewWSClient(nil)
+
+	var aggTradeCount int64
+
+	options := &binanceperp.AggTradeSubscriptionOptions{}
+	options.
+		WithConnect(func() {
+			fmt.Println("✓ Connected to AggTrade stream")
+		}).
+		WithAggTrade(func(aggTrade binanceperp.WSAggTrade) {
+			count := atomic.AddInt64(&aggTradeCount, 1)
+			fmt.Printf("AggTrade #%d: %s @ %s, Qty: %s, Buyer Maker: %t\n",
+				count, aggTrade.Symbol, aggTrade.Price, aggTrade.Quantity, aggTrade.IsBuyerMaker)
+		}).
+		WithError(func(err error) {
+			fmt.Printf("AggTrade Error: %v\n", err)
+		}).
+		WithDisconnect(func() {
+			fmt.Println("✓ AggTrade stream disconnected")
+		})
+
+	unsubscribe, err := client.SubscribeAggTrade("btcusdt", options)
+	if err != nil {
+		fmt.Printf("Failed to subscribe to AggTrade: %v\n", err)
+		return
+	}
+
+	fmt.Println("Listening to AggTrade stream for 10 seconds...")
+	time.Sleep(10 * time.Second)
+
+	unsubscribe()
+	fmt.Printf("Received %d aggregate trades\n", atomic.LoadInt64(&aggTradeCount))
+}
+
+func mixedStreamsExample() {
+	fmt.Println("=== Mixed Streams Example ===")
+
+	client := binanceperp.NewWSClient(nil)
+
+	var klineCount int64
+	var aggTradeCount int64
+
+	// Subscribe to Kline stream
+	klineOptions := &binanceperp.KlineSubscriptionOptions{}
+	klineOptions.
+		WithConnect(func() {
+			fmt.Println("✓ Connected to Kline stream")
+		}).
+		WithKline(func(kline binanceperp.WSKline) {
+			count := atomic.AddInt64(&klineCount, 1)
+			fmt.Printf("Kline #%d: %s %s OHLC: %s/%s/%s/%s, Closed: %t\n",
+				count, kline.Symbol, kline.Interval, kline.Open, kline.High, kline.Low, kline.Close, kline.IsClosed)
+		}).
+		WithDisconnect(func() {
+			fmt.Println("✓ Kline stream disconnected")
+		})
+
+	unsubscribeKline, err := client.SubscribeKline("btcusdt", "1m", klineOptions)
+	if err != nil {
+		fmt.Printf("Failed to subscribe to Kline: %v\n", err)
+		return
+	}
+
+	// Subscribe to AggTrade stream
+	aggTradeOptions := &binanceperp.AggTradeSubscriptionOptions{}
+	aggTradeOptions.
+		WithConnect(func() {
+			fmt.Println("✓ Connected to AggTrade stream")
+		}).
+		WithAggTrade(func(aggTrade binanceperp.WSAggTrade) {
+			count := atomic.AddInt64(&aggTradeCount, 1)
+			if count <= 5 { // Only show first 5 to avoid spam
+				fmt.Printf("AggTrade #%d: %s @ %s, Qty: %s\n",
+					count, aggTrade.Symbol, aggTrade.Price, aggTrade.Quantity)
+			}
+		}).
+		WithDisconnect(func() {
+			fmt.Println("✓ AggTrade stream disconnected")
+		})
+
+	unsubscribeAggTrade, err := client.SubscribeAggTrade("btcusdt", aggTradeOptions)
+	if err != nil {
+		fmt.Printf("Failed to subscribe to AggTrade: %v\n", err)
+		unsubscribeKline()
+		return
+	}
+
+	fmt.Printf("Active subscriptions: %d\n", client.GetSubscriptionCount())
+	fmt.Println("Listening to both streams for 8 seconds...")
+	time.Sleep(8 * time.Second)
+
+	unsubscribeKline()
+	unsubscribeAggTrade()
+
+	fmt.Printf("Final counts - Klines: %d, AggTrades: %d\n",
+		atomic.LoadInt64(&klineCount), atomic.LoadInt64(&aggTradeCount))
+}
+
+func depthExample() {
+	fmt.Println("\n=== Binance Perpetual Futures Depth Stream Example ===")
+
+	// Create WebSocket client
+	client := binanceperp.NewWSClient(nil) // Use default config
+
+	// Counter for depth updates
+	var depthCount int64
+
+	// Create depth subscription options with chain method
+	options := &binanceperp.DepthSubscriptionOptions{}
+	options.
+		WithConnect(func() {
+			fmt.Println("✓ Connected to depth stream")
+		}).
+		WithDepth(func(depth binanceperp.WSDepth) {
+			count := atomic.AddInt64(&depthCount, 1)
+
+			fmt.Printf("Depth Update #%d:\n", count)
+			fmt.Printf("  Symbol: %s\n", depth.Symbol)
+			fmt.Printf("  Event Time: %d\n", depth.EventTime)
+			fmt.Printf("  Transaction Time: %d\n", depth.TransactionTime)
+			fmt.Printf("  Update IDs: %d -> %d (prev: %d)\n",
+				depth.FirstUpdateID, depth.FinalUpdateID, depth.PrevUpdateID)
+
+			// Show top 3 bids and asks
+			fmt.Printf("  Top Bids (%d total):\n", len(depth.Bids))
+			for i, bid := range depth.Bids {
+				if i >= 3 {
+					break
+				}
+				fmt.Printf("    [%d] Price: %s, Quantity: %s\n", i+1, bid[0], bid[1])
+			}
+
+			fmt.Printf("  Top Asks (%d total):\n", len(depth.Asks))
+			for i, ask := range depth.Asks {
+				if i >= 3 {
+					break
+				}
+				fmt.Printf("    [%d] Price: %s, Quantity: %s\n", i+1, ask[0], ask[1])
+			}
+			fmt.Println("  ---")
+		}).
+		WithError(func(err error) {
+			fmt.Printf("❌ WebSocket Error: %v\n", err)
+		}).
+		WithDisconnect(func() {
+			fmt.Println("✓ Disconnected from depth stream")
+		})
+
+	// Subscribe to BTC/USDT depth with Level 5 and 250ms updates (default)
+	unsubscribe, err := client.SubscribeDepth("btcusdt", binanceperp.DepthLevel5, binanceperp.DepthUpdate250ms, options)
+	if err != nil {
+		fmt.Printf("Failed to subscribe to depth stream: %v\n", err)
+		return
+	}
+
+	fmt.Println("Listening to depth5 stream for 10 seconds...")
+	time.Sleep(10 * time.Second)
+
+	unsubscribe()
+
+	fmt.Printf("Final depth update count: %d\n", atomic.LoadInt64(&depthCount))
+}
+
+func multiDepthExample() {
+	fmt.Println("\n=== Multiple Depth Levels Example ===")
+
+	client := binanceperp.NewWSClient(nil)
+
+	var depth5Count int64
+	var depth20Count int64
+
+	// Subscribe to depth5 with 250ms updates
+	options5 := &binanceperp.DepthSubscriptionOptions{}
+	options5.
+		WithConnect(func() {
+			fmt.Println("✓ Connected to depth5 stream")
+		}).
+		WithDepth(func(depth binanceperp.WSDepth) {
+			count := atomic.AddInt64(&depth5Count, 1)
+			fmt.Printf("Depth5 #%d: %d bids, %d asks\n", count, len(depth.Bids), len(depth.Asks))
+		}).
+		WithDisconnect(func() {
+			fmt.Println("✓ Disconnected from depth5 stream")
+		})
+
+	// Subscribe to depth20 with 100ms updates (faster)
+	options20 := &binanceperp.DepthSubscriptionOptions{}
+	options20.
+		WithConnect(func() {
+			fmt.Println("✓ Connected to depth20 stream (100ms)")
+		}).
+		WithDepth(func(depth binanceperp.WSDepth) {
+			count := atomic.AddInt64(&depth20Count, 1)
+			fmt.Printf("Depth20 #%d: %d bids, %d asks\n", count, len(depth.Bids), len(depth.Asks))
+		}).
+		WithDisconnect(func() {
+			fmt.Println("✓ Disconnected from depth20 stream")
+		})
+
+	// Subscribe to both streams
+	unsubscribe5, err := client.SubscribeDepth("ethusdt", binanceperp.DepthLevel5, binanceperp.DepthUpdate250ms, options5)
+	if err != nil {
+		fmt.Printf("Failed to subscribe to depth5: %v\n", err)
+		return
+	}
+
+	unsubscribe20, err := client.SubscribeDepth("ethusdt", binanceperp.DepthLevel20, binanceperp.DepthUpdate100ms, options20)
+	if err != nil {
+		fmt.Printf("Failed to subscribe to depth20: %v\n", err)
+		return
+	}
+
+	fmt.Println("Listening to both depth streams for 8 seconds...")
+	time.Sleep(8 * time.Second)
+
+	unsubscribe5()
+	unsubscribe20()
+
+	fmt.Printf("Final counts - Depth5: %d, Depth20: %d\n",
+		atomic.LoadInt64(&depth5Count), atomic.LoadInt64(&depth20Count))
+}
+
+func diffDepthExample() {
+	fmt.Println("\n=== Binance Perpetual Futures Differential Depth Stream Example ===")
+
+	// Create WebSocket client
+	client := binanceperp.NewWSClient(nil) // Use default config
+
+	// Counter for differential depth updates
+	var diffDepthCount int64
+
+	// Create differential depth subscription options with chain method
+	options := &binanceperp.DiffDepthSubscriptionOptions{}
+	options.
+		WithConnect(func() {
+			fmt.Println("✓ Connected to differential depth stream")
+		}).
+		WithDiffDepth(func(diffDepth binanceperp.WSDepth) {
+			count := atomic.AddInt64(&diffDepthCount, 1)
+
+			fmt.Printf("Differential Depth Update #%d:\n", count)
+			fmt.Printf("  Symbol: %s\n", diffDepth.Symbol)
+			fmt.Printf("  Event Time: %d\n", diffDepth.EventTime)
+			fmt.Printf("  Transaction Time: %d\n", diffDepth.TransactionTime)
+			fmt.Printf("  Update IDs: %d -> %d (prev: %d)\n",
+				diffDepth.FirstUpdateID, diffDepth.FinalUpdateID, diffDepth.PrevUpdateID)
+
+			// Show bid/ask changes (can be many changes, not limited to top N)
+			fmt.Printf("  Bid Changes: %d entries\n", len(diffDepth.Bids))
+			if len(diffDepth.Bids) > 0 {
+				fmt.Printf("    Sample: Price %s -> Quantity %s\n",
+					diffDepth.Bids[0][0], diffDepth.Bids[0][1])
+				if diffDepth.Bids[0][1] == "0" {
+					fmt.Printf("    (Quantity 0 means this price level was removed)\n")
+				}
+			}
+
+			fmt.Printf("  Ask Changes: %d entries\n", len(diffDepth.Asks))
+			if len(diffDepth.Asks) > 0 {
+				fmt.Printf("    Sample: Price %s -> Quantity %s\n",
+					diffDepth.Asks[0][0], diffDepth.Asks[0][1])
+				if diffDepth.Asks[0][1] == "0" {
+					fmt.Printf("    (Quantity 0 means this price level was removed)\n")
+				}
+			}
+			fmt.Println("  ---")
+		}).
+		WithError(func(err error) {
+			fmt.Printf("❌ WebSocket Error: %v\n", err)
+		}).
+		WithDisconnect(func() {
+			fmt.Println("✓ Disconnected from differential depth stream")
+		})
+
+	// Subscribe to BTC/USDT differential depth with 250ms updates (default)
+	unsubscribe, err := client.SubscribeDiffDepth("btcusdt", binanceperp.DepthUpdate250ms, options)
+	if err != nil {
+		fmt.Printf("Failed to subscribe to differential depth stream: %v\n", err)
+		return
+	}
+
+	fmt.Println("Listening to differential depth stream for 8 seconds...")
+	time.Sleep(8 * time.Second)
+
+	unsubscribe()
+
+	fmt.Printf("Final differential depth update count: %d\n", atomic.LoadInt64(&diffDepthCount))
+}
+
+func depthComparisonExample() {
+	fmt.Println("\n=== Partial vs Differential Depth Comparison ===")
+
+	client := binanceperp.NewWSClient(nil)
+
+	var partialDepthCount int64
+	var diffDepthCount int64
+
+	// Subscribe to partial depth (top 5 levels snapshot)
+	partialOptions := &binanceperp.DepthSubscriptionOptions{}
+	partialOptions.
+		WithConnect(func() {
+			fmt.Println("✓ Connected to partial depth stream (top 5 levels)")
+		}).
+		WithDepth(func(depth binanceperp.WSDepth) {
+			count := atomic.AddInt64(&partialDepthCount, 1)
+			fmt.Printf("PartialDepth #%d: %d bids, %d asks (always ≤ 5)\n",
+				count, len(depth.Bids), len(depth.Asks))
+		}).
+		WithDisconnect(func() {
+			fmt.Println("✓ Disconnected from partial depth stream")
+		})
+
+	// Subscribe to differential depth (order book changes)
+	diffOptions := &binanceperp.DiffDepthSubscriptionOptions{}
+	diffOptions.
+		WithConnect(func() {
+			fmt.Println("✓ Connected to differential depth stream (order book changes)")
+		}).
+		WithDiffDepth(func(diffDepth binanceperp.WSDepth) {
+			count := atomic.AddInt64(&diffDepthCount, 1)
+			fmt.Printf("DiffDepth #%d: %d bid changes, %d ask changes (varies by market activity)\n",
+				count, len(diffDepth.Bids), len(diffDepth.Asks))
+		}).
+		WithDisconnect(func() {
+			fmt.Println("✓ Disconnected from differential depth stream")
+		})
+
+	// Subscribe to both streams for the same symbol
+	unsubscribePartial, err := client.SubscribeDepth("ethusdt", binanceperp.DepthLevel5, binanceperp.DepthUpdate250ms, partialOptions)
+	if err != nil {
+		fmt.Printf("Failed to subscribe to partial depth: %v\n", err)
+		return
+	}
+
+	unsubscribeDiff, err := client.SubscribeDiffDepth("ethusdt", binanceperp.DepthUpdate250ms, diffOptions)
+	if err != nil {
+		fmt.Printf("Failed to subscribe to differential depth: %v\n", err)
+		return
+	}
+
+	fmt.Println("Comparing both stream types for 6 seconds...")
+	time.Sleep(6 * time.Second)
+
+	unsubscribePartial()
+	unsubscribeDiff()
+
+	fmt.Printf("Final counts - PartialDepth (snapshots): %d, DiffDepth (changes): %d\n",
+		atomic.LoadInt64(&partialDepthCount), atomic.LoadInt64(&diffDepthCount))
+
+	fmt.Println("\n📝 Key Differences:")
+	fmt.Println("  • Partial Depth: Fixed number of top levels (5/10/20), snapshot data")
+	fmt.Println("  • Differential Depth: Variable number of changes, delta/update data")
+	fmt.Println("  • Both use same data structure but different semantic meaning")
 }
