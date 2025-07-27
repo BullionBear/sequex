@@ -23,4 +23,7 @@ const (
 	PathGetPriceTicker    = "/fapi/v2/ticker/price"
 	PathGetBookTicker     = "/fapi/v1/ticker/bookTicker"
 	PathGetAccountBalance = "/fapi/v3/balance"
+	PathCreateOrder       = "/fapi/v1/order"
+	PathCancelOrder       = "/fapi/v1/order"
+	PathCancelAllOrders   = "/fapi/v1/allOpenOrders"
 )

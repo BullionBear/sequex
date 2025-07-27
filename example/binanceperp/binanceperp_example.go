@@ -256,27 +256,125 @@ func restAPIExample() {
 	balanceResp, err := client.GetAccountBalance(context.Background(), balanceReq)
 	if err != nil {
 		log.Printf("GetAccountBalance error: %v", err)
-		return
+		fmt.Println("Skipping account balance - requires valid API credentials")
+	} else {
+
+		if balanceResp.Code != 0 {
+			log.Printf("GetAccountBalance failed with code %d: %s", balanceResp.Code, balanceResp.Message)
+		} else {
+
+			fmt.Printf("Number of Account Balance Entries: %d\n", len(*balanceResp.Data))
+			for i, balance := range *balanceResp.Data {
+				fmt.Printf("Balance %d:\n", i+1)
+				fmt.Printf("  Account Alias: %s\n", balance.AccountAlias)
+				fmt.Printf("  Asset: %s\n", balance.Asset)
+				fmt.Printf("  Balance: %s\n", balance.Balance)
+				fmt.Printf("  Cross Wallet Balance: %s\n", balance.CrossWalletBalance)
+				fmt.Printf("  Cross UnPnL: %s\n", balance.CrossUnPnl)
+				fmt.Printf("  Available Balance: %s\n", balance.AvailableBalance)
+				fmt.Printf("  Max Withdraw Amount: %s\n", balance.MaxWithdrawAmount)
+				fmt.Printf("  Margin Available: %t\n", balance.MarginAvailable)
+				fmt.Printf("  Update Time: %d\n", balance.UpdateTime)
+				fmt.Println()
+			}
+		}
 	}
 
-	if balanceResp.Code != 0 {
-		log.Printf("GetAccountBalance failed with code %d: %s", balanceResp.Code, balanceResp.Message)
-		return
-	}
+	// Example 10: Create Order (TRADE - signed request - requires API credentials)
+	fmt.Println("\n--- Create Order (TRADE - Signed Request) ---")
+	// WARNING: This creates a real order! Uncomment only for testing on testnet
+	/*
+		// Example: Create a LIMIT BUY order
+		createOrderReq := binanceperp.CreateOrderRequest{
+			Symbol:      "BTCUSDT",
+			Side:        binanceperp.OrderSideBuy,
+			Type:        binanceperp.OrderTypeLimit,
+			TimeInForce: binanceperp.TimeInForceGTC,
+			Quantity:    "0.001",
+			Price:       "25000.00",  // Set a low price so it won't fill immediately
+			RecvWindow:  5000,
+		}
 
-	fmt.Printf("Number of Account Balance Entries: %d\n", len(*balanceResp.Data))
-	for i, balance := range *balanceResp.Data {
-		fmt.Printf("Balance %d:\n", i+1)
-		fmt.Printf("  Account Alias: %s\n", balance.AccountAlias)
-		fmt.Printf("  Asset: %s\n", balance.Asset)
-		fmt.Printf("  Balance: %s\n", balance.Balance)
-		fmt.Printf("  Cross Wallet Balance: %s\n", balance.CrossWalletBalance)
-		fmt.Printf("  Cross UnPnL: %s\n", balance.CrossUnPnl)
-		fmt.Printf("  Available Balance: %s\n", balance.AvailableBalance)
-		fmt.Printf("  Max Withdraw Amount: %s\n", balance.MaxWithdrawAmount)
-		fmt.Printf("  Margin Available: %t\n", balance.MarginAvailable)
-		fmt.Printf("  Update Time: %d\n", balance.UpdateTime)
-		fmt.Println()
-	}
+		createResp, err := client.CreateOrder(context.Background(), createOrderReq)
+		if err != nil {
+			log.Printf("CreateOrder error: %v", err)
+			return
+		}
 
+		if createResp.Code != 0 {
+			log.Printf("CreateOrder failed with code %d: %s", createResp.Code, createResp.Message)
+			return
+		}
+
+		fmt.Printf("Order Created Successfully:\n")
+		fmt.Printf("  Order ID: %d\n", createResp.Data.OrderId)
+		fmt.Printf("  Client Order ID: %s\n", createResp.Data.ClientOrderId)
+		fmt.Printf("  Symbol: %s\n", createResp.Data.Symbol)
+		fmt.Printf("  Side: %s\n", createResp.Data.Side)
+		fmt.Printf("  Type: %s\n", createResp.Data.Type)
+		fmt.Printf("  Status: %s\n", createResp.Data.Status)
+		fmt.Printf("  Quantity: %s\n", createResp.Data.OrigQty)
+		fmt.Printf("  Price: %s\n", createResp.Data.Price)
+	*/
+	fmt.Println("Create Order example is commented out - creates real orders!")
+
+	// Example 11: Cancel Order (TRADE - signed request - requires API credentials)
+	fmt.Println("\n--- Cancel Order (TRADE - Signed Request) ---")
+	/*
+		// Cancel the order created above using order ID
+		cancelOrderReq := binanceperp.CancelOrderRequest{
+			Symbol:  "BTCUSDT",
+			OrderId: createResp.Data.OrderId,  // Use the order ID from create order
+		}
+
+		cancelResp, err := client.CancelOrder(context.Background(), cancelOrderReq)
+		if err != nil {
+			log.Printf("CancelOrder error: %v", err)
+			return
+		}
+
+		if cancelResp.Code != 0 {
+			log.Printf("CancelOrder failed with code %d: %s", cancelResp.Code, cancelResp.Message)
+			return
+		}
+
+		fmt.Printf("Order Canceled Successfully:\n")
+		fmt.Printf("  Order ID: %d\n", cancelResp.Data.OrderId)
+		fmt.Printf("  Client Order ID: %s\n", cancelResp.Data.ClientOrderId)
+		fmt.Printf("  Symbol: %s\n", cancelResp.Data.Symbol)
+		fmt.Printf("  Status: %s\n", cancelResp.Data.Status)
+	*/
+	fmt.Println("Cancel Order example is commented out - requires existing order!")
+
+	// Example 12: Cancel All Orders (TRADE - signed request - requires API credentials)
+	fmt.Println("\n--- Cancel All Orders (TRADE - Signed Request) ---")
+	/*
+		// Cancel all open orders for a symbol
+		cancelAllReq := binanceperp.CancelAllOrdersRequest{
+			Symbol: "BTCUSDT",
+		}
+
+		cancelAllResp, err := client.CancelAllOrders(context.Background(), cancelAllReq)
+		if err != nil {
+			log.Printf("CancelAllOrders error: %v", err)
+			return
+		}
+
+		if cancelAllResp.Code != 0 {
+			log.Printf("CancelAllOrders failed with code %d: %s", cancelAllResp.Code, cancelAllResp.Message)
+			return
+		}
+
+		fmt.Printf("All Orders Canceled Successfully:\n")
+		fmt.Printf("  Code: %d\n", cancelAllResp.Data.Code)
+		fmt.Printf("  Message: %s\n", cancelAllResp.Data.Msg)
+	*/
+	fmt.Println("Cancel All Orders example is commented out - cancels ALL open orders!")
+
+	fmt.Println("\nTo test trading functions:")
+	fmt.Println("1. Set your API credentials in environment variables")
+	fmt.Println("2. Uncomment the trading example code")
+	fmt.Println("3. Use testnet for safe testing: https://testnet.binancefuture.com")
+	fmt.Println("4. Be careful with real trading - orders can lose money!")
+	fmt.Println("5. Cancel All Orders will close ALL your open orders for the symbol!")
 }

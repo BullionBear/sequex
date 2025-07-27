@@ -149,3 +149,106 @@ type AccountBalance struct {
 	MarginAvailable    bool   `json:"marginAvailable"`    // Whether the asset can be used as margin in Multi-Assets mode
 	UpdateTime         int64  `json:"updateTime"`         // Update timestamp
 }
+
+// CreateOrderRequest defines the parameters for creating a new order.
+type CreateOrderRequest struct {
+	Symbol                  string // required
+	Side                    string // required (BUY/SELL)
+	PositionSide            string // optional, default BOTH for One-way Mode
+	Type                    string // required (LIMIT/MARKET/etc)
+	TimeInForce             string // optional
+	Quantity                string // optional, cannot be sent with closePosition=true
+	ReduceOnly              string // optional, "true" or "false", default "false"
+	Price                   string // optional
+	NewClientOrderId        string // optional
+	StopPrice               string // optional, used with STOP/STOP_MARKET or TAKE_PROFIT/TAKE_PROFIT_MARKET
+	ClosePosition           string // optional, "true" or "false", Close-All
+	ActivationPrice         string // optional, used with TRAILING_STOP_MARKET
+	CallbackRate            string // optional, used with TRAILING_STOP_MARKET, min 0.1, max 10
+	WorkingType             string // optional, "MARK_PRICE" or "CONTRACT_PRICE", default "CONTRACT_PRICE"
+	PriceProtect            string // optional, "TRUE" or "FALSE", default "FALSE"
+	NewOrderRespType        string // optional, "ACK" or "RESULT", default "ACK"
+	PriceMatch              string // optional, OPPONENT/QUEUE variations
+	SelfTradePreventionMode string // optional, EXPIRE_TAKER/EXPIRE_MAKER/EXPIRE_BOTH/NONE
+	GoodTillDate            int64  // optional, order cancel time for timeInForce GTD
+	RecvWindow              int64  // optional, default 5000
+}
+
+// CreateOrderResponse represents the response from creating an order.
+type CreateOrderResponse struct {
+	ClientOrderId           string `json:"clientOrderId"`
+	CumQty                  string `json:"cumQty"`
+	CumQuote                string `json:"cumQuote"`
+	ExecutedQty             string `json:"executedQty"`
+	OrderId                 int64  `json:"orderId"`
+	AvgPrice                string `json:"avgPrice"`
+	OrigQty                 string `json:"origQty"`
+	Price                   string `json:"price"`
+	ReduceOnly              bool   `json:"reduceOnly"`
+	Side                    string `json:"side"`
+	PositionSide            string `json:"positionSide"`
+	Status                  string `json:"status"`
+	StopPrice               string `json:"stopPrice"`
+	ClosePosition           bool   `json:"closePosition"`
+	Symbol                  string `json:"symbol"`
+	TimeInForce             string `json:"timeInForce"`
+	Type                    string `json:"type"`
+	OrigType                string `json:"origType"`
+	ActivatePrice           string `json:"activatePrice,omitempty"` // only with TRAILING_STOP_MARKET
+	PriceRate               string `json:"priceRate,omitempty"`     // only with TRAILING_STOP_MARKET
+	UpdateTime              int64  `json:"updateTime"`
+	WorkingType             string `json:"workingType"`
+	PriceProtect            bool   `json:"priceProtect"`
+	PriceMatch              string `json:"priceMatch"`
+	SelfTradePreventionMode string `json:"selfTradePreventionMode"`
+	GoodTillDate            int64  `json:"goodTillDate,omitempty"` // only with GTD orders
+}
+
+// CancelOrderRequest defines the parameters for canceling an order.
+type CancelOrderRequest struct {
+	Symbol            string // required
+	OrderId           int64  // optional, either orderId or origClientOrderId must be sent
+	OrigClientOrderId string // optional, either orderId or origClientOrderId must be sent
+	RecvWindow        int64  // optional, default 5000
+}
+
+// CancelOrderResponse represents the response from canceling an order.
+type CancelOrderResponse struct {
+	ClientOrderId           string `json:"clientOrderId"`
+	CumQty                  string `json:"cumQty"`
+	CumQuote                string `json:"cumQuote"`
+	ExecutedQty             string `json:"executedQty"`
+	OrderId                 int64  `json:"orderId"`
+	OrigQty                 string `json:"origQty"`
+	OrigType                string `json:"origType"`
+	Price                   string `json:"price"`
+	ReduceOnly              bool   `json:"reduceOnly"`
+	Side                    string `json:"side"`
+	PositionSide            string `json:"positionSide"`
+	Status                  string `json:"status"`
+	StopPrice               string `json:"stopPrice"`
+	ClosePosition           bool   `json:"closePosition"`
+	Symbol                  string `json:"symbol"`
+	TimeInForce             string `json:"timeInForce"`
+	Type                    string `json:"type"`
+	ActivatePrice           string `json:"activatePrice,omitempty"` // only with TRAILING_STOP_MARKET
+	PriceRate               string `json:"priceRate,omitempty"`     // only with TRAILING_STOP_MARKET
+	UpdateTime              int64  `json:"updateTime"`
+	WorkingType             string `json:"workingType"`
+	PriceProtect            bool   `json:"priceProtect"`
+	PriceMatch              string `json:"priceMatch"`
+	SelfTradePreventionMode string `json:"selfTradePreventionMode"`
+	GoodTillDate            int64  `json:"goodTillDate,omitempty"` // only with GTD orders
+}
+
+// CancelAllOrdersRequest defines the parameters for canceling all open orders.
+type CancelAllOrdersRequest struct {
+	Symbol     string // required
+	RecvWindow int64  // optional, default 5000
+}
+
+// CancelAllOrdersResponse represents the response from canceling all open orders.
+type CancelAllOrdersResponse struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+}

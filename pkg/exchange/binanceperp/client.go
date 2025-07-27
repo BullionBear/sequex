@@ -281,3 +281,154 @@ func (c *Client) GetAccountBalance(ctx context.Context, req GetAccountBalanceReq
 
 	return Response[[]AccountBalance]{Code: 0, Message: "success", Data: &balances}, nil
 }
+
+// CreateOrder sends in a new order (TRADE - signed endpoint).
+func (c *Client) CreateOrder(ctx context.Context, req CreateOrderRequest) (Response[CreateOrderResponse], error) {
+	params := map[string]string{
+		"symbol": req.Symbol,
+		"side":   req.Side,
+		"type":   req.Type,
+	}
+
+	// Add optional parameters
+	if req.PositionSide != "" {
+		params["positionSide"] = req.PositionSide
+	}
+	if req.TimeInForce != "" {
+		params["timeInForce"] = req.TimeInForce
+	}
+	if req.Quantity != "" {
+		params["quantity"] = req.Quantity
+	}
+	if req.ReduceOnly != "" {
+		params["reduceOnly"] = req.ReduceOnly
+	}
+	if req.Price != "" {
+		params["price"] = req.Price
+	}
+	if req.NewClientOrderId != "" {
+		params["newClientOrderId"] = req.NewClientOrderId
+	}
+	if req.StopPrice != "" {
+		params["stopPrice"] = req.StopPrice
+	}
+	if req.ClosePosition != "" {
+		params["closePosition"] = req.ClosePosition
+	}
+	if req.ActivationPrice != "" {
+		params["activationPrice"] = req.ActivationPrice
+	}
+	if req.CallbackRate != "" {
+		params["callbackRate"] = req.CallbackRate
+	}
+	if req.WorkingType != "" {
+		params["workingType"] = req.WorkingType
+	}
+	if req.PriceProtect != "" {
+		params["priceProtect"] = req.PriceProtect
+	}
+	if req.NewOrderRespType != "" {
+		params["newOrderRespType"] = req.NewOrderRespType
+	}
+	if req.PriceMatch != "" {
+		params["priceMatch"] = req.PriceMatch
+	}
+	if req.SelfTradePreventionMode != "" {
+		params["selfTradePreventionMode"] = req.SelfTradePreventionMode
+	}
+	if req.GoodTillDate > 0 {
+		params["goodTillDate"] = fmt.Sprintf("%d", req.GoodTillDate)
+	}
+	if req.RecvWindow > 0 {
+		params["recvWindow"] = fmt.Sprintf("%d", req.RecvWindow)
+	}
+
+	body, status, err := doSignedRequest(c.cfg, "POST", PathCreateOrder, params)
+	if err != nil {
+		return Response[CreateOrderResponse]{}, err
+	}
+	if status != http.StatusOK && status != http.StatusCreated {
+		// For signed requests, check if the response contains an error message
+		var errResp Response[CreateOrderResponse]
+		if json.Unmarshal(body, &errResp) == nil && errResp.Code != 0 {
+			return errResp, fmt.Errorf("api error: %d - %s", errResp.Code, errResp.Message)
+		}
+		return Response[CreateOrderResponse]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+
+	var order CreateOrderResponse
+	if err := json.Unmarshal(body, &order); err != nil {
+		return Response[CreateOrderResponse]{}, err
+	}
+
+	return Response[CreateOrderResponse]{Code: 0, Message: "success", Data: &order}, nil
+}
+
+// CancelOrder cancels an active order (TRADE - signed endpoint).
+func (c *Client) CancelOrder(ctx context.Context, req CancelOrderRequest) (Response[CancelOrderResponse], error) {
+	params := map[string]string{
+		"symbol": req.Symbol,
+	}
+
+	// Either orderId or origClientOrderId must be sent
+	if req.OrderId > 0 {
+		params["orderId"] = fmt.Sprintf("%d", req.OrderId)
+	}
+	if req.OrigClientOrderId != "" {
+		params["origClientOrderId"] = req.OrigClientOrderId
+	}
+	if req.RecvWindow > 0 {
+		params["recvWindow"] = fmt.Sprintf("%d", req.RecvWindow)
+	}
+
+	body, status, err := doSignedRequest(c.cfg, "DELETE", PathCancelOrder, params)
+	if err != nil {
+		return Response[CancelOrderResponse]{}, err
+	}
+	if status != http.StatusOK {
+		// For signed requests, check if the response contains an error message
+		var errResp Response[CancelOrderResponse]
+		if json.Unmarshal(body, &errResp) == nil && errResp.Code != 0 {
+			return errResp, fmt.Errorf("api error: %d - %s", errResp.Code, errResp.Message)
+		}
+		return Response[CancelOrderResponse]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+
+	var order CancelOrderResponse
+	if err := json.Unmarshal(body, &order); err != nil {
+		return Response[CancelOrderResponse]{}, err
+	}
+
+	return Response[CancelOrderResponse]{Code: 0, Message: "success", Data: &order}, nil
+}
+
+// CancelAllOrders cancels all open orders for a symbol (TRADE - signed endpoint).
+func (c *Client) CancelAllOrders(ctx context.Context, req CancelAllOrdersRequest) (Response[CancelAllOrdersResponse], error) {
+	params := map[string]string{
+		"symbol": req.Symbol,
+	}
+
+	if req.RecvWindow > 0 {
+		params["recvWindow"] = fmt.Sprintf("%d", req.RecvWindow)
+	}
+
+	body, status, err := doSignedRequest(c.cfg, "DELETE", PathCancelAllOrders, params)
+	if err != nil {
+		return Response[CancelAllOrdersResponse]{}, err
+	}
+	if status != http.StatusOK {
+		// For signed requests, check if the response contains an error message
+		var errResp Response[CancelAllOrdersResponse]
+		if json.Unmarshal(body, &errResp) == nil && errResp.Code != 0 {
+			return errResp, fmt.Errorf("api error: %d - %s", errResp.Code, errResp.Message)
+		}
+		return Response[CancelAllOrdersResponse]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+
+	var cancelResp CancelAllOrdersResponse
+	if err := json.Unmarshal(body, &cancelResp); err != nil {
+		return Response[CancelAllOrdersResponse]{}, err
+	}
+
+	return Response[CancelAllOrdersResponse]{Code: 0, Message: "success", Data: &cancelResp}, nil
+}
