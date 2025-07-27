@@ -283,129 +283,121 @@ func restAPIExample() {
 	// Example 10: Create Order (TRADE - signed request - requires API credentials)
 	fmt.Println("\n--- Create Order (TRADE - Signed Request) ---")
 	// WARNING: This creates a real order! Uncomment only for testing on testnet
-	/*
-		// Example: Create a LIMIT BUY order
-		createOrderReq := binanceperp.CreateOrderRequest{
-			Symbol:      "BTCUSDT",
-			Side:        binanceperp.OrderSideBuy,
-			Type:        binanceperp.OrderTypeLimit,
-			TimeInForce: binanceperp.TimeInForceGTC,
-			Quantity:    "0.001",
-			Price:       "25000.00",  // Set a low price so it won't fill immediately
-			RecvWindow:  5000,
-		}
 
-		createResp, err := client.CreateOrder(context.Background(), createOrderReq)
-		if err != nil {
-			log.Printf("CreateOrder error: %v", err)
-			return
-		}
+	// Example: Create a LIMIT BUY order
+	createOrderReq := binanceperp.CreateOrderRequest{
+		Symbol:      "BTCUSDT",
+		Side:        binanceperp.OrderSideBuy,
+		Type:        binanceperp.OrderTypeLimit,
+		TimeInForce: binanceperp.TimeInForceGTC,
+		Quantity:    "0.001",
+		Price:       "100000.00",
+		RecvWindow:  5000,
+	}
 
-		if createResp.Code != 0 {
-			log.Printf("CreateOrder failed with code %d: %s", createResp.Code, createResp.Message)
-			return
-		}
+	createResp, err := client.CreateOrder(context.Background(), createOrderReq)
+	if err != nil {
+		log.Printf("CreateOrder error: %v", err)
+		return
+	}
 
-		fmt.Printf("Order Created Successfully:\n")
-		fmt.Printf("  Order ID: %d\n", createResp.Data.OrderId)
-		fmt.Printf("  Client Order ID: %s\n", createResp.Data.ClientOrderId)
-		fmt.Printf("  Symbol: %s\n", createResp.Data.Symbol)
-		fmt.Printf("  Side: %s\n", createResp.Data.Side)
-		fmt.Printf("  Type: %s\n", createResp.Data.Type)
-		fmt.Printf("  Status: %s\n", createResp.Data.Status)
-		fmt.Printf("  Quantity: %s\n", createResp.Data.OrigQty)
-		fmt.Printf("  Price: %s\n", createResp.Data.Price)
-	*/
-	fmt.Println("Create Order example is commented out - creates real orders!")
+	if createResp.Code != 0 {
+		log.Printf("CreateOrder failed with code %d: %s", createResp.Code, createResp.Message)
+		return
+	}
+
+	fmt.Printf("Order Created Successfully:\n")
+	fmt.Printf("  Order ID: %d\n", createResp.Data.OrderId)
+	fmt.Printf("  Client Order ID: %s\n", createResp.Data.ClientOrderId)
+	fmt.Printf("  Symbol: %s\n", createResp.Data.Symbol)
+	fmt.Printf("  Side: %s\n", createResp.Data.Side)
+	fmt.Printf("  Type: %s\n", createResp.Data.Type)
+	fmt.Printf("  Status: %s\n", createResp.Data.Status)
+	fmt.Printf("  Quantity: %s\n", createResp.Data.OrigQty)
+	fmt.Printf("  Price: %s\n", createResp.Data.Price)
 
 	// Example 11: Cancel Order (TRADE - signed request - requires API credentials)
 	fmt.Println("\n--- Cancel Order (TRADE - Signed Request) ---")
-	/*
-		// Cancel the order created above using order ID
-		cancelOrderReq := binanceperp.CancelOrderRequest{
-			Symbol:  "BTCUSDT",
-			OrderId: createResp.Data.OrderId,  // Use the order ID from create order
-		}
 
-		cancelResp, err := client.CancelOrder(context.Background(), cancelOrderReq)
-		if err != nil {
-			log.Printf("CancelOrder error: %v", err)
-			return
-		}
+	// Cancel the order created above using order ID
+	cancelOrderReq := binanceperp.CancelOrderRequest{
+		Symbol:  "BTCUSDT",
+		OrderId: createResp.Data.OrderId,
+	}
 
-		if cancelResp.Code != 0 {
-			log.Printf("CancelOrder failed with code %d: %s", cancelResp.Code, cancelResp.Message)
-			return
-		}
+	cancelResp, err := client.CancelOrder(context.Background(), cancelOrderReq)
+	if err != nil {
+		log.Printf("CancelOrder error: %v", err)
+		return
+	}
 
-		fmt.Printf("Order Canceled Successfully:\n")
-		fmt.Printf("  Order ID: %d\n", cancelResp.Data.OrderId)
-		fmt.Printf("  Client Order ID: %s\n", cancelResp.Data.ClientOrderId)
-		fmt.Printf("  Symbol: %s\n", cancelResp.Data.Symbol)
-		fmt.Printf("  Status: %s\n", cancelResp.Data.Status)
-	*/
-	fmt.Println("Cancel Order example is commented out - requires existing order!")
+	if cancelResp.Code != 0 {
+		log.Printf("CancelOrder failed with code %d: %s", cancelResp.Code, cancelResp.Message)
+		return
+	}
+
+	fmt.Printf("Order Canceled Successfully:\n")
+	fmt.Printf("  Order ID: %d\n", cancelResp.Data.OrderId)
+	fmt.Printf("  Client Order ID: %s\n", cancelResp.Data.ClientOrderId)
+	fmt.Printf("  Symbol: %s\n", cancelResp.Data.Symbol)
+	fmt.Printf("  Status: %s\n", cancelResp.Data.Status)
 
 	// Example 12: Cancel All Orders (TRADE - signed request - requires API credentials)
 	fmt.Println("\n--- Cancel All Orders (TRADE - Signed Request) ---")
-	/*
-		// Cancel all open orders for a symbol
-		cancelAllReq := binanceperp.CancelAllOrdersRequest{
-			Symbol: "BTCUSDT",
-		}
 
-		cancelAllResp, err := client.CancelAllOrders(context.Background(), cancelAllReq)
-		if err != nil {
-			log.Printf("CancelAllOrders error: %v", err)
-			return
-		}
+	// Cancel all open orders for a symbol
+	cancelAllReq := binanceperp.CancelAllOrdersRequest{
+		Symbol: "BTCUSDT",
+	}
 
-		if cancelAllResp.Code != 0 {
-			log.Printf("CancelAllOrders failed with code %d: %s", cancelAllResp.Code, cancelAllResp.Message)
-			return
-		}
+	cancelAllResp, err := client.CancelAllOrders(context.Background(), cancelAllReq)
+	if err != nil {
+		log.Printf("CancelAllOrders error: %v", err)
+		return
+	}
 
-		fmt.Printf("All Orders Canceled Successfully:\n")
-		fmt.Printf("  Code: %d\n", cancelAllResp.Data.Code)
-		fmt.Printf("  Message: %s\n", cancelAllResp.Data.Msg)
-	*/
-	fmt.Println("Cancel All Orders example is commented out - cancels ALL open orders!")
+	if cancelAllResp.Code != 0 {
+		log.Printf("CancelAllOrders failed with code %d: %s", cancelAllResp.Code, cancelAllResp.Message)
+		return
+	}
+
+	fmt.Printf("All Orders Canceled Successfully:\n")
+	fmt.Printf("  Code: %d\n", cancelAllResp.Data.Code)
+	fmt.Printf("  Message: %s\n", cancelAllResp.Data.Msg)
 
 	// Example 13: Query Order (USER_DATA - signed request - requires API credentials)
 	fmt.Println("\n--- Query Order (USER_DATA - Signed Request) ---")
-	/*
-		// Query an order by order ID
-		queryOrderReq := binanceperp.QueryOrderRequest{
-			Symbol:  "BTCUSDT",
-			OrderId: createResp.Data.OrderId,  // Use the order ID from create order
-		}
 
-		queryResp, err := client.QueryOrder(context.Background(), queryOrderReq)
-		if err != nil {
-			log.Printf("QueryOrder error: %v", err)
-			return
-		}
+	// Query an order by order ID
+	queryOrderReq := binanceperp.QueryOrderRequest{
+		Symbol:  "BTCUSDT",
+		OrderId: createResp.Data.OrderId, // Use the order ID from create order
+	}
 
-		if queryResp.Code != 0 {
-			log.Printf("QueryOrder failed with code %d: %s", queryResp.Code, queryResp.Message)
-			return
-		}
+	queryResp, err := client.QueryOrder(context.Background(), queryOrderReq)
+	if err != nil {
+		log.Printf("QueryOrder error: %v", err)
+		return
+	}
 
-		fmt.Printf("Order Status Query Successful:\n")
-		fmt.Printf("  Order ID: %d\n", queryResp.Data.OrderId)
-		fmt.Printf("  Client Order ID: %s\n", queryResp.Data.ClientOrderId)
-		fmt.Printf("  Symbol: %s\n", queryResp.Data.Symbol)
-		fmt.Printf("  Side: %s\n", queryResp.Data.Side)
-		fmt.Printf("  Type: %s\n", queryResp.Data.Type)
-		fmt.Printf("  Status: %s\n", queryResp.Data.Status)
-		fmt.Printf("  Original Quantity: %s\n", queryResp.Data.OrigQty)
-		fmt.Printf("  Executed Quantity: %s\n", queryResp.Data.ExecutedQty)
-		fmt.Printf("  Price: %s\n", queryResp.Data.Price)
-		fmt.Printf("  Average Price: %s\n", queryResp.Data.AvgPrice)
-		fmt.Printf("  Order Time: %d\n", queryResp.Data.Time)
-		fmt.Printf("  Update Time: %d\n", queryResp.Data.UpdateTime)
-	*/
-	fmt.Println("Query Order example is commented out - requires existing order!")
+	if queryResp.Code != 0 {
+		log.Printf("QueryOrder failed with code %d: %s", queryResp.Code, queryResp.Message)
+		return
+	}
+
+	fmt.Printf("Order Status Query Successful:\n")
+	fmt.Printf("  Order ID: %d\n", queryResp.Data.OrderId)
+	fmt.Printf("  Client Order ID: %s\n", queryResp.Data.ClientOrderId)
+	fmt.Printf("  Symbol: %s\n", queryResp.Data.Symbol)
+	fmt.Printf("  Side: %s\n", queryResp.Data.Side)
+	fmt.Printf("  Type: %s\n", queryResp.Data.Type)
+	fmt.Printf("  Status: %s\n", queryResp.Data.Status)
+	fmt.Printf("  Original Quantity: %s\n", queryResp.Data.OrigQty)
+	fmt.Printf("  Executed Quantity: %s\n", queryResp.Data.ExecutedQty)
+	fmt.Printf("  Price: %s\n", queryResp.Data.Price)
+	fmt.Printf("  Average Price: %s\n", queryResp.Data.AvgPrice)
+	fmt.Printf("  Order Time: %d\n", queryResp.Data.Time)
+	fmt.Printf("  Update Time: %d\n", queryResp.Data.UpdateTime)
 
 	// Example 14: Query Current Open Order (USER_DATA - signed request - requires API credentials)
 	fmt.Println("\n--- Query Current Open Order (USER_DATA - Signed Request) ---")
