@@ -16,7 +16,7 @@ func TestWSClient_SubscribeKline(t *testing.T) {
 	timeout := 10 * time.Second
 
 	// Create WSClient (using port 9443 for better WebSocket performance)
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 
@@ -167,7 +167,7 @@ func TestWSClient_SubscribeAggTrade(t *testing.T) {
 	timeout := 10 * time.Second
 
 	// Create WSClient (using port 9443 for better WebSocket performance)
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 
@@ -315,7 +315,7 @@ func TestWSClient_SubscribeTrade(t *testing.T) {
 	timeout := 10 * time.Second
 
 	// Create WSClient (using port 9443 for better WebSocket performance)
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 
@@ -465,7 +465,7 @@ func TestWSClient_SubscribeDepth(t *testing.T) {
 	timeout := 10 * time.Second
 
 	// Create WSClient (using port 9443 for better WebSocket performance)
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 
@@ -616,7 +616,7 @@ func TestWSClient_SubscribeDepthUpdate(t *testing.T) {
 	timeout := 10 * time.Second
 
 	// Create WSClient (using port 9443 for better WebSocket performance)
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 
@@ -775,7 +775,7 @@ func TestWSClient_SubscribeDepthUpdate_100ms(t *testing.T) {
 	timeout := 5 * time.Second // Shorter timeout for faster updates
 
 	// Create WSClient
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 
@@ -848,7 +848,7 @@ func TestWSClient_SubscribeDepth_100ms(t *testing.T) {
 	timeout := 5 * time.Second // Shorter timeout for faster updates
 
 	// Create WSClient
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 
@@ -914,7 +914,7 @@ func TestWSClient_SubscribeDepth_100ms(t *testing.T) {
 }
 
 func TestWSClient_SubscribeDepth_InvalidLevels(t *testing.T) {
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 
@@ -951,7 +951,7 @@ func TestWSClient_SubscribeDepth_InvalidLevels(t *testing.T) {
 }
 
 func TestWSClient_SubscribeKline_DuplicateSubscription(t *testing.T) {
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 	symbol := "btcusdt"
@@ -979,7 +979,7 @@ func TestWSClient_SubscribeKline_DuplicateSubscription(t *testing.T) {
 }
 
 func TestWSClient_SubscribeAggTrade_DuplicateSubscription(t *testing.T) {
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 	symbol := "btcusdt"
@@ -1006,7 +1006,7 @@ func TestWSClient_SubscribeAggTrade_DuplicateSubscription(t *testing.T) {
 }
 
 func TestWSClient_SubscribeTrade_DuplicateSubscription(t *testing.T) {
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 	symbol := "btcusdt"
@@ -1033,7 +1033,7 @@ func TestWSClient_SubscribeTrade_DuplicateSubscription(t *testing.T) {
 }
 
 func TestWSClient_SubscribeDepth_DuplicateSubscription(t *testing.T) {
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 	symbol := "btcusdt"
@@ -1061,7 +1061,7 @@ func TestWSClient_SubscribeDepth_DuplicateSubscription(t *testing.T) {
 }
 
 func TestWSClient_SubscribeDepthUpdate_DuplicateSubscription(t *testing.T) {
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 	symbol := "btcusdt"
@@ -1088,7 +1088,7 @@ func TestWSClient_SubscribeDepthUpdate_DuplicateSubscription(t *testing.T) {
 }
 
 func TestWSClient_Close(t *testing.T) {
-	client := NewWSClient(WSConfig{
+	client := NewWSClient(&WSConfig{
 		BaseURL: MainnetWSBaseUrl9443,
 	})
 	symbol := "btcusdt"
@@ -1141,7 +1141,7 @@ func TestSubscribeUserData(t *testing.T) {
 	client := NewClient(cfg)
 
 	// Create WebSocket client with REST client
-	wsClient := NewWSClientWithRESTClient(WSConfig{
+	wsClient := NewWSClientWithRESTClient(&WSConfig{
 		BaseURL: TestnetWSBaseUrl, // Use testnet for testing
 	}, client)
 
@@ -1201,7 +1201,7 @@ func TestSubscribeUserData(t *testing.T) {
 
 func TestUserDataStreamWithoutClient(t *testing.T) {
 	// Create WebSocket client without REST client
-	wsClient := NewWSClient(WSConfig{
+	wsClient := NewWSClient(&WSConfig{
 		BaseURL: TestnetWSBaseUrl,
 	})
 

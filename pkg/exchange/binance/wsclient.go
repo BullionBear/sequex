@@ -17,7 +17,7 @@ type WSClient struct {
 }
 
 // NewWSClient creates a new WebSocket client
-func NewWSClient(config WSConfig) *WSClient {
+func NewWSClient(config *WSConfig) *WSClient {
 	// Use default URL if not provided
 	if config.BaseURL == "" {
 		config.BaseURL = MainnetWSBaseUrl
@@ -30,7 +30,7 @@ func NewWSClient(config WSConfig) *WSClient {
 }
 
 // NewWSClientWithRESTClient creates a new WebSocket client with a REST API client for user data streams
-func NewWSClientWithRESTClient(config WSConfig, client *Client) *WSClient {
+func NewWSClientWithRESTClient(config *WSConfig, client *Client) *WSClient {
 	// Use default URL if not provided
 	if config.BaseURL == "" {
 		config.BaseURL = MainnetWSBaseUrl
