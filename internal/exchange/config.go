@@ -1,7 +1,7 @@
 package exchange
 
 type Config struct {
-	MarketType   MarketType
+	MarketType   Market
 	Credentials  Credentials
 	WalletType   WalletType
 	MarginType   MarginType

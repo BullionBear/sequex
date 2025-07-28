@@ -3,16 +3,18 @@ package exchange
 type MarketType string
 
 const (
-	MarketTypeSpot MarketType = "spot"
-	MarketTypePerp MarketType = "perp"
+	MarketTypeBinance     MarketType = "binance"
+	MarketTypeBinancePerp MarketType = "binance_perp"
+	MarketTypeBybit       MarketType = "bybit"
 )
 
 type WalletType string
 
 const (
-	WalletTypeSpot   WalletType = "spot"
-	WalletTypeMargin WalletType = "margin"
-	WalletTypePerp   WalletType = "perp"
+	WalletTypeSpot    WalletType = "spot"
+	WalletTypeMargin  WalletType = "margin"
+	WalletTypePerp    WalletType = "perp"
+	WalletTypeUnified WalletType = "unified"
 )
 
 type MarginType string
