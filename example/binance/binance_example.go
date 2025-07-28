@@ -43,8 +43,8 @@ func restAPIExample() {
 
 func websocketExample() {
 	// Create WebSocket client (using port 9443 for optimal performance)
-	wsClient := binance.NewWSClient(binance.WSConfig{
-		BaseURL: binance.MainnetWSBaseUrl9443,
+	wsClient := binance.NewWSClient(&binance.WSConfig{
+		BaseWsURL: binance.MainnetWSBaseUrl9443,
 	})
 
 	// Configure Kline subscription options
@@ -276,9 +276,9 @@ func userDataStreamExample() {
 	fmt.Printf("✅ USDT Balance: %.8f (sufficient for testing)\n", usdtBalance)
 
 	// Create WebSocket client with REST client for user data streams
-	wsClient := binance.NewWSClientWithRESTClient(binance.WSConfig{
-		BaseURL: binance.MainnetWSBaseUrl9443,
-	}, client)
+	wsClient := binance.NewWSClient(&binance.WSConfig{
+		BaseWsURL: binance.MainnetWSBaseUrl9443,
+	})
 
 	// Step 2: Set up User Data Stream monitoring
 	var orderCount int

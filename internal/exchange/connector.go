@@ -4,14 +4,14 @@ import "context"
 
 type Connector interface {
 	GetBalance(ctx context.Context) (Response[[]Balance], error)
-	GetOpenOrders(ctx context.Context) (Response[[]Order], error)
+	ListOpenOrders(ctx context.Context) (Response[[]Order], error)
 	GetOrder(ctx context.Context, orderID string) (Response[Order], error)
-	GetMyTrades(ctx context.Context, symbol string) (Response[[]MyTrade], error)
+	GetMyTrades(ctx context.Context, symbol Symbol) (Response[[]MyTrade], error)
 
-	CreateLimitOrder(ctx context.Context, symbol string, side string, price, quantity string, timeInForce string) (Response[Order], error)
-	CreateLimitMakerOrder(ctx context.Context, symbol string, side string, price, quantity string) (Response[Order], error)
-	CreateStopLimitOrder(ctx context.Context, symbol string, side string, price, quantity string, timeInForce string) (Response[Order], error)
-	CreateMarketOrder(ctx context.Context, symbol string, side string, quantity string) (Response[Order], error)
+	CreateLimitOrder(ctx context.Context, symbol Symbol, side string, price, quantity string, timeInForce string) (Response[Order], error)
+	CreateLimitMakerOrder(ctx context.Context, symbol Symbol, side string, price, quantity string) (Response[Order], error)
+	CreateStopLimitOrder(ctx context.Context, symbol Symbol, side string, price, quantity string, timeInForce string) (Response[Order], error)
+	CreateMarketOrder(ctx context.Context, symbol Symbol, side string, quantity string) (Response[Order], error)
 
 	CancelOrder(ctx context.Context, orderID string) (Response[Order], error)
 	CancelAllOrders(ctx context.Context) (Response[Order], error)

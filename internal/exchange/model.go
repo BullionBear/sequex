@@ -5,7 +5,7 @@ import "fmt"
 type Response[T any] struct {
 	Code    int    `json:"code"`
 	Message string `json:"msg"`
-	Data    T      `json:"data"`
+	Data    *T     `json:"data,omitempty"`
 }
 
 type Balance struct {
@@ -24,16 +24,16 @@ func (s *Symbol) String() string {
 }
 
 type Order struct {
-	Symbol      Symbol `json:"symbol"`
-	OrderID     int64  `json:"orderId"`
-	Price       string `json:"price"`
-	OrigQty     string `json:"origQty"`
-	Executed    string `json:"executed"`
-	Status      string `json:"status"`
-	TimeInForce string `json:"timeInForce"`
-	Type        string `json:"type"`
-	Side        string `json:"side"`
-	CreatedAt   int64  `json:"time"`
+	Symbol      Symbol      `json:"symbol"`
+	OrderID     int64       `json:"orderId"`
+	Price       string      `json:"price"`
+	OrigQty     string      `json:"origQty"`
+	Executed    string      `json:"executed"`
+	Status      OrderStatus `json:"status"`
+	TimeInForce TimeInForce `json:"timeInForce"`
+	Type        OrderType   `json:"type"`
+	Side        OrderSide   `json:"side"`
+	CreatedAt   int64       `json:"time"`
 }
 
 type OrderBook struct {

@@ -34,9 +34,10 @@ const (
 type TimeInForce string
 
 const (
-	TimeInForceGTC TimeInForce = "GTC"
-	TimeInForceIOC TimeInForce = "IOC"
-	TimeInForceFOK TimeInForce = "FOK"
+	TimeInForceUnknown TimeInForce = "UNKNOWN"
+	TimeInForceGTC     TimeInForce = "GTC"
+	TimeInForceIOC     TimeInForce = "IOC"
+	TimeInForceFOK     TimeInForce = "FOK"
 )
 
 type OrderType string
@@ -46,4 +47,22 @@ const (
 	OrderTypeMarket     OrderType = "MARKET"
 	OrderTypeLimitMaker OrderType = "LIMIT_MAKER"
 	OrderTypeStopMarket OrderType = "STOP_MARKET"
+)
+
+type OrderSide string
+
+const (
+	OrderSideBuy  OrderSide = "BUY"
+	OrderSideSell OrderSide = "SELL"
+)
+
+type OrderStatus string
+
+const (
+	OrderStatusUnknown         OrderStatus = "UNKNOWN"
+	OrderStatusNew             OrderStatus = "NEW"
+	OrderStatusPartiallyFilled OrderStatus = "PARTIALLY_FILLED"
+	OrderStatusFilled          OrderStatus = "FILLED"
+	OrderStatusCanceled        OrderStatus = "CANCELED"
+	OrderStatusRejected        OrderStatus = "REJECTED"
 )

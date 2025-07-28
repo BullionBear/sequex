@@ -51,6 +51,35 @@ func (a *BinanceExchangeAdapter) GetBalance(ctx context.Context) (exchange.Respo
 	return exchange.Response[[]exchange.Balance]{
 		Code:    200,
 		Message: "OK",
-		Data:    balances,
+		Data:    &balances,
 	}, nil
+}
+
+func (a *BinanceExchangeAdapter) ListOpenOrders(ctx context.Context, symbol exchange.Symbol) (exchange.Response[[]exchange.Order], error) {
+	resp, err := a.restClient.ListOpenOrders(ctx, binance.ListOpenOrdersRequest{
+		Symbol:     symbol.String(),
+		RecvWindow: 5000,
+	})
+	if err != nil {
+		return exchange.Response[[]exchange.Order]{}, err
+	}
+	if resp.Code != 0 {
+		return exchange.Response[[]exchange.Order]{
+			Code:    resp.Code,
+			Message: resp.Message,
+		}, nil
+	}
+	orders := make([]exchange.Order, len(*resp.Data))
+	for i, order := range *resp.Data {
+		if symbol.String() != order.Symbol {
+			continue
+		}
+		orders[i] = exchange.Order{
+			Symbol:   symbol,
+			OrderID:  order.OrderId,
+			Price:    order.Price,
+			OrigQty:  order.OrigQty,
+			Executed: order.ExecutedQty,
+		}
+	}
 }
