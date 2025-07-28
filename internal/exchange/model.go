@@ -1,5 +1,11 @@
 package exchange
 
+type Response[T any] struct {
+	Code    int    `json:"code"`
+	Message string `json:"msg"`
+	Data    T      `json:"data"`
+}
+
 type Balance struct {
 	Asset  string `json:"asset"`
 	Free   string `json:"free"`
