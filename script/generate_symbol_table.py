@@ -48,7 +48,7 @@ class BinanceSpotFetcher(ExchangeInfoFetcher):
             if symbol_info.get('status') != 'TRADING':
                 continue
                 
-            # Find price filter
+            # Find price filter and lot size filter
             price_filter = None
             qty_filter = None
             
@@ -63,13 +63,9 @@ class BinanceSpotFetcher(ExchangeInfoFetcher):
                     'symbol': symbol_info['symbol'],
                     'base': symbol_info['baseAsset'],
                     'quote': symbol_info['quoteAsset'],
-                    'contractType': '',  # Spot trading doesn't have contract type
-                    'minPrice': price_filter.get('minPrice', ''),
-                    'maxPrice': price_filter.get('maxPrice', ''),
+                    'instrument': 'spot',
                     'priceTick': price_filter.get('tickSize', ''),
-                    'minQty': qty_filter.get('minQty', ''),
-                    'maxQty': qty_filter.get('maxQty', ''),
-                    'qtyTick': qty_filter.get('stepSize', '')
+                    'szTick': qty_filter.get('stepSize', '')
                 })
         
         return symbols
@@ -95,7 +91,7 @@ class BinancePerpFetcher(ExchangeInfoFetcher):
             if symbol_info.get('status') != 'TRADING':
                 continue
                 
-            # Find price filter
+            # Find price filter and lot size filter
             price_filter = None
             qty_filter = None
             
@@ -110,13 +106,9 @@ class BinancePerpFetcher(ExchangeInfoFetcher):
                     'symbol': symbol_info['symbol'],
                     'base': symbol_info['baseAsset'],
                     'quote': symbol_info['quoteAsset'],
-                    'contractType': 'PERPETUAL',  # Perpetual futures
-                    'minPrice': price_filter.get('minPrice', ''),
-                    'maxPrice': price_filter.get('maxPrice', ''),
+                    'instrument': 'perp',
                     'priceTick': price_filter.get('tickSize', ''),
-                    'minQty': qty_filter.get('minQty', ''),
-                    'maxQty': qty_filter.get('maxQty', ''),
-                    'qtyTick': qty_filter.get('stepSize', '')
+                    'szTick': qty_filter.get('stepSize', '')
                 })
         
         return symbols
@@ -188,21 +180,30 @@ class BybitFetcher(ExchangeInfoFetcher):
             price_filter = symbol_info.get('priceFilter', {})
             lot_size_filter = symbol_info.get('lotSizeFilter', {})
             
-            # Determine contract type based on category
+            # Determine instrument type based on category
             category = symbol_info.get('category', 'spot')
-            contract_type = category.upper()
+            if category == 'spot':
+                instrument = 'spot'
+            elif category == 'linear':
+                instrument = 'perp'
+            elif category == 'inverse':
+                instrument = 'inverse'
+            else:
+                instrument = category  # fallback
+            
+            # Get szTick - use qtyStep for perpetual, basePrecision for spot
+            if category == 'linear' or category == 'inverse':
+                sz_tick = lot_size_filter.get('qtyStep', '')
+            else:
+                sz_tick = lot_size_filter.get('basePrecision', '')
             
             symbols.append({
                 'symbol': symbol_info['symbol'],
                 'base': symbol_info['baseCoin'],
                 'quote': symbol_info['quoteCoin'],
-                'contractType': contract_type,
-                'minPrice': '',  # Bybit doesn't provide min/max price in this endpoint
-                'maxPrice': '',
+                'instrument': instrument,
                 'priceTick': price_filter.get('tickSize', ''),
-                'minQty': lot_size_filter.get('minOrderQty', ''),
-                'maxQty': lot_size_filter.get('maxOrderQty', ''),
-                'qtyTick': lot_size_filter.get('basePrecision', '')  # Use basePrecision as qtyTick
+                'szTick': sz_tick
             })
         
         return symbols
@@ -224,7 +225,7 @@ def get_fetcher(market: str) -> ExchangeInfoFetcher:
 
 def write_csv(symbols: List[Dict], output_path: str):
     """Write symbols to CSV file."""
-    fieldnames = ['symbol', 'base', 'quote', 'contractType', 'minPrice', 'maxPrice', 'priceTick', 'minQty', 'maxQty', 'qtyTick']
+    fieldnames = ['symbol', 'base', 'quote', 'instrument', 'priceTick', 'szTick']
     
     # Ensure output directory exists
     output_dir = os.path.dirname(output_path)
