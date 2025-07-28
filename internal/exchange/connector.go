@@ -17,4 +17,9 @@ type Connector interface {
 	GetOrderBook(symbol string, limit int) (Response[OrderBook], error)
 	GetTrades(symbol string) (Response[[]Trade], error)
 	GetPositions() (Response[[]Position], error)
+	/*
+	   SubscribeDepthDiff(symbol string, limit int) (Response[OrderBook], error)
+	   SubscribeAggTrades(symbol string) (Response[[]Trade], error)
+	   SubscribeMyTrades(symbol string) (Response[[]MyTrade], error)
+	*/
 }
