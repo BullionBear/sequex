@@ -1,5 +1,7 @@
 package exchange
 
+import "fmt"
+
 type Response[T any] struct {
 	Code    int    `json:"code"`
 	Message string `json:"msg"`
@@ -12,8 +14,17 @@ type Balance struct {
 	Locked string `json:"locked"`
 }
 
+type Symbol struct {
+	Base  string `json:"base"`
+	Quote string `json:"quote"`
+}
+
+func (s *Symbol) String() string {
+	return fmt.Sprintf("%s%s", s.Base, s.Quote)
+}
+
 type Order struct {
-	Symbol      string `json:"symbol"`
+	Symbol      Symbol `json:"symbol"`
 	OrderID     int64  `json:"orderId"`
 	Price       string `json:"price"`
 	OrigQty     string `json:"origQty"`
