@@ -17,7 +17,7 @@ func TestWSClient_SubscribeKline(t *testing.T) {
 
 	// Create WSClient (using port 9443 for better WebSocket performance)
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 
 	// Callback invocation counters
@@ -168,7 +168,7 @@ func TestWSClient_SubscribeAggTrade(t *testing.T) {
 
 	// Create WSClient (using port 9443 for better WebSocket performance)
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 
 	// Callback invocation counters
@@ -316,7 +316,7 @@ func TestWSClient_SubscribeTrade(t *testing.T) {
 
 	// Create WSClient (using port 9443 for better WebSocket performance)
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 
 	// Callback invocation counters
@@ -466,7 +466,7 @@ func TestWSClient_SubscribeDepth(t *testing.T) {
 
 	// Create WSClient (using port 9443 for better WebSocket performance)
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 
 	// Callback invocation counters
@@ -617,7 +617,7 @@ func TestWSClient_SubscribeDepthUpdate(t *testing.T) {
 
 	// Create WSClient (using port 9443 for better WebSocket performance)
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 
 	// Callback invocation counters
@@ -776,7 +776,7 @@ func TestWSClient_SubscribeDepthUpdate_100ms(t *testing.T) {
 
 	// Create WSClient
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 
 	// Callback invocation counters
@@ -849,7 +849,7 @@ func TestWSClient_SubscribeDepth_100ms(t *testing.T) {
 
 	// Create WSClient
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 
 	// Callback invocation counters
@@ -915,7 +915,7 @@ func TestWSClient_SubscribeDepth_100ms(t *testing.T) {
 
 func TestWSClient_SubscribeDepth_InvalidLevels(t *testing.T) {
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 
 	options := DepthSubscriptionOptions{
@@ -952,7 +952,7 @@ func TestWSClient_SubscribeDepth_InvalidLevels(t *testing.T) {
 
 func TestWSClient_SubscribeKline_DuplicateSubscription(t *testing.T) {
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 	symbol := "btcusdt"
 	interval := "1m"
@@ -980,7 +980,7 @@ func TestWSClient_SubscribeKline_DuplicateSubscription(t *testing.T) {
 
 func TestWSClient_SubscribeAggTrade_DuplicateSubscription(t *testing.T) {
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 	symbol := "btcusdt"
 
@@ -1007,7 +1007,7 @@ func TestWSClient_SubscribeAggTrade_DuplicateSubscription(t *testing.T) {
 
 func TestWSClient_SubscribeTrade_DuplicateSubscription(t *testing.T) {
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 	symbol := "btcusdt"
 
@@ -1034,7 +1034,7 @@ func TestWSClient_SubscribeTrade_DuplicateSubscription(t *testing.T) {
 
 func TestWSClient_SubscribeDepth_DuplicateSubscription(t *testing.T) {
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 	symbol := "btcusdt"
 	levels := 5
@@ -1062,7 +1062,7 @@ func TestWSClient_SubscribeDepth_DuplicateSubscription(t *testing.T) {
 
 func TestWSClient_SubscribeDepthUpdate_DuplicateSubscription(t *testing.T) {
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 	symbol := "btcusdt"
 
@@ -1089,7 +1089,7 @@ func TestWSClient_SubscribeDepthUpdate_DuplicateSubscription(t *testing.T) {
 
 func TestWSClient_Close(t *testing.T) {
 	client := NewWSClient(&WSConfig{
-		BaseURL: MainnetWSBaseUrl9443,
+		BaseWsURL: MainnetWSBaseUrl9443,
 	})
 	symbol := "btcusdt"
 	interval := "1m"
@@ -1132,18 +1132,8 @@ func TestSubscribeUserData(t *testing.T) {
 		t.Skip("BINANCE_API_KEY or BINANCE_API_SECRET not set; skipping user data stream test.")
 	}
 
-	// Create REST API client
-	cfg := &Config{
-		APIKey:    apiKey,
-		APISecret: apiSecret,
-		BaseURL:   MainnetBaseUrl,
-	}
-	client := NewClient(cfg)
-
 	// Create WebSocket client with REST client
-	wsClient := NewWSClientWithRESTClient(&WSConfig{
-		BaseURL: TestnetWSBaseUrl, // Use testnet for testing
-	}, client)
+	wsClient := NewWSClient(NewMainnetWSConfig(apiKey, apiSecret))
 
 	connected := false
 	options := UserDataSubscriptionOptions{
@@ -1202,7 +1192,7 @@ func TestSubscribeUserData(t *testing.T) {
 func TestUserDataStreamWithoutClient(t *testing.T) {
 	// Create WebSocket client without REST client
 	wsClient := NewWSClient(&WSConfig{
-		BaseURL: TestnetWSBaseUrl,
+		BaseWsURL: TestnetWSBaseUrl,
 	})
 
 	options := UserDataSubscriptionOptions{

@@ -12,33 +12,24 @@ import (
 type WSClient struct {
 	subscriptions map[string]*Subscription
 	mu            sync.RWMutex
-	baseURL       string
+	baseWsURL     string
 	client        *Client // REST API client for user data stream management
 }
 
-// NewWSClient creates a new WebSocket client
+// NewWSClient creates a new WebSocket client with a REST API client for user data streams
 func NewWSClient(config *WSConfig) *WSClient {
 	// Use default URL if not provided
-	if config.BaseURL == "" {
-		config.BaseURL = MainnetWSBaseUrl
+	if config.BaseWsURL == "" {
+		config.BaseWsURL = MainnetWSBaseUrl
 	}
-
+	client := NewClient(&Config{
+		APIKey:    config.APIKey,
+		APISecret: config.APISecret,
+		BaseURL:   config.BaseRestURL,
+	})
 	return &WSClient{
 		subscriptions: make(map[string]*Subscription),
-		baseURL:       config.BaseURL,
-	}
-}
-
-// NewWSClientWithRESTClient creates a new WebSocket client with a REST API client for user data streams
-func NewWSClientWithRESTClient(config *WSConfig, client *Client) *WSClient {
-	// Use default URL if not provided
-	if config.BaseURL == "" {
-		config.BaseURL = MainnetWSBaseUrl
-	}
-
-	return &WSClient{
-		subscriptions: make(map[string]*Subscription),
-		baseURL:       config.BaseURL,
+		baseWsURL:     config.BaseWsURL,
 		client:        client,
 	}
 }
@@ -120,7 +111,7 @@ func (c *WSClient) subscribe(subscriptionID, streamPath string, options interfac
 	}
 
 	// Create new WebSocket connection
-	conn := NewBinanceWSConn(c.baseURL, streamPath)
+	conn := NewBinanceWSConn(c.baseWsURL, streamPath)
 
 	// Create subscription
 	subscription := &Subscription{
@@ -442,7 +433,7 @@ func (c *WSClient) SubscribeUserData(options UserDataSubscriptionOptions) (func(
 	listenKey := resp.Data.ListenKey
 
 	// Create custom WebSocket connection for user data stream
-	userDataConn := NewUserDataWSConn(c.baseURL, listenKey, c.client, options)
+	userDataConn := NewUserDataWSConn(c.baseWsURL, listenKey, c.client, options)
 
 	c.mu.Lock()
 	// Create subscription
