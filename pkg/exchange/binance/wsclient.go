@@ -13,7 +13,7 @@ type WSClient struct {
 	subscriptions map[string]*Subscription
 	mu            sync.RWMutex
 	baseWsURL     string
-	client        *Client // REST API client for user data stream management
+	restClient    *Client // REST API client for user data stream management
 }
 
 // NewWSClient creates a new WebSocket client with a REST API client for user data streams
@@ -30,8 +30,12 @@ func NewWSClient(config *WSConfig) *WSClient {
 	return &WSClient{
 		subscriptions: make(map[string]*Subscription),
 		baseWsURL:     config.BaseWsURL,
-		client:        client,
+		restClient:    client,
 	}
+}
+
+func (c *WSClient) GetRestClient() *Client {
+	return c.restClient
 }
 
 // SubscribeKline subscribes to kline/candlestick WebSocket stream
@@ -402,7 +406,7 @@ func (c *WSClient) Close() {
 // SubscribeUserData subscribes to user data stream using listen key
 // This method handles listen key lifecycle including refresh and reconnection
 func (c *WSClient) SubscribeUserData(options UserDataSubscriptionOptions) (func(), error) {
-	if c.client == nil {
+	if c.restClient == nil {
 		return nil, fmt.Errorf("REST API client is required for user data stream subscription")
 	}
 
@@ -418,7 +422,7 @@ func (c *WSClient) SubscribeUserData(options UserDataSubscriptionOptions) (func(
 
 	// Start user data stream and get listen key
 	ctx := context.Background()
-	resp, err := c.client.StartUserDataStream(ctx)
+	resp, err := c.restClient.StartUserDataStream(ctx)
 	if err != nil {
 		c.callOnUserDataError(options, err)
 		return nil, fmt.Errorf("failed to start user data stream: %w", err)
@@ -433,7 +437,7 @@ func (c *WSClient) SubscribeUserData(options UserDataSubscriptionOptions) (func(
 	listenKey := resp.Data.ListenKey
 
 	// Create custom WebSocket connection for user data stream
-	userDataConn := NewUserDataWSConn(c.baseWsURL, listenKey, c.client, options)
+	userDataConn := NewUserDataWSConn(c.baseWsURL, listenKey, c.restClient, options)
 
 	c.mu.Lock()
 	// Create subscription

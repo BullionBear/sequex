@@ -12,7 +12,7 @@ import (
 type WSClient struct {
 	subscriptions map[string]*WSSubscription
 	mu            sync.RWMutex
-	baseURL       string
+	baseWsURL     string
 	config        *WSConfig
 }
 
@@ -35,7 +35,7 @@ func NewWSClient(config *WSConfig) *WSClient {
 
 	return &WSClient{
 		subscriptions: make(map[string]*WSSubscription),
-		baseURL:       config.BaseWSUrl,
+		baseWsURL:     config.BaseWSUrl,
 		config:        config,
 	}
 }
