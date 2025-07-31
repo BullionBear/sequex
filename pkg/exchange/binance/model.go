@@ -268,3 +268,108 @@ type UserDataStreamResponse struct {
 
 // EmptyResponse models empty responses for keepalive and close stream operations.
 type EmptyResponse struct{}
+
+// ExchangeInfoRequest models the request for getting exchange information.
+type ExchangeInfoRequest struct {
+	Symbol             string
+	Symbols            []string
+	Permissions        []string
+	ShowPermissionSets bool
+	SymbolStatus       string
+}
+
+// RateLimit models a single rate limit in the exchange info response.
+type RateLimit struct {
+	RateLimitType string `json:"rateLimitType"`
+	Interval      string `json:"interval"`
+	IntervalNum   int    `json:"intervalNum"`
+	Limit         int    `json:"limit"`
+}
+
+// Filter models a single filter in the exchange info response.
+type Filter struct {
+	FilterType string `json:"filterType"`
+	// PRICE_FILTER fields
+	MinPrice string `json:"minPrice,omitempty"`
+	MaxPrice string `json:"maxPrice,omitempty"`
+	TickSize string `json:"tickSize,omitempty"`
+	// PERCENT_PRICE fields
+	MultiplierUp   string `json:"multiplierUp,omitempty"`
+	MultiplierDown string `json:"multiplierDown,omitempty"`
+	AvgPriceMins   int    `json:"avgPriceMins,omitempty"`
+	// PERCENT_PRICE_BY_SIDE fields
+	BidMultiplierUp   string `json:"bidMultiplierUp,omitempty"`
+	BidMultiplierDown string `json:"bidMultiplierDown,omitempty"`
+	AskMultiplierUp   string `json:"askMultiplierUp,omitempty"`
+	AskMultiplierDown string `json:"askMultiplierDown,omitempty"`
+	// LOT_SIZE fields
+	MinQty   string `json:"minQty,omitempty"`
+	MaxQty   string `json:"maxQty,omitempty"`
+	StepSize string `json:"stepSize,omitempty"`
+	// MIN_NOTIONAL fields
+	MinNotional   string `json:"minNotional,omitempty"`
+	ApplyToMarket bool   `json:"applyToMarket,omitempty"`
+	// NOTIONAL fields
+	ApplyMinToMarket bool   `json:"applyMinToMarket,omitempty"`
+	ApplyMaxToMarket bool   `json:"applyMaxToMarket,omitempty"`
+	MaxNotional      string `json:"maxNotional,omitempty"`
+	// ICEBERG_PARTS fields
+	Limit int `json:"limit,omitempty"`
+	// MAX_NUM_ORDERS fields
+	MaxNumOrders int `json:"maxNumOrders,omitempty"`
+	// MAX_NUM_ALGO_ORDERS fields
+	MaxNumAlgoOrders int `json:"maxNumAlgoOrders,omitempty"`
+	// MAX_NUM_ICEBERG_ORDERS fields
+	MaxNumIcebergOrders int `json:"maxNumIcebergOrders,omitempty"`
+	// MAX_POSITION fields
+	MaxPosition string `json:"maxPosition,omitempty"`
+	// TRAILING_DELTA fields
+	MinTrailingAboveDelta int `json:"minTrailingAboveDelta,omitempty"`
+	MaxTrailingAboveDelta int `json:"maxTrailingAboveDelta,omitempty"`
+	MinTrailingBelowDelta int `json:"minTrailingBelowDelta,omitempty"`
+	MaxTrailingBelowDelta int `json:"maxTrailingBelowDelta,omitempty"`
+}
+
+// Symbol models a single symbol in the exchange info response.
+type Symbol struct {
+	Symbol                          string     `json:"symbol"`
+	Status                          string     `json:"status"`
+	BaseAsset                       string     `json:"baseAsset"`
+	BaseAssetPrecision              int        `json:"baseAssetPrecision"`
+	QuoteAsset                      string     `json:"quoteAsset"`
+	QuotePrecision                  int        `json:"quotePrecision"`
+	QuoteAssetPrecision             int        `json:"quoteAssetPrecision"`
+	BaseCommissionPrecision         int        `json:"baseCommissionPrecision"`
+	QuoteCommissionPrecision        int        `json:"quoteCommissionPrecision"`
+	OrderTypes                      []string   `json:"orderTypes"`
+	IcebergAllowed                  bool       `json:"icebergAllowed"`
+	OcoAllowed                      bool       `json:"ocoAllowed"`
+	OtoAllowed                      bool       `json:"otoAllowed"`
+	QuoteOrderQtyMarketAllowed      bool       `json:"quoteOrderQtyMarketAllowed"`
+	AllowTrailingStop               bool       `json:"allowTrailingStop"`
+	CancelReplaceAllowed            bool       `json:"cancelReplaceAllowed"`
+	AmendAllowed                    bool       `json:"amendAllowed"`
+	IsSpotTradingAllowed            bool       `json:"isSpotTradingAllowed"`
+	IsMarginTradingAllowed          bool       `json:"isMarginTradingAllowed"`
+	Filters                         []Filter   `json:"filters"`
+	Permissions                     []string   `json:"permissions"`
+	PermissionSets                  [][]string `json:"permissionSets"`
+	DefaultSelfTradePreventionMode  string     `json:"defaultSelfTradePreventionMode"`
+	AllowedSelfTradePreventionModes []string   `json:"allowedSelfTradePreventionModes"`
+}
+
+// SOR models a single SOR (Smart Order Router) in the exchange info response.
+type SOR struct {
+	BaseAsset string   `json:"baseAsset"`
+	Symbols   []string `json:"symbols"`
+}
+
+// ExchangeInfoResponse models the response for getting exchange information.
+type ExchangeInfoResponse struct {
+	Timezone        string      `json:"timezone"`
+	ServerTime      int64       `json:"serverTime"`
+	RateLimits      []RateLimit `json:"rateLimits"`
+	ExchangeFilters []Filter    `json:"exchangeFilters"`
+	Symbols         []Symbol    `json:"symbols"`
+	Sors            []SOR       `json:"sors,omitempty"`
+}

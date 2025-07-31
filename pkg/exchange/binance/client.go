@@ -437,6 +437,46 @@ func (c *Client) GetMyTrades(ctx context.Context, req GetAccountTradesRequest) (
 	return Response[[]AccountTrade]{Code: 0, Message: "success", Data: &resp}, nil
 }
 
+// GetExchangeInfo retrieves current exchange trading rules and symbol information.
+func (c *Client) GetExchangeInfo(ctx context.Context, req ExchangeInfoRequest) (Response[ExchangeInfoResponse], error) {
+	params := map[string]string{}
+	if req.Symbol != "" {
+		params["symbol"] = req.Symbol
+	}
+	if len(req.Symbols) > 0 {
+		b, err := json.Marshal(req.Symbols)
+		if err != nil {
+			return Response[ExchangeInfoResponse]{}, err
+		}
+		params["symbols"] = string(b)
+	}
+	if len(req.Permissions) > 0 {
+		b, err := json.Marshal(req.Permissions)
+		if err != nil {
+			return Response[ExchangeInfoResponse]{}, err
+		}
+		params["permissions"] = string(b)
+	}
+	if req.ShowPermissionSets {
+		params["showPermissionSets"] = "true"
+	}
+	if req.SymbolStatus != "" {
+		params["symbolStatus"] = req.SymbolStatus
+	}
+	body, status, err := doUnsignedGet(c.cfg, PathGetExchangeInfo, params)
+	if err != nil {
+		return Response[ExchangeInfoResponse]{}, err
+	}
+	if status < 200 || status >= 300 {
+		return Response[ExchangeInfoResponse]{Code: status, Message: string(body)}, fmt.Errorf("http error: %d", status)
+	}
+	var resp ExchangeInfoResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return Response[ExchangeInfoResponse]{}, err
+	}
+	return Response[ExchangeInfoResponse]{Code: 0, Message: "success", Data: &resp}, nil
+}
+
 // StartUserDataStream starts a new user data stream and returns a listen key.
 // This method is used for websocket user data stream connection.
 func (c *Client) StartUserDataStream(_ context.Context) (Response[UserDataStreamResponse], error) {

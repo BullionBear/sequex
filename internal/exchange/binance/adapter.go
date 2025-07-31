@@ -7,7 +7,7 @@ import (
 	"github.com/BullionBear/sequex/pkg/exchange/binance"
 )
 
-var _ exchange.Connector = (*BinanceExchangeAdapter)(nil)
+// var _ exchange.Connector = (*BinanceExchangeAdapter)(nil)
 
 func NewBinanceAdapter(cfg exchange.Config) *BinanceExchangeAdapter {
 	wsClient := binance.NewWSClient(&binance.WSConfig{
@@ -82,4 +82,9 @@ func (a *BinanceExchangeAdapter) ListOpenOrders(ctx context.Context, symbol exch
 			Executed: order.ExecutedQty,
 		}
 	}
+	return exchange.Response[[]exchange.Order]{
+		Code:    0,
+		Message: "OK",
+		Data:    &orders,
+	}, nil
 }

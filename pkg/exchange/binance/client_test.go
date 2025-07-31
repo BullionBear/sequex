@@ -105,20 +105,97 @@ func TestGetPriceTicker(t *testing.T) {
 	if resp.Code != 0 {
 		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
 	}
-	if resp.Data == nil || len(*resp.Data) == 0 {
-		t.Fatal("no price ticker returned (single)")
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+	if len(*resp.Data) == 0 {
+		t.Fatal("no price tickers returned")
 	}
 
 	// Multiple symbols
-	resp2, err := client.GetPriceTicker(ctx, "BTCUSDT", "ETHBTC")
+	resp, err = client.GetPriceTicker(ctx, "BTCUSDT", "ETHUSDT")
 	if err != nil {
-		t.Fatalf("GetPriceTicker (multi) error: %v", err)
+		t.Fatalf("GetPriceTicker error: %v", err)
 	}
-	if resp2.Code != 0 {
-		t.Fatalf("unexpected response code (multi): %d, msg: %s", resp2.Code, resp2.Message)
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
 	}
-	if resp2.Data == nil || len(*resp2.Data) == 0 {
-		t.Fatal("no price ticker returned (multi)")
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+	if len(*resp.Data) < 2 {
+		t.Fatal("expected at least 2 price tickers")
+	}
+}
+
+func TestGetExchangeInfo(t *testing.T) {
+	cfg := &Config{
+		BaseURL: MainnetBaseUrl,
+	}
+	client := NewClient(cfg)
+	ctx := context.Background()
+
+	// Test with no parameters (get all symbols)
+	resp, err := client.GetExchangeInfo(ctx, ExchangeInfoRequest{})
+	if err != nil {
+		t.Fatalf("GetExchangeInfo error: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+	if len(resp.Data.Symbols) == 0 {
+		t.Fatal("no symbols returned")
+	}
+
+	// Test with specific symbol
+	resp, err = client.GetExchangeInfo(ctx, ExchangeInfoRequest{Symbol: "BTCUSDT"})
+	if err != nil {
+		t.Fatalf("GetExchangeInfo error: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+	if len(resp.Data.Symbols) == 0 {
+		t.Fatal("no symbols returned")
+	}
+	if resp.Data.Symbols[0].Symbol != "BTCUSDT" {
+		t.Fatalf("expected symbol BTCUSDT, got %s", resp.Data.Symbols[0].Symbol)
+	}
+
+	// Test with multiple symbols
+	resp, err = client.GetExchangeInfo(ctx, ExchangeInfoRequest{Symbols: []string{"BTCUSDT", "ETHUSDT"}})
+	if err != nil {
+		t.Fatalf("GetExchangeInfo error: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+	if len(resp.Data.Symbols) < 2 {
+		t.Fatal("expected at least 2 symbols")
+	}
+
+	// Test with permissions filter
+	resp, err = client.GetExchangeInfo(ctx, ExchangeInfoRequest{Permissions: []string{"SPOT"}})
+	if err != nil {
+		t.Fatalf("GetExchangeInfo error: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("unexpected response code: %d, msg: %s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil {
+		t.Fatal("resp.Data is nil")
+	}
+	if len(resp.Data.Symbols) == 0 {
+		t.Fatal("no symbols returned")
 	}
 }
 

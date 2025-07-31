@@ -33,6 +33,7 @@ const (
 	PathGetAggTrades     = "/v3/aggTrades"
 	PathGetKlines        = "/v3/klines"
 	PathGetPriceTicker   = "/v3/ticker/price"
+	PathGetExchangeInfo  = "/v3/exchangeInfo"
 	PathCancelOrder      = "/v3/order"
 	PathCancelAllOrders  = "/v3/openOrders"
 	PathQueryOrder       = "/v3/order"
