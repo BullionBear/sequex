@@ -1,17 +1,21 @@
 package exchange
 
-import "context"
+import (
+	"context"
 
-type Connector interface {
+	"github.com/shopspring/decimal"
+)
+
+type IsolatedConnector interface {
 	GetBalance(ctx context.Context) (Response[[]Balance], error)
 	ListOpenOrders(ctx context.Context) (Response[[]Order], error)
-	GetOrder(ctx context.Context, orderID string) (Response[Order], error)
-	GetMyTrades(ctx context.Context, symbol Symbol) (Response[[]MyTrade], error)
+	QueryOrder(ctx context.Context, symbol Symbol, orderID string) (Response[Order], error)
+	GetMyTrades(ctx context.Context, req GetMyTradesRequest) (Response[[]MyTrade], error)
 
-	CreateLimitOrder(ctx context.Context, symbol Symbol, side string, price, quantity string, timeInForce string) (Response[Order], error)
-	CreateLimitMakerOrder(ctx context.Context, symbol Symbol, side string, price, quantity string) (Response[Order], error)
-	CreateStopLimitOrder(ctx context.Context, symbol Symbol, side string, price, quantity string, timeInForce string) (Response[Order], error)
-	CreateMarketOrder(ctx context.Context, symbol Symbol, side string, quantity string) (Response[Order], error)
+	CreateLimitOrder(ctx context.Context, symbol Symbol, side OrderSide, price, quantity decimal.Decimal, timeInForce TimeInForce) (Response[string], error)
+	CreateLimitMakerOrder(ctx context.Context, symbol Symbol, side OrderSide, price, quantity decimal.Decimal) (Response[string], error)
+	CreateStopOrder(ctx context.Context, symbol Symbol, side OrderSide, price, quantity decimal.Decimal) (Response[string], error)
+	CreateMarketOrder(ctx context.Context, symbol Symbol, side OrderSide, quantity decimal.Decimal) (Response[string], error)
 
 	CancelOrder(ctx context.Context, orderID string) (Response[Order], error)
 	CancelAllOrders(ctx context.Context) (Response[Order], error)

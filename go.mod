@@ -9,6 +9,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/nats-io/nats.go v1.43.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/shopspring/decimal v1.4.0
 )
 
 require (

@@ -2,12 +2,14 @@ package binance
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/BullionBear/sequex/internal/exchange"
 	"github.com/BullionBear/sequex/pkg/exchange/binance"
+	"github.com/shopspring/decimal"
 )
 
-// var _ exchange.Connector = (*BinanceExchangeAdapter)(nil)
+var _ exchange.IsolatedConnector = (*BinanceExchangeAdapter)(nil)
 
 func NewBinanceAdapter(cfg exchange.Config) *BinanceExchangeAdapter {
 	wsClient := binance.NewWSClient(&binance.WSConfig{
@@ -75,16 +77,184 @@ func (a *BinanceExchangeAdapter) ListOpenOrders(ctx context.Context, symbol exch
 			continue
 		}
 		orders[i] = exchange.Order{
-			Symbol:   symbol,
-			OrderID:  order.OrderId,
-			Price:    order.Price,
-			OrigQty:  order.OrigQty,
-			Executed: order.ExecutedQty,
+			Symbol:      symbol,
+			OrderID:     order.OrderId,
+			Price:       order.Price,
+			OrigQty:     order.OrigQty,
+			Executed:    order.ExecutedQty,
+			Status:      toExchangeOrderStatus(order.Status),
+			TimeInForce: toExchangeTimeInForce(order.TimeInForce),
+			Type:        toExchangeOrderType(order.Type),
+			Side:        toExchangeOrderSide(order.Side),
 		}
 	}
 	return exchange.Response[[]exchange.Order]{
 		Code:    0,
 		Message: "OK",
 		Data:    &orders,
+	}, nil
+}
+
+func (a *BinanceExchangeAdapter) QueryOrder(ctx context.Context, symbol exchange.Symbol, orderID string) (exchange.Response[exchange.Order], error) {
+	orderIDInt, err := strconv.ParseInt(orderID, 10, 64)
+	if err != nil {
+		return exchange.Response[exchange.Order]{}, err
+	}
+	resp, err := a.restClient.QueryOrder(ctx, binance.QueryOrderRequest{
+		Symbol:     toBianceSymbol(symbol),
+		OrderId:    orderIDInt,
+		RecvWindow: 5000,
+	})
+	if err != nil {
+		return exchange.Response[exchange.Order]{}, err
+	}
+	if resp.Code != 0 {
+		return exchange.Response[exchange.Order]{
+			Code:    resp.Code,
+			Message: resp.Message,
+		}, nil
+	}
+	symbol, err = toExchangeSymbol(resp.Data.Symbol)
+	if err != nil {
+		return exchange.Response[exchange.Order]{}, err
+	}
+	order := exchange.Order{
+		Symbol:      symbol,
+		OrderID:     strconv.FormatInt(resp.Data.OrderId, 10),
+		Price:       resp.Data.Price,
+		OrigQty:     resp.Data.OrigQty,
+		Executed:    resp.Data.ExecutedQty,
+		Status:      toExchangeOrderStatus(resp.Data.Status),
+		TimeInForce: toExchangeTimeInForce(resp.Data.TimeInForce),
+		Type:        toExchangeOrderType(resp.Data.Type),
+		Side:        toExchangeOrderSide(resp.Data.Side),
+		CreatedAt:   resp.Data.Time,
+	}
+	return exchange.Response[exchange.Order]{
+		Code:    0,
+		Message: "OK",
+		Data:    &order,
+	}, nil
+}
+func (a *BinanceExchangeAdapter) GetMyTrades(ctx context.Context, req exchange.GetMyTradesRequest) (exchange.Response[[]exchange.MyTrade], error) {
+	resp, err := a.restClient.GetMyTrades(ctx, binance.GetAccountTradesRequest{
+		Symbol:     toBianceSymbol(req.Symbol),
+		StartTime:  req.StartTime,
+		EndTime:    req.EndTime,
+		Limit:      req.Limit,
+		RecvWindow: 5000,
+	})
+	if err != nil {
+		return exchange.Response[[]exchange.MyTrade]{}, err
+	}
+	if resp.Code != 0 {
+		return exchange.Response[[]exchange.MyTrade]{
+			Code:    resp.Code,
+			Message: resp.Message,
+		}, nil
+	}
+	trades := make([]exchange.MyTrade, len(*resp.Data))
+	for i, trade := range *resp.Data {
+		side := exchange.OrderSideSell
+		if trade.IsBuyer {
+			side = exchange.OrderSideBuy
+		}
+		trades[i] = exchange.MyTrade{
+			Symbol:          req.Symbol,
+			TradeID:         strconv.FormatInt(trade.Id, 10),
+			OrderID:         strconv.FormatInt(trade.OrderId, 10),
+			Price:           trade.Price,
+			Quantity:        trade.Qty,
+			Commission:      trade.Commission,
+			CommissionAsset: trade.CommissionAsset,
+			Side:            side,
+			IsMaker:         trade.IsMaker,
+			Time:            trade.Time,
+		}
+	}
+	return exchange.Response[[]exchange.MyTrade]{
+		Code:    0,
+		Message: "OK",
+		Data:    &trades,
+	}, nil
+}
+
+func (a *BinanceExchangeAdapter) CreateLimitOrder(ctx context.Context, symbol exchange.Symbol, side exchange.OrderSide, price, quantity decimal.Decimal, timeInForce exchange.TimeInForce) (exchange.Response[string], error) {
+	resp, err := a.restClient.CreateOrder(ctx, binance.CreateOrderRequest{
+		Symbol:           toBianceSymbol(symbol),
+		Side:             toBinanceOrderSide(side),
+		Type:             binance.OrderTypeLimit,
+		Price:            price.String(),
+		Quantity:         quantity.String(),
+		TimeInForce:      toBinanceTimeInForce(timeInForce),
+		NewOrderRespType: binance.NewOrderRespTypeAck,
+	})
+	if err != nil {
+		return exchange.Response[string]{}, err
+	}
+	if resp.Code != 0 {
+		return exchange.Response[string]{
+			Code:    resp.Code,
+			Message: resp.Message,
+		}, nil
+	}
+	orderID := strconv.FormatInt(resp.Data.OrderId, 10)
+	return exchange.Response[string]{
+		Code:    0,
+		Message: "OK",
+		Data:    &orderID,
+	}, nil
+}
+
+func (a *BinanceExchangeAdapter) CreateLimitMakerOrder(ctx context.Context, symbol exchange.Symbol, side exchange.OrderSide, price, quantity decimal.Decimal) (exchange.Response[string], error) {
+	resp, err := a.restClient.CreateOrder(ctx, binance.CreateOrderRequest{
+		Symbol:           toBianceSymbol(symbol),
+		Side:             toBinanceOrderSide(side),
+		Price:            price.String(),
+		Quantity:         quantity.String(),
+		TimeInForce:      binance.TimeInForceGTC,
+		Type:             binance.OrderTypeLimitMaker,
+		NewOrderRespType: binance.NewOrderRespTypeAck,
+	})
+	if err != nil {
+		return exchange.Response[string]{}, err
+	}
+	if resp.Code != 0 {
+		return exchange.Response[string]{
+			Code:    resp.Code,
+			Message: resp.Message,
+		}, nil
+	}
+	orderID := strconv.FormatInt(resp.Data.OrderId, 10)
+	return exchange.Response[string]{
+		Code:    0,
+		Message: "OK",
+		Data:    &orderID,
+	}, nil
+}
+
+func (a *BinanceExchangeAdapter) CreateStopOrder(ctx context.Context, symbol exchange.Symbol, side exchange.OrderSide, price, quantity decimal.Decimal) (exchange.Response[string], error) {
+	resp, err := a.restClient.CreateOrder(ctx, binance.CreateOrderRequest{
+		Symbol:           toBianceSymbol(symbol),
+		Side:             toBinanceOrderSide(side),
+		Price:            price.String(),
+		Quantity:         quantity.String(),
+		Type:             binance.OrderTypeStopLoss,
+		NewOrderRespType: binance.NewOrderRespTypeAck,
+	})
+	if err != nil {
+		return exchange.Response[string]{}, err
+	}
+	if resp.Code != 0 {
+		return exchange.Response[string]{
+			Code:    resp.Code,
+			Message: resp.Message,
+		}, nil
+	}
+	orderID := strconv.FormatInt(resp.Data.OrderId, 10)
+	return exchange.Response[string]{
+		Code:    0,
+		Message: "OK",
+		Data:    &orderID,
 	}, nil
 }

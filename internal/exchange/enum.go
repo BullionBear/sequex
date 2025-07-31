@@ -43,6 +43,7 @@ const (
 type OrderType string
 
 const (
+	OrderTypeUnknown    OrderType = "UNKNOWN"
 	OrderTypeLimit      OrderType = "LIMIT"
 	OrderTypeMarket     OrderType = "MARKET"
 	OrderTypeLimitMaker OrderType = "LIMIT_MAKER"
@@ -52,8 +53,9 @@ const (
 type OrderSide string
 
 const (
-	OrderSideBuy  OrderSide = "BUY"
-	OrderSideSell OrderSide = "SELL"
+	OrderSideUnknown OrderSide = "UNKNOWN"
+	OrderSideBuy     OrderSide = "BUY"
+	OrderSideSell    OrderSide = "SELL"
 )
 
 type OrderStatus string
