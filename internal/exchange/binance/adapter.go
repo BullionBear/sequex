@@ -13,8 +13,8 @@ var _ exchange.IsolatedConnector = (*BinanceExchangeAdapter)(nil)
 
 func NewBinanceAdapter(cfg exchange.Config) *BinanceExchangeAdapter {
 	wsClient := binance.NewWSClient(&binance.WSConfig{
-		APIKey:      cfg.Credentials.APIKey,
-		APISecret:   cfg.Credentials.APISecret,
+		APIKey:      cfg.APIKey,
+		APISecret:   cfg.APISecret,
 		BaseWsURL:   binance.MainnetWSBaseUrl,
 		BaseRestURL: binance.MainnetBaseUrl,
 	})
