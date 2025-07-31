@@ -18,10 +18,13 @@ func toExchangeGTC(timeInForce string) exchange.TimeInForce {
 	}
 }
 
-func toExchangeSymbol(symbol string) exchange.Symbol {
-
-	return exchange.Symbol{
-		Base:  symbol,
-		Quote: symbol,
+func toExchangeSymbol(symbol string) (exchange.Symbol, error) {
+	binanceSymbol, err := GetSymbol(symbol)
+	if err != nil {
+		return exchange.Symbol{}, err
 	}
+	return exchange.Symbol{
+		Base:  binanceSymbol.BaseAsset,
+		Quote: binanceSymbol.QuoteAsset,
+	}, nil
 }
