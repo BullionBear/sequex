@@ -36,10 +36,24 @@ type Order struct {
 	CreatedAt   int64       `json:"time"`
 }
 
-type OrderBook struct {
+type OrderResponseAck struct {
+	Symbol  Symbol `json:"symbol"`
+	OrderID string `json:"orderId"`
+}
+
+type Depth struct {
+	Symbol string     `json:"symbol"`
+	Asks   [][]string `json:"asks"`
+	Bids   [][]string `json:"bids"`
 }
 
 type Trade struct {
+	Symbol    Symbol    `json:"symbol"`
+	ID        int64     `json:"id"`
+	Price     string    `json:"price"`
+	Qty       string    `json:"qty"`
+	Time      int64     `json:"time"`
+	TakerSide OrderSide `json:"takerSide"`
 }
 
 type GetMyTradesRequest struct {
@@ -64,3 +78,5 @@ type MyTrade struct {
 
 type Position struct {
 }
+
+type Empty struct{}
