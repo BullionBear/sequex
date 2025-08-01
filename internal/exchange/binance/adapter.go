@@ -395,3 +395,35 @@ func (a *BinanceExchangeAdapter) GetTrades(ctx context.Context, symbol exchange.
 		Data:    &trades,
 	}, nil
 }
+
+func (a *BinanceExchangeAdapter) SubscribeTrades(symbol exchange.Symbol, subscription exchange.TradeSubscriptionOptions) (func(), error) {
+	tradeSubscriptionOptions := binance.TradeSubscriptionOptions{}
+	tradeSubscriptionOptions.WithConnect(subscription.OnConnect).
+		WithError(subscription.OnError).
+		WithTrade(func(trade binance.WSTrade) {
+			exchangeSymbol, err := toExchangeSymbol(trade.Symbol)
+			if err != nil {
+				subscription.OnError(err)
+				return
+			}
+			side := exchange.OrderSideBuy
+			if trade.IsBuyerMaker {
+				side = exchange.OrderSideSell // if Buyer is maker, then Seller is taker
+			}
+			subscription.OnTrade(exchange.Trade{
+				Symbol:    exchangeSymbol,
+				ID:        int64(trade.TradeId),
+				Price:     trade.Price,
+				Qty:       trade.Quantity,
+				Time:      trade.TradeTime,
+				TakerSide: side,
+			})
+		}).
+		WithDisconnect(subscription.OnDisconnect).
+		WithReconnect(subscription.OnReconnect)
+	unsubscribe, err := a.wsClient.SubscribeTrade(symbol.String(), tradeSubscriptionOptions)
+	if err != nil {
+		return nil, err
+	}
+	return unsubscribe, nil
+}

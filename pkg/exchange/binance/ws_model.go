@@ -117,6 +117,31 @@ type TradeSubscriptionOptions struct {
 	OnDisconnect func()              // Called when connection is disconnected
 }
 
+func (t *TradeSubscriptionOptions) WithConnect(onConnect func()) *TradeSubscriptionOptions {
+	t.OnConnect = onConnect
+	return t
+}
+
+func (t *TradeSubscriptionOptions) WithReconnect(onReconnect func()) *TradeSubscriptionOptions {
+	t.OnReconnect = onReconnect
+	return t
+}
+
+func (t *TradeSubscriptionOptions) WithError(onError func(err error)) *TradeSubscriptionOptions {
+	t.OnError = onError
+	return t
+}
+
+func (t *TradeSubscriptionOptions) WithTrade(onTrade func(trade WSTrade)) *TradeSubscriptionOptions {
+	t.OnTrade = onTrade
+	return t
+}
+
+func (t *TradeSubscriptionOptions) WithDisconnect(onDisconnect func()) *TradeSubscriptionOptions {
+	t.OnDisconnect = onDisconnect
+	return t
+}
+
 // DepthSubscriptionOptions defines the callback functions for partial book depth subscription
 type DepthSubscriptionOptions struct {
 	OnConnect    func()              // Called when connection is established

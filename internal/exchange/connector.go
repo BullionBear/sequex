@@ -29,4 +29,5 @@ type IsolatedSpotConnector interface {
 		SubscribeAggTrades(symbol string) (Response[[]Trade], error)
 		SubscribeMyTrades(symbol string) (Response[[]MyTrade], error)
 	*/
+	SubscribeTrades(symbol Symbol, subscription TradeSubscriptionOptions) (func(), error)
 }

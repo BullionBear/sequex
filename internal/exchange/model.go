@@ -80,3 +80,12 @@ type Position struct {
 }
 
 type Empty struct{}
+
+// Stream subscription options
+type TradeSubscriptionOptions struct {
+	OnConnect    func()            // Called when connection is established
+	OnReconnect  func()            // Called when connection is reestablished
+	OnError      func(err error)   // Called when an error occurs
+	OnTrade      func(trade Trade) // Called when trade data is received
+	OnDisconnect func()            // Called when connection is disconnected
+}

@@ -1,14 +1,14 @@
 package trade
 
-import "github.com/nats-io/nats.go"
+import "github.com/BullionBear/sequex/internal/exchange"
 
-func NewTradeEmitter(nc *nats.Conn, name string) *TradeEmitter {
-	return &TradeEmitter{nc: nc, name: name}
+func NewTradeEmitter(name string, connector exchange.IsolatedSpotConnector) *TradeEmitter {
+	return &TradeEmitter{name: name, connector: connector}
 }
 
 type TradeEmitter struct {
-	nc   *nats.Conn
-	name string
+	name      string
+	connector exchange.IsolatedSpotConnector
 }
 
 func (e *TradeEmitter) Type() string {
