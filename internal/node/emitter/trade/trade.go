@@ -6,8 +6,16 @@ import (
 	"github.com/BullionBear/sequex/internal/exchange"
 )
 
-func NewTradeEmitter(name string, connector exchange.IsolatedSpotConnector, symbol exchange.Symbol) *TradeEmitter {
-	return &TradeEmitter{
+func NewTradeEmitter[C exchange.IsolatedSpotConnector](name string, symbol exchange.Symbol) *TradeEmitter[C] {
+	connector, err := exchange.NewConnector[C](exchange.MarketTypeBinance, exchange.Credentials{
+		APIKey:    "",
+		APISecret: "",
+	})
+	if err != nil {
+		slog.Error("trade emitter new", "error", err)
+		return nil
+	}
+	return &TradeEmitter[C]{
 		name:      name,
 		connector: connector,
 
@@ -16,22 +24,22 @@ func NewTradeEmitter(name string, connector exchange.IsolatedSpotConnector, symb
 	}
 }
 
-type TradeEmitter struct {
+type TradeEmitter[C exchange.IsolatedSpotConnector] struct {
 	name        string
-	connector   exchange.IsolatedSpotConnector
+	connector   C
 	unsubscribe func()
 	symbol      exchange.Symbol
 }
 
-func (e *TradeEmitter) Type() string {
+func (e *TradeEmitter[C]) Type() string {
 	return "TradeEmitter"
 }
 
-func (e *TradeEmitter) Name() string {
+func (e *TradeEmitter[C]) Name() string {
 	return e.name
 }
 
-func (e *TradeEmitter) Start() error {
+func (e *TradeEmitter[C]) Start() error {
 	unsubscribe, err := e.connector.SubscribeTrades(e.symbol, exchange.TradeSubscriptionOptions{
 		OnConnect:    func() { slog.Info("trade emitter connect") },
 		OnReconnect:  func() { slog.Info("trade emitter reconnect") },
@@ -47,7 +55,7 @@ func (e *TradeEmitter) Start() error {
 	return nil
 }
 
-func (e *TradeEmitter) Stop() error {
+func (e *TradeEmitter[C]) Stop() error {
 	if e.unsubscribe != nil {
 		e.unsubscribe()
 	}
