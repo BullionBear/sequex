@@ -9,7 +9,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var _ exchange.IsolatedConnector = (*BinanceExchangeAdapter)(nil)
+var _ exchange.IsolatedSpotConnector = (*BinanceExchangeAdapter)(nil)
 
 func NewBinanceAdapter(cfg exchange.Config) *BinanceExchangeAdapter {
 	wsClient := binance.NewWSClient(&binance.WSConfig{

@@ -6,7 +6,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type IsolatedConnector interface {
+type IsolatedSpotConnector interface {
 	GetBalance(ctx context.Context) (Response[[]Balance], error)
 	ListOpenOrders(ctx context.Context, symbol Symbol) (Response[[]Order], error)
 	QueryOrder(ctx context.Context, symbol Symbol, orderID string) (Response[Order], error)
