@@ -11,7 +11,11 @@ import (
 
 var _ exchange.IsolatedSpotConnector = (*BinanceExchangeAdapter)(nil)
 
-func NewBinanceAdapter(cfg exchange.Config) *BinanceExchangeAdapter {
+func init() {
+	exchange.Register(exchange.MarketTypeBinance, NewBinanceAdapter)
+}
+
+func NewBinanceAdapter(cfg exchange.Credentials) *BinanceExchangeAdapter {
 	wsClient := binance.NewWSClient(&binance.WSConfig{
 		APIKey:      cfg.APIKey,
 		APISecret:   cfg.APISecret,
@@ -19,11 +23,10 @@ func NewBinanceAdapter(cfg exchange.Config) *BinanceExchangeAdapter {
 		BaseRestURL: binance.MainnetBaseUrl,
 	})
 	restClient := wsClient.GetRestClient()
-	return &BinanceExchangeAdapter{cfg: cfg, restClient: restClient, wsClient: wsClient}
+	return &BinanceExchangeAdapter{restClient: restClient, wsClient: wsClient}
 }
 
 type BinanceExchangeAdapter struct {
-	cfg        exchange.Config
 	restClient *binance.Client
 	wsClient   *binance.WSClient
 }

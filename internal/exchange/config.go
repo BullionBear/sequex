@@ -1,6 +1,6 @@
 package exchange
 
-type Config struct {
+type Credentials struct {
 	APIKey     string
 	APISecret  string
 	Passphrase string
