@@ -39,14 +39,8 @@ func (e *TradeEmitter[C]) Name() string {
 	return e.name
 }
 
-func (e *TradeEmitter[C]) Start() error {
-	unsubscribe, err := e.connector.SubscribeTrades(e.symbol, exchange.TradeSubscriptionOptions{
-		OnConnect:    func() { slog.Info("trade emitter connect") },
-		OnReconnect:  func() { slog.Info("trade emitter reconnect") },
-		OnError:      func(err error) { slog.Error("trade emitter error", "error", err) },
-		OnTrade:      func(trade exchange.Trade) { slog.Info("trade emitter trade", "trade", trade) },
-		OnDisconnect: func() { slog.Info("trade emitter disconnect") },
-	})
+func (e *TradeEmitter[C]) Start(opts exchange.TradeSubscriptionOptions) error {
+	unsubscribe, err := e.connector.SubscribeTrades(e.symbol, opts)
 	if err != nil {
 		slog.Error("trade emitter subscribe trades", "error", err)
 		return err
