@@ -89,3 +89,28 @@ type TradeSubscriptionOptions struct {
 	OnTrade      func(trade Trade) // Called when trade data is received
 	OnDisconnect func()            // Called when connection is disconnected
 }
+
+func (o *TradeSubscriptionOptions) WithConnect(onConnect func()) *TradeSubscriptionOptions {
+	o.OnConnect = onConnect
+	return o
+}
+
+func (o *TradeSubscriptionOptions) WithReconnect(onReconnect func()) *TradeSubscriptionOptions {
+	o.OnReconnect = onReconnect
+	return o
+}
+
+func (o *TradeSubscriptionOptions) WithError(onError func(err error)) *TradeSubscriptionOptions {
+	o.OnError = onError
+	return o
+}
+
+func (o *TradeSubscriptionOptions) WithTrade(onTrade func(trade Trade)) *TradeSubscriptionOptions {
+	o.OnTrade = onTrade
+	return o
+}
+
+func (o *TradeSubscriptionOptions) WithDisconnect(onDisconnect func()) *TradeSubscriptionOptions {
+	o.OnDisconnect = onDisconnect
+	return o
+}
