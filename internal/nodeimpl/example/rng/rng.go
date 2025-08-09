@@ -9,6 +9,7 @@ import (
 
 	"github.com/BullionBear/sequex/internal/model"
 	rngpb "github.com/BullionBear/sequex/internal/model/protobuf/example/rng"
+	errpb "github.com/BullionBear/sequex/internal/model/protobuf/error"
 	"github.com/BullionBear/sequex/pkg/node"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
@@ -50,8 +51,7 @@ type RNGNode struct {
 	// State variables
 	rand     *rand.Rand
 	mutex    sync.Mutex
-	nSuccess int64
-	nFailure int64
+	nData	 int64
 }
 
 func init() {
@@ -74,8 +74,7 @@ func NewRNGNode(name string, nc *nats.Conn, config node.NodeConfig) (node.Node, 
 		BaseNode: node.NewBaseNode(name),
 		cfg:      cfg,
 		rand:     rand,
-		nSuccess: 0,
-		nFailure: 0,
+		nData:    0,
 		mutex:    sync.Mutex{},
 	}, nil
 }
@@ -101,72 +100,62 @@ func (n *RNGNode) publishRng() {
 			msgBytes, err := model.MarshallProtobuf(content)
 			if err != nil {
 				log.Printf("Error marshalling message: %v", err)
-				n.nFailure++
 				continue
 			}
 			if err := n.GetNATSConnection().Publish(n.cfg.PubSubject(), msgBytes); err != nil {
 				log.Printf("Error publishing message: %v", err)
-				n.nFailure++
 				continue
 			}
-			n.nSuccess++
+			n.nData++
 			log.Printf("Published random number: %d", rand)
 		}
 	}
 }
 
-func (n *RNGNode) Register(nc *nats.Conn) error {
-	nc.Subscribe(n.cfg.RpcSubject(), func(m *nats.Msg) {
-		contentType := m.Header.Get("Content-Type")
-		messageType := m.Header.Get("Message-Type")
-
-		switch contentType {
-		case "application/protobuf":
-			switch messageType {
-			case "rng.RngCountRequest":
-				var content rngpb.RngCountRequest
-				if err := proto.Unmarshal(m.Data, &content); err != nil {
-					log.Printf("Error unmarshalling RngCountRequest: %v", err)
-					return
-				}
-				// Handle count request
-				n.mutex.Lock()
-				response := &rngpb.RngCountResponse{
-					NSuccess: n.nSuccess,
-					NFailure: n.nFailure,
-				}
-				n.mutex.Unlock()
-
-				responseBytes, err := model.MarshallProtobuf(response)
-				if err != nil {
-					log.Printf("Error marshalling response: %v", err)
-					return
-				}
-
-				if err := nc.Publish(m.Reply, responseBytes); err != nil {
-					log.Printf("Error publishing response: %v", err)
-				}
-
-			case "rng.RngMessage":
-				var content rngpb.RngMessage
-				if err := proto.Unmarshal(m.Data, &content); err != nil {
-					log.Printf("Error unmarshalling RngMessage: %v", err)
-					return
-				}
-				n.mutex.Lock()
-				log.Printf("Received random number: %d", content.GetRandom())
-				n.mutex.Unlock()
-
-			default:
-				log.Printf("Unknown message type: %s", messageType)
-			}
-		default:
-			log.Printf("Unknown content type: %s", contentType)
-		}
-	})
-	return nil
+func (n *RNGNode) registerRPC(nc *nats.Conn) {
+	nc.Subscribe(n.cfg.RpcSubject(), n.rpcMethods)
 }
 
 func (n *RNGNode) WaitForShutdown() {
 	n.BaseNode.WaitForShutdown()
 }
+
+func (n *RNGNode) rpcMethods(m *nats.Msg) {
+	contentType := m.Header.Get("Content-Type")
+	messageType := m.Header.Get("Message-Type")
+
+	switch {
+	case contentType == "application/protobuf" && messageType == "rng.RngCountRequest":
+		n.rpcMethodRngCountRequest(m)
+	case contentType == "application/json" && messageType == "Config":
+		n.rpcMethodConfig(m)
+	}
+}
+
+func (n *RNGNode) rpcMethodRngCountRequest(m *nats.Msg) {
+	var content rngpb.RngCountRequest
+	if err := proto.Unmarshal(m.Data, &content); err != nil {
+		log.Printf("Error unmarshalling RngCountRequest: %v", err)
+		response := &errpb.ErrorResponse{
+			Code:    -1,
+			Message: "Error unmarshalling RngCountRequest",
+		}
+		responseBytes, _ := model.MarshallProtobuf(response)
+		responseMsg := nats.NewMsg(m.Reply)
+		responseMsg.Header.Set("Content-Type", "application/protobuf")
+		responseMsg.Header.Set("Message-Type", "error.ErrorResponse")
+		responseMsg.Data = responseBytes
+		if err := m.RespondMsg(responseMsg); err != nil {
+			log.Printf("Error responding to RngCountRequest: %v", err)
+		}
+		return
+	}
+	response := &rngpb.RngCountResponse{
+		Count: n.nData,
+	}
+	responseBytes, _ := model.MarshallProtobuf(response)
+	responseMsg := nats.NewMsg(m.Reply)
+	m.RespondMsg()
+}
+
+func (n *RNGNode) rpcMethodConfig(m *nats.Msg) {
