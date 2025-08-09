@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/BullionBear/sequex/internal/model"
-	rngpb "github.com/BullionBear/sequex/internal/model/protobuf/example/rng"
 	errpb "github.com/BullionBear/sequex/internal/model/protobuf/error"
+	rngpb "github.com/BullionBear/sequex/internal/model/protobuf/example/rng"
 	"github.com/BullionBear/sequex/pkg/node"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
@@ -49,9 +49,9 @@ type RNGNode struct {
 	cfg RNGConfig
 
 	// State variables
-	rand     *rand.Rand
-	mutex    sync.Mutex
-	nData	 int64
+	rand  *rand.Rand
+	mutex sync.Mutex
+	nData int64
 }
 
 func init() {
@@ -155,7 +155,20 @@ func (n *RNGNode) rpcMethodRngCountRequest(m *nats.Msg) {
 	}
 	responseBytes, _ := model.MarshallProtobuf(response)
 	responseMsg := nats.NewMsg(m.Reply)
-	m.RespondMsg()
+	m.RespondMsg(responseMsg)
 }
 
 func (n *RNGNode) rpcMethodConfig(m *nats.Msg) {
+	responseBytes, err := json.Marshal(n.cfg)
+	if err != nil {
+		log.Printf("Error marshalling config: %v", err)
+		return
+	}
+	responseMsg := nats.NewMsg(m.Reply)
+	responseMsg.Data = responseBytes
+	responseMsg.Header.Set("Content-Type", "application/json")
+	responseMsg.Header.Set("Message-Type", "rng.RngConfig")
+	if err := m.RespondMsg(responseMsg); err != nil {
+		log.Printf("Error responding to Config: %v", err)
+	}
+}
