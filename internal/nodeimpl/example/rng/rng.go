@@ -9,7 +9,7 @@ import (
 
 	"github.com/BullionBear/sequex/internal/model"
 	rngpb "github.com/BullionBear/sequex/internal/model/protobuf/example/rng"
-	"github.com/BullionBear/sequex/internal/node"
+	"github.com/BullionBear/sequex/pkg/node"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
 )

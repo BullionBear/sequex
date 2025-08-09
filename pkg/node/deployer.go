@@ -1,28 +1,26 @@
-package deployer
+package node
 
 import (
 	"fmt"
 	"log"
 	"sync"
-
-	"github.com/BullionBear/sequex/internal/node"
 )
 
 // Deployer manages multiple microservice nodes
 type Deployer struct {
-	nodes map[string]node.Node
+	nodes map[string]Node
 	mutex sync.RWMutex
 }
 
 // NewDeployer creates a new deployer instance
 func NewDeployer() *Deployer {
 	return &Deployer{
-		nodes: make(map[string]node.Node),
+		nodes: make(map[string]Node),
 	}
 }
 
 // RegisterNode registers a node with the deployer
-func (d *Deployer) RegisterNode(n node.Node) error {
+func (d *Deployer) RegisterNode(n Node) error {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 

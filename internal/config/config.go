@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/BullionBear/sequex/internal/node"
+	"github.com/BullionBear/sequex/pkg/node"
 
 	"github.com/nats-io/nats.go"
 	"gopkg.in/yaml.v3"
