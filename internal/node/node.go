@@ -20,6 +20,9 @@ type Node interface {
 	// SetNATSConnection sets the NATS connection for the node
 	SetNATSConnection(nc *nats.Conn)
 
+	// Context returns the context for the node
+	Context() context.Context
+
 	// Start begins the node's operation
 	Start() error
 
@@ -76,6 +79,11 @@ func (bn *BaseNode) GetNATSConnection() *nats.Conn {
 func (bn *BaseNode) Stop() error {
 	bn.cancel()
 	return nil
+}
+
+// GetContext returns the context for the base node
+func (bn *BaseNode) Context() context.Context {
+	return bn.ctx
 }
 
 // WaitForShutdown waits for shutdown signal

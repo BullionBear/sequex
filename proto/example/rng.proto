@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package rng;
+
+option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/example/rng";
+
+message RngMessage {
+    int64 random = 1;
+}
+
+message RngCountRequest {
+
+}
+
+message RngCountResponse {
+    int64 n_success = 1;
+    int64 n_failure = 2;
+}

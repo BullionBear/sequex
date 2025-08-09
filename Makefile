@@ -13,9 +13,25 @@ build:
 test:
 	go test -v ./...
 
+proto:
+	@echo "Generating protobuf files..."
+	@find proto -name "*.proto" -type f | while read file; do \
+		rel_path=$$(echo "$$file" | sed 's|^proto/||'); \
+		dir=$$(dirname "internal/model/protobuf/$$rel_path"); \
+		mkdir -p "$$dir"; \
+		cd proto && protoc --go_out=../internal/model/protobuf --go_opt=paths=source_relative "$$rel_path"; \
+		echo "Generated: $$file -> $$dir/*.pb.go"; \
+	done
+	@echo "Fixing package structure..."
+	@if [ -f internal/model/protobuf/example/rng.pb.go ]; then \
+		mkdir -p internal/model/protobuf/example/rng; \
+		mv internal/model/protobuf/example/rng.pb.go internal/model/protobuf/example/rng/; \
+		echo "Moved rng.pb.go to internal/model/protobuf/example/rng/"; \
+	fi
+
 clean:
 	rm -rf bin/*
 	rm -rf logs/*
 
 
-.PHONY: build, clean
+.PHONY: build, clean, proto
