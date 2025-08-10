@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package rng;
 
-option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/example;rngpb";
+option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/example";
 
 message RngMessage {
     int64 random = 1;

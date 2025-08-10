@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	rngpb "github.com/BullionBear/sequex/internal/model/protobuf/example"
+	pb "github.com/BullionBear/sequex/internal/model/protobuf/example"
 	"github.com/BullionBear/sequex/internal/nodeimpl/utils"
 	"github.com/BullionBear/sequex/pkg/node"
 	"github.com/nats-io/nats.go"
@@ -32,7 +32,7 @@ type RNGNode struct {
 	mutex  sync.Mutex
 	ctx    context.Context
 	cancel context.CancelFunc
-	nCount int64
+	count  int64
 }
 
 func init() {
@@ -55,7 +55,7 @@ func NewRNGNode(name string, nc *nats.Conn, config node.NodeConfig) (node.Node, 
 		BaseNode: node.NewBaseNode(name, nc, 100),
 		cfg:      cfg,
 		rand:     rand,
-		nCount:   0,
+		count:    0,
 		ctx:      context.Background(),
 		cancel: func() {
 			log.Printf("ctx is not set")
@@ -84,28 +84,23 @@ func (n *RNGNode) OnRPC(req *nats.Msg) *nats.Msg {
 
 	switch {
 	case contentType == "application/protobuf" && messageType == "rng.RngCountRequest":
-		var content rngpb.RngCountRequest
+		var content pb.RngCountRequest
 		if err := proto.Unmarshal(req.Data, &content); err != nil {
 			log.Printf("Error unmarshalling RngCountRequest: %v", err)
 			return utils.MakeErrorMessage(utils.ErrorProtobufDeserialization, err)
 		}
 		return n.onRngCountRequest(&content)
 	case contentType == "application/json" && messageType == "Config":
-		var content RNGConfig
-		if err := json.Unmarshal(req.Data, &content); err != nil {
-			log.Printf("Error unmarshalling Config: %v", err)
-			return utils.MakeErrorMessage(utils.ErrorJSONDeserialization, err)
-		}
-		return n.onConfig(&content)
+		return n.onConfig(&n.cfg)
 	default:
 		return utils.MakeErrorMessage(utils.ErrorUnknownMessageType, fmt.Errorf("unknown content-type: %s, message-type: %s", contentType, messageType))
 	}
 }
 
-func (n *RNGNode) onRngCountRequest(req *rngpb.RngCountRequest) *nats.Msg {
+func (n *RNGNode) onRngCountRequest(req *pb.RngCountRequest) *nats.Msg {
 	fmt.Println("onRngCountRequest", req.String())
-	response := &rngpb.RngCountResponse{
-		NCount: n.nCount,
+	response := &pb.RngCountResponse{
+		NCount: n.count,
 	}
 	responseBytes, err := utils.MarshallProtobuf(response)
 	if err != nil {
@@ -119,7 +114,6 @@ func (n *RNGNode) onRngCountRequest(req *rngpb.RngCountRequest) *nats.Msg {
 }
 
 func (n *RNGNode) onConfig(content *RNGConfig) *nats.Msg {
-	fmt.Println("onConfig", content)
 	responseBytes, err := json.Marshal(content)
 	if err != nil {
 		return utils.MakeErrorMessage(utils.ErrorJSONSerialization, err)
@@ -141,7 +135,7 @@ func (n *RNGNode) publishRng(ctx context.Context) {
 			return
 		case <-ticker.C:
 			rand := n.rand.IntN(n.cfg.High-n.cfg.Low+1) + n.cfg.Low
-			content := &rngpb.RngMessage{
+			content := &pb.RngMessage{
 				Random: int64(rand),
 			}
 			msgBytes, err := utils.MarshallProtobuf(content)
@@ -153,7 +147,7 @@ func (n *RNGNode) publishRng(ctx context.Context) {
 				log.Printf("Error publishing message: %v", err)
 				continue
 			}
-			n.nCount++
+			n.count++
 			log.Printf("Published random number: %d", rand)
 		}
 	}
