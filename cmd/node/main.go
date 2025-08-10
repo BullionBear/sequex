@@ -8,7 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/BullionBear/sequex/internal/deployer"
+	"github.com/BullionBear/sequex/internal/config"
+	"github.com/BullionBear/sequex/pkg/node"
 	"github.com/nats-io/nats.go"
 )
 
@@ -29,7 +30,7 @@ func main() {
 	defer nc.Close()
 
 	// Create deployer
-	d := deployer.NewDeployer()
+	d := node.NewDeployer()
 
 	// Create and register nodes based on configuration
 	for nodeName, nodeConfig := range cfg.Deployer.Nodes {
@@ -47,9 +48,12 @@ func main() {
 		log.Printf("Successfully registered node: %s", nodeName)
 	}
 
-	// Deploy all nodes
-	if err := d.DeployAll(); err != nil {
-		log.Fatalf("Failed to deploy nodes: %v", err)
+	// Start all nodes
+	for nodeName := range cfg.Deployer.Nodes {
+		if err := d.Start(nodeName); err != nil {
+			log.Fatalf("Failed to start node %s: %v", nodeName, err)
+		}
+		log.Printf("Successfully started node: %s", nodeName)
 	}
 
 	log.Println("All nodes deployed successfully")
@@ -75,8 +79,10 @@ func main() {
 	waitForShutdown()
 
 	// Stop all nodes
-	if err := d.StopAll(); err != nil {
-		log.Printf("Error stopping nodes: %v", err)
+	for nodeName := range cfg.Deployer.Nodes {
+		if err := d.Stop(nodeName); err != nil {
+			log.Printf("Error stopping node %s: %v", nodeName, err)
+		}
 	}
 
 	log.Println("All nodes stopped")

@@ -22,12 +22,6 @@ proto:
 		protoc --proto_path=proto --go_out=internal/model/protobuf --go_opt=paths=source_relative "$$file"; \
 		echo "Generated: $$file -> $$dir/*.pb.go"; \
 	done
-	@echo "Fixing package structure..."
-	@if [ -f internal/model/protobuf/example/rng.pb.go ]; then \
-		mkdir -p internal/model/protobuf/example/rng; \
-		mv internal/model/protobuf/example/rng.pb.go internal/model/protobuf/example/rng/; \
-		echo "Moved rng.pb.go to internal/model/protobuf/example/rng/"; \
-	fi
 
 clean:
 	rm -rf bin/*

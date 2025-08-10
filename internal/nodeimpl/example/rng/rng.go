@@ -10,17 +10,16 @@ import (
 	"github.com/BullionBear/sequex/internal/model"
 	errpb "github.com/BullionBear/sequex/internal/model/protobuf/error"
 	rngpb "github.com/BullionBear/sequex/internal/model/protobuf/example/rng"
+	"github.com/BullionBear/sequex/internal/nodeimpl/utils"
 	"github.com/BullionBear/sequex/pkg/node"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
 )
 
 type RNGConfig struct {
-	low        int     `json:"low"`
-	high       int     `json:"high"`
-	interval   float64 `json:"interval"`
-	rpcSubject string  `json:"rpc_subject"`
-	pubSubject string  `json:"pub_subject"`
+	low      int     `json:"low"`
+	high     int     `json:"high"`
+	interval float64 `json:"interval"`
 }
 
 func (c *RNGConfig) Low() int {
@@ -33,14 +32,6 @@ func (c *RNGConfig) High() int {
 
 func (c *RNGConfig) Interval() time.Duration {
 	return time.Duration(c.interval * float64(time.Second))
-}
-
-func (c *RNGConfig) RpcSubject() string {
-	return c.rpcSubject
-}
-
-func (c *RNGConfig) PubSubject() string {
-	return c.pubSubject
 }
 
 type RNGNode struct {
@@ -71,17 +62,52 @@ func NewRNGNode(name string, nc *nats.Conn, config node.NodeConfig) (node.Node, 
 	rand := rand.New(source)
 
 	return &RNGNode{
-		BaseNode: node.NewBaseNode(name),
+		BaseNode: node.NewBaseNode(name, nc, 100),
 		cfg:      cfg,
 		rand:     rand,
 		nData:    0,
-		mutex:    sync.Mutex{},
 	}, nil
 }
 
-func (n *RNGNode) Start() error {
-	go n.publishRng()
+func (n *RNGNode) OnMessage(msg *nats.Msg) {
+}
+
+func (n *RNGNode) OnRPC(req *nats.Msg) *nats.Msg {
+	contentType := req.Header.Get("Content-Type")
+	messageType := req.Header.Get("Message-Type")
+
+	switch {
+	case contentType == "application/protobuf" && messageType == "rng.RngCountRequest":
+		var content rngpb.RngCountRequest
+		if err := proto.Unmarshal(req.Data, &content); err != nil {
+			log.Printf("Error unmarshalling RngCountRequest: %v", err)
+			return utils.MakeErrorMessage(utils.ErrorCodeProtobufDeserialization, err)
+		}
+		return n.onRngCountRequest(&content)
+	case contentType == "application/json" && messageType == "Config":
+		var content RNGConfig
+		if err := json.Unmarshal(req.Data, &content); err != nil {
+			log.Printf("Error unmarshalling Config: %v", err)
+			return utils.MakeErrorMessage(utils.ErrorCodeJSONDeserialization, err)
+		}
+		n.rpcMethodConfig(req)
+	}
 	return nil
+}
+
+func (n *RNGNode) onRngCountRequest(req *rngpb.RngCountRequest) *nats.Msg {
+	response := &rngpb.RngCountResponse{
+		Count: n.nData,
+	}
+	responseBytes, err := model.MarshallProtobuf(response)
+	if err != nil {
+		return utils.MakeErrorMessage(utils.ErrorProtobufSerialization, err)
+	}
+	msg := nats.NewMsg(req.Reply)
+	msg.Header.Set("Content-Type", "application/protobuf")
+	msg.Header.Set("Message-Type", "rng.RngCountResponse")
+	msg.Data = responseBytes
+	return msg
 }
 
 func (n *RNGNode) publishRng() {
@@ -112,12 +138,8 @@ func (n *RNGNode) publishRng() {
 	}
 }
 
-func (n *RNGNode) registerRPC(nc *nats.Conn) {
-	nc.Subscribe(n.cfg.RpcSubject(), n.rpcMethods)
-}
-
 func (n *RNGNode) WaitForShutdown() {
-	n.BaseNode.WaitForShutdown()
+	return
 }
 
 func (n *RNGNode) rpcMethods(m *nats.Msg) {

@@ -103,8 +103,7 @@ func (*RngCountRequest) Descriptor() ([]byte, []int) {
 
 type RngCountResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	NSuccess      int64                  `protobuf:"varint,1,opt,name=n_success,json=nSuccess,proto3" json:"n_success,omitempty"`
-	NFailure      int64                  `protobuf:"varint,2,opt,name=n_failure,json=nFailure,proto3" json:"n_failure,omitempty"`
+	NCount        int64                  `protobuf:"varint,1,opt,name=n_count,json=nCount,proto3" json:"n_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -139,16 +138,9 @@ func (*RngCountResponse) Descriptor() ([]byte, []int) {
 	return file_example_rng_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *RngCountResponse) GetNSuccess() int64 {
+func (x *RngCountResponse) GetNCount() int64 {
 	if x != nil {
-		return x.NSuccess
-	}
-	return 0
-}
-
-func (x *RngCountResponse) GetNFailure() int64 {
-	if x != nil {
-		return x.NFailure
+		return x.NCount
 	}
 	return 0
 }
@@ -161,10 +153,9 @@ const file_example_rng_proto_rawDesc = "" +
 	"\n" +
 	"RngMessage\x12\x16\n" +
 	"\x06random\x18\x01 \x01(\x03R\x06random\"\x11\n" +
-	"\x0fRngCountRequest\"L\n" +
-	"\x10RngCountResponse\x12\x1b\n" +
-	"\tn_success\x18\x01 \x01(\x03R\bnSuccess\x12\x1b\n" +
-	"\tn_failure\x18\x02 \x01(\x03R\bnFailureBCZAgithub.com/BullionBear/sequex/internal/model/protobuf/example/rngb\x06proto3"
+	"\x0fRngCountRequest\"+\n" +
+	"\x10RngCountResponse\x12\x17\n" +
+	"\an_count\x18\x01 \x01(\x03R\x06nCountBCZAgithub.com/BullionBear/sequex/internal/model/protobuf/example/rngb\x06proto3"
 
 var (
 	file_example_rng_proto_rawDescOnce sync.Once
