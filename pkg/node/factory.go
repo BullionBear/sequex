@@ -3,6 +3,7 @@ package node
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/nats-io/nats.go"
 )
@@ -26,12 +27,20 @@ func RegisterNode(name string, fn NewNodeFunc) {
 	nodes[name] = fn
 }
 
-func CreateNode(name string, nc *nats.Conn, config NodeConfig) (Node, error) {
+func CreateNode(nodeType string, nc *nats.Conn, config NodeConfig) (Node, error) {
 	mu.RLock()
 	defer mu.RUnlock()
-	fn, ok := nodes[name]
+	fn, ok := nodes[nodeType]
 	if !ok {
-		return nil, fmt.Errorf("node %s not found in factory", name)
+		return nil, fmt.Errorf("node type %s not found in factory", nodeType)
 	}
-	return fn(name, nc, config)
+
+	// Extract the node name from config or generate one
+	nodeName, ok := config["name"].(string)
+	if !ok {
+		// Generate a default name if not provided
+		nodeName = fmt.Sprintf("%s_%d", nodeType, time.Now().UnixNano())
+	}
+
+	return fn(nodeName, nc, config)
 }

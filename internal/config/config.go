@@ -57,6 +57,26 @@ func CreateNATSConnection(natsURL string) (*nats.Conn, error) {
 
 // CreateNode creates a node based on its type name
 func CreateNode(nodeName string, nodeConfig NodeConfig, nc *nats.Conn) (node.Node, error) {
+	// Extract the node type and config
+	nodeType, ok := nodeConfig["type"].(string)
+	if !ok {
+		return nil, fmt.Errorf("node type not found for node %s", nodeName)
+	}
 
-	return node.CreateNode(nodeName, nc, nodeConfig)
+	// Extract the actual configuration
+	config, ok := nodeConfig["config"]
+	if !ok {
+		return nil, fmt.Errorf("config not found for node %s", nodeName)
+	}
+
+	// Convert config to NodeConfig
+	configMap, ok := config.(NodeConfig)
+	if !ok {
+		return nil, fmt.Errorf("invalid config format for node %s, got type %T", nodeName, config)
+	}
+
+	// Add the node name to the config
+	configMap["name"] = nodeName
+
+	return node.CreateNode(nodeType, nc, configMap)
 }
