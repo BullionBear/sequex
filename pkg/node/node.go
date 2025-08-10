@@ -10,20 +10,17 @@ type Node interface {
 	// Name returns the name of the node
 	Name() string
 
-	// Add subscription
+	Start() error
+	// WaitForShutdown waits for shutdown signal
+	WaitForShutdown()
+
+	// Digesting messages and publish to the next
 	AddSubscription(string)
-
-	// Subscriptions
 	Subscriptions() []string
-
-	// OnMessage is called when a message is received
 	OnMessage(msg *nats.Msg)
 
 	// OnRPC is called when an RPC is received
 	OnRPC(req *nats.Msg) *nats.Msg
-
-	// WaitForShutdown waits for shutdown signal
-	WaitForShutdown()
 
 	// NATSConnection returns the NATS connection
 	NATSConnection() *nats.Conn

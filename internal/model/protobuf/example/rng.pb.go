@@ -4,7 +4,7 @@
 // 	protoc        v3.12.4
 // source: example/rng.proto
 
-package rng
+package rngpb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -155,7 +155,7 @@ const file_example_rng_proto_rawDesc = "" +
 	"\x06random\x18\x01 \x01(\x03R\x06random\"\x11\n" +
 	"\x0fRngCountRequest\"+\n" +
 	"\x10RngCountResponse\x12\x17\n" +
-	"\an_count\x18\x01 \x01(\x03R\x06nCountBCZAgithub.com/BullionBear/sequex/internal/model/protobuf/example/rngb\x06proto3"
+	"\an_count\x18\x01 \x01(\x03R\x06nCountBEZCgithub.com/BullionBear/sequex/internal/model/protobuf/example;rngpbb\x06proto3"
 
 var (
 	file_example_rng_proto_rawDescOnce sync.Once

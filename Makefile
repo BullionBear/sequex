@@ -22,6 +22,10 @@ proto:
 		protoc --proto_path=proto --go_out=internal/model/protobuf --go_opt=paths=source_relative "$$file"; \
 		echo "Generated: $$file -> $$dir/*.pb.go"; \
 	done
+	@echo "Organizing generated files..."
+	@if [ -f internal/model/protobuf/example/rng.pb.go ]; then \
+		echo "RNG protobuf file generated in internal/model/protobuf/example/"; \
+	fi
 
 clean:
 	rm -rf bin/*
