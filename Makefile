@@ -1,4 +1,4 @@
-BINARY=sequex
+BINARY=node
 PACKAGE="github.com/BullionBear/sequex"
 VERSION := $(shell git describe --tags --always --abbrev=0 --match='v[0-9]*.[0-9]*.[0-9]*' 2> /dev/null)
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
@@ -8,7 +8,7 @@ LDFLAGS := -X '${PACKAGE}/env.Version=${VERSION}' \
            -X '${PACKAGE}/env.BuildTime=${BUILD_TIMESTAMP}'
 
 build:
-	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/$(BINARY)-linux-x86 cmd/main.go
+	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/node-linux-x86 cmd/node/main.go
 
 test:
 	go test -v ./...
