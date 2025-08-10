@@ -1,12 +1,6 @@
 package node
 
 import (
-	"context"
-	"log"
-	"os"
-	"os/signal"
-	"syscall"
-
 	"github.com/nats-io/nats.go"
 )
 
@@ -14,44 +8,34 @@ type Node interface {
 	// Name returns the name of the node
 	Name() string
 
-	// SetName sets the name of the node
-	SetName(name string)
+	// Subscriptions
+	Subscriptions() []string
 
-	// SetNATSConnection sets the NATS connection for the node
-	SetNATSConnection(nc *nats.Conn)
+	// OnMessage is called when a message is received
+	OnMessage(msg *nats.Msg)
 
-	// Context returns the context for the node
-	Context() context.Context
-
-	// Start begins the node's operation
-	Start() error
-
-	// Stop gracefully shuts down the node
-	Stop() error
-
-	// GetNATSConnection returns the NATS connection
-	GetNATSConnection() *nats.Conn
+	// OnRPC is called when an RPC is received
+	OnRPC(req *nats.Msg) *nats.Msg
 
 	// WaitForShutdown waits for shutdown signal
 	WaitForShutdown()
+
+	// NATSConnection returns the NATS connection
+	NATSConnection() *nats.Conn
 }
 
 // BaseNode provides common functionality for all nodes
 type BaseNode struct {
-	name   string
-	nc     *nats.Conn
-	config map[string]interface{}
-	ctx    context.Context
-	cancel context.CancelFunc
+	name  string
+	nc    *nats.Conn
+	msgCh chan *nats.Msg
 }
 
-// NewBaseNode creates a new base node
-func NewBaseNode(name string) *BaseNode {
-	ctx, cancel := context.WithCancel(context.Background())
+func NewBaseNode(name string, nc *nats.Conn, sz int) *BaseNode {
 	return &BaseNode{
-		name:   name,
-		ctx:    ctx,
-		cancel: cancel,
+		name:  name,
+		nc:    nc,
+		msgCh: make(chan *nats.Msg, sz),
 	}
 }
 
@@ -60,38 +44,6 @@ func (bn *BaseNode) Name() string {
 	return bn.name
 }
 
-// SetName sets the name of the node
-func (bn *BaseNode) SetName(name string) {
-	bn.name = name
-}
-
-// SetNATSConnection sets the NATS connection for the node
-func (bn *BaseNode) SetNATSConnection(nc *nats.Conn) {
-	bn.nc = nc
-}
-
-// GetNATSConnection returns the NATS connection
 func (bn *BaseNode) GetNATSConnection() *nats.Conn {
 	return bn.nc
-}
-
-// Stop gracefully shuts down the base node
-func (bn *BaseNode) Stop() error {
-	bn.cancel()
-	return nil
-}
-
-// GetContext returns the context for the base node
-func (bn *BaseNode) Context() context.Context {
-	return bn.ctx
-}
-
-// WaitForShutdown waits for shutdown signal
-func (bn *BaseNode) WaitForShutdown() {
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-	log.Printf("[%s] Waiting for shutdown signal...", bn.name)
-	<-sigChan
-	log.Printf("[%s] Shutdown signal received", bn.name)
 }
