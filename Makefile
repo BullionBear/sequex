@@ -19,7 +19,7 @@ proto:
 		rel_path=$$(echo "$$file" | sed 's|^proto/||'); \
 		dir=$$(dirname "internal/model/protobuf/$$rel_path"); \
 		mkdir -p "$$dir"; \
-		cd proto && protoc --go_out=../internal/model/protobuf --go_opt=paths=source_relative "$$rel_path"; \
+		protoc --proto_path=proto --go_out=internal/model/protobuf --go_opt=paths=source_relative "$$file"; \
 		echo "Generated: $$file -> $$dir/*.pb.go"; \
 	done
 	@echo "Fixing package structure..."
