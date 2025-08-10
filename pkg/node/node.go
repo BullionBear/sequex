@@ -11,8 +11,8 @@ type Node interface {
 	Name() string
 
 	Start() error
+	Shutdown()
 	// WaitForShutdown waits for shutdown signal
-	WaitForShutdown()
 
 	// Digesting messages and publish to the next
 	AddSubscription(string)
