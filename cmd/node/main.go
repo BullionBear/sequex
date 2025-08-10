@@ -35,10 +35,11 @@ func main() {
 	d := node.NewDeployer()
 
 	// Create and register nodes based on configuration
-	for nodeName, nodeConfig := range cfg.Deployer.Nodes {
+	for _, nodeConfig := range cfg.Deployer.Nodes {
+		nodeName := nodeConfig["name"].(string)
 		log.Printf("Creating node: %s", nodeName)
 
-		node, err := config.CreateNode(nodeName, nodeConfig, nc)
+		node, err := config.CreateNode(nodeConfig, nc)
 		if err != nil {
 			log.Fatalf("Failed to create node %s: %v", nodeName, err)
 		}
@@ -51,7 +52,8 @@ func main() {
 	}
 
 	// Start all nodes
-	for nodeName := range cfg.Deployer.Nodes {
+	for _, nodeConfig := range cfg.Deployer.Nodes {
+		nodeName := nodeConfig["name"].(string)
 		if err := d.Start(nodeName); err != nil {
 			log.Fatalf("Failed to start node %s: %v", nodeName, err)
 		}
@@ -92,7 +94,8 @@ func main() {
 	waitForShutdown()
 
 	// Stop all nodes
-	for nodeName := range cfg.Deployer.Nodes {
+	for _, nodeConfig := range cfg.Deployer.Nodes {
+		nodeName := nodeConfig["name"].(string)
 		if err := d.Stop(nodeName); err != nil {
 			log.Printf("Error stopping node %s: %v", nodeName, err)
 		}

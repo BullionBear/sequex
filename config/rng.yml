@@ -3,14 +3,14 @@ nats:
 
 deployer:
   nodes:
-    rng_positive:
+    - name: rng_positive
       type: rng
       subscriptions: []
       config:
         low: 1
         high: 100
         interval: 1
-    rng_negative:
+    - name: rng_negative
       type: rng
       subscriptions: []
       config:

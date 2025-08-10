@@ -24,7 +24,7 @@ type NATSConfig struct {
 
 // DeployerConfig represents deployer configuration
 type DeployerConfig struct {
-	Nodes map[string]NodeConfig `yaml:"nodes"`
+	Nodes []NodeConfig `yaml:"nodes"`
 }
 
 // NodeConfig represents individual node configuration
@@ -56,8 +56,14 @@ func CreateNATSConnection(natsURL string) (*nats.Conn, error) {
 }
 
 // CreateNode creates a node based on its type name
-func CreateNode(nodeName string, nodeConfig NodeConfig, nc *nats.Conn) (node.Node, error) {
-	// Extract the node type and config
+func CreateNode(nodeConfig NodeConfig, nc *nats.Conn) (node.Node, error) {
+	// Extract the node name
+	nodeName, ok := nodeConfig["name"].(string)
+	if !ok {
+		return nil, fmt.Errorf("node name not found in config")
+	}
+
+	// Extract the node type
 	nodeType, ok := nodeConfig["type"].(string)
 	if !ok {
 		return nil, fmt.Errorf("node type not found for node %s", nodeName)
