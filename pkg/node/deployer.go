@@ -63,6 +63,10 @@ func (d *Deployer) Start(name string) error {
 	}
 	d.subscriptions[name] = append(d.subscriptions[name], rpcSub)
 
+	if err := node.Start(); err != nil {
+		return fmt.Errorf("failed to start node %s: %w", name, err)
+	}
+
 	return nil
 }
 
@@ -70,14 +74,16 @@ func (d *Deployer) Stop(name string) error {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	_, ok := d.nodes[name]
+	node, ok := d.nodes[name]
 	if !ok {
 		return fmt.Errorf("node %s not found", name)
 	}
+	node.Shutdown()
 	for _, sub := range d.subscriptions[name] {
 		sub.Unsubscribe()
 	}
 	delete(d.subscriptions, name)
 	delete(d.nodes, name)
+
 	return nil
 }

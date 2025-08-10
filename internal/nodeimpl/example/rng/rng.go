@@ -143,7 +143,20 @@ func (n *RNGNode) publishRng(ctx context.Context) {
 				log.Printf("Error marshalling message: %v", err)
 				continue
 			}
-			if err := n.NATSConnection().Publish(fmt.Sprintf("%s.%s", n.Name(), "rng.RngMessage"), msgBytes); err != nil {
+
+			// Create message with proper headers
+			msg := &nats.Msg{
+				Header: map[string][]string{
+					"Content-Type": {"application/protobuf"},
+					"Message-Type": {"rng.RngMessage"},
+				},
+				Data: msgBytes,
+			}
+
+			// Publish to the topic with the node name
+			topic := fmt.Sprintf("%s.rng.RngMessage", n.Name())
+			msg.Subject = topic
+			if err := n.NATSConnection().PublishMsg(msg); err != nil {
 				log.Printf("Error publishing message: %v", err)
 				continue
 			}
@@ -154,5 +167,5 @@ func (n *RNGNode) publishRng(ctx context.Context) {
 }
 
 func (n *RNGNode) waitForShutdown() {
-	fmt.Println("Waiting for shutdown")
+	log.Printf("%s Waiting for shutdown", n.Name())
 }

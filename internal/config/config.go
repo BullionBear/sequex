@@ -84,5 +84,22 @@ func CreateNode(nodeConfig NodeConfig, nc *nats.Conn) (node.Node, error) {
 	// Add the node name to the config
 	configMap["name"] = nodeName
 
-	return node.CreateNode(nodeType, nc, configMap)
+	// Create the node
+	node, err := node.CreateNode(nodeType, nc, configMap)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set up subscriptions
+	if subscriptions, ok := nodeConfig["subscriptions"].([]interface{}); ok {
+		for _, sub := range subscriptions {
+			if subStr, ok := sub.(string); ok {
+				// Format the subscription topic to match the RNG publishing format
+				topic := fmt.Sprintf("%s.rng.RngMessage", subStr)
+				node.AddSubscription(topic)
+			}
+		}
+	}
+
+	return node, nil
 }
