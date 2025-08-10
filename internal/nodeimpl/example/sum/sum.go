@@ -51,7 +51,8 @@ func (n *SumNode) Start() error {
 	return nil
 }
 
-func (n *SumNode) Shutdown() {
+func (n *SumNode) Shutdown() error {
+	return nil
 }
 
 func (n *SumNode) OnMessage(msg *nats.Msg) {

@@ -71,8 +71,9 @@ func (n *RNGNode) Start() error {
 	return nil
 }
 
-func (n *RNGNode) Shutdown() {
+func (n *RNGNode) Shutdown() error {
 	n.cancel()
+	return nil
 }
 
 func (n *RNGNode) OnMessage(msg *nats.Msg) {

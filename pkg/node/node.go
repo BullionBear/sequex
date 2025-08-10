@@ -11,7 +11,7 @@ type Node interface {
 	Name() string
 
 	Start() error
-	Shutdown()
+	Shutdown() error
 	// WaitForShutdown waits for shutdown signal
 
 	// Digesting messages and publish to the next

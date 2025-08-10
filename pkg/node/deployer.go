@@ -78,7 +78,9 @@ func (d *Deployer) Stop(name string) error {
 	if !ok {
 		return fmt.Errorf("node %s not found", name)
 	}
-	node.Shutdown()
+	if err := node.Shutdown(); err != nil {
+		log.Printf("failed to shutdown node %s: %v", name, err)
+	}
 	for _, sub := range d.subscriptions[name] {
 		sub.Unsubscribe()
 	}
