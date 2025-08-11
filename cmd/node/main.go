@@ -8,8 +8,7 @@ import (
 	"time"
 
 	"github.com/BullionBear/sequex/internal/config"
-	_ "github.com/BullionBear/sequex/internal/nodeimpl/example/rng" // Import to register RNG node
-	_ "github.com/BullionBear/sequex/internal/nodeimpl/example/sum" // Import to register Sum node
+	_ "github.com/BullionBear/sequex/internal/nodeimpl/init" // Import to register all nodes
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"
 )
