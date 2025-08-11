@@ -3,10 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
 	"time"
 
+	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/nats-io/nats.go"
 )
 
@@ -48,12 +48,16 @@ type StringResponse struct {
 
 // RPCClient represents an RPC client
 type RPCClient struct {
-	nc *nats.Conn
+	nc     *nats.Conn
+	logger log.Logger
 }
 
 // NewRPCClient creates a new RPC client
-func NewRPCClient(nc *nats.Conn) *RPCClient {
-	return &RPCClient{nc: nc}
+func NewRPCClient(nc *nats.Conn, logger log.Logger) *RPCClient {
+	return &RPCClient{
+		nc:     nc,
+		logger: logger.With(log.String("component", "rpc_client")),
+	}
 }
 
 // generateID generates a unique request ID
@@ -69,6 +73,11 @@ func (c *RPCClient) Call(method string, params interface{}) (*Response, error) {
 		Params: params,
 	}
 
+	c.logger.Debug("Making RPC call",
+		log.String("request_id", req.ID),
+		log.String("method", method),
+	)
+
 	reqData, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling request: %v", err)
@@ -77,13 +86,28 @@ func (c *RPCClient) Call(method string, params interface{}) (*Response, error) {
 	// Make request and wait for response
 	resp, err := c.nc.Request("rpc.requests", reqData, 5*time.Second)
 	if err != nil {
+		c.logger.Error("Error making RPC request",
+			log.String("request_id", req.ID),
+			log.String("method", method),
+			log.Error(err),
+		)
 		return nil, fmt.Errorf("error making request: %v", err)
 	}
 
 	var response Response
 	if err := json.Unmarshal(resp.Data, &response); err != nil {
+		c.logger.Error("Error unmarshaling RPC response",
+			log.String("request_id", req.ID),
+			log.Error(err),
+		)
 		return nil, fmt.Errorf("error unmarshaling response: %v", err)
 	}
+
+	c.logger.Debug("RPC response received",
+		log.String("request_id", req.ID),
+		log.String("method", method),
+		log.Bool("has_error", response.Error != ""),
+	)
 
 	return &response, nil
 }
@@ -141,59 +165,102 @@ func (c *RPCClient) CallString(text string) (*StringResponse, error) {
 }
 
 func main() {
+	// Initialize structured logger
+	logger := log.New(
+		log.WithLevel(log.LevelInfo),
+		log.WithEncoder(log.NewTextEncoder()),
+		log.WithTimeRotation("./logs", "rpc_client.log", 24*time.Hour, 7),
+	)
+
 	// Connect to NATS
 	nc, err := nats.Connect(nats.DefaultURL)
 	if err != nil {
-		log.Fatalf("Error connecting to NATS: %v", err)
+		logger.Fatal("Error connecting to NATS",
+			log.String("nats_url", nats.DefaultURL),
+			log.Error(err),
+		)
 	}
 	defer nc.Close()
 
-	log.Println("Connected to NATS server")
+	logger.Info("Connected to NATS server",
+		log.String("nats_url", nats.DefaultURL),
+	)
 
 	// Create RPC client
-	client := NewRPCClient(nc)
+	client := NewRPCClient(nc, logger)
 
 	// Seed random number generator
 	rand.Seed(time.Now().UnixNano())
 
 	// Example 1: Addition operation
-	log.Println("Making addition RPC call...")
+	logger.Info("Making addition RPC call")
 	addResp, err := client.CallAdd(10, 20)
 	if err != nil {
-		log.Printf("Error calling add: %v", err)
+		logger.Error("Error calling add",
+			log.Int("operand_a", 10),
+			log.Int("operand_b", 20),
+			log.Error(err),
+		)
 	} else {
-		log.Printf("Addition result: %d + %d = %d", 10, 20, addResp.Sum)
+		logger.Info("Addition operation completed",
+			log.Int("operand_a", 10),
+			log.Int("operand_b", 20),
+			log.Int("result", addResp.Sum),
+		)
 	}
 
 	// Example 2: String operation
-	log.Println("Making string RPC call...")
+	logger.Info("Making string RPC call")
 	strResp, err := client.CallString("Hello, NATS RPC!")
 	if err != nil {
-		log.Printf("Error calling string: %v", err)
+		logger.Error("Error calling string",
+			log.String("input_text", "Hello, NATS RPC!"),
+			log.Error(err),
+		)
 	} else {
-		log.Printf("String result: length=%d, text='%s'", strResp.Length, strResp.Upper)
+		logger.Info("String operation completed",
+			log.String("input_text", "Hello, NATS RPC!"),
+			log.Int("text_length", strResp.Length),
+			log.String("result", strResp.Upper),
+		)
 	}
 
 	// Example 3: Multiple calls
-	log.Println("Making multiple RPC calls...")
+	logger.Info("Making multiple RPC calls")
 	for i := 1; i <= 3; i++ {
 		addResp, err := client.CallAdd(i*10, i*5)
 		if err != nil {
-			log.Printf("Error in call %d: %v", i, err)
+			logger.Error("Error in RPC call",
+				log.Int("call_number", i),
+				log.Int("operand_a", i*10),
+				log.Int("operand_b", i*5),
+				log.Error(err),
+			)
 		} else {
-			log.Printf("Call %d result: %d + %d = %d", i, i*10, i*5, addResp.Sum)
+			logger.Info("RPC call completed",
+				log.Int("call_number", i),
+				log.Int("operand_a", i*10),
+				log.Int("operand_b", i*5),
+				log.Int("result", addResp.Sum),
+			)
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
 
 	// Example 4: Error handling - unknown method
-	log.Println("Testing error handling with unknown method...")
+	logger.Info("Testing error handling with unknown method")
 	resp, err := client.Call("unknown_method", map[string]string{"test": "data"})
 	if err != nil {
-		log.Printf("Error calling unknown method: %v", err)
+		logger.Error("Error calling unknown method",
+			log.String("method", "unknown_method"),
+			log.Error(err),
+		)
 	} else if resp.Error != "" {
-		log.Printf("Expected error received: %s", resp.Error)
+		logger.Warn("Expected error received from unknown method",
+			log.String("method", "unknown_method"),
+			log.String("error", resp.Error),
+		)
 	}
 
-	log.Println("RPC client demo completed")
+	logger.Info("RPC client demo completed")
 }

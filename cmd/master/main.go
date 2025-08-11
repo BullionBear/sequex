@@ -1,7 +1,18 @@
 package main
 
-import "fmt"
+import (
+	"github.com/BullionBear/sequex/pkg/log"
+)
 
 func main() {
-	fmt.Println("Hello, World!")
+	// Initialize structured logger
+	logger := log.New(
+		log.WithLevel(log.LevelInfo),
+		log.WithEncoder(log.NewTextEncoder()),
+	)
+
+	logger.Info("Hello, World!",
+		log.String("component", "master"),
+		log.String("version", "1.0.0"),
+	)
 }

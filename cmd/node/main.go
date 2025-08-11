@@ -2,37 +2,58 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/BullionBear/sequex/internal/config"
 	_ "github.com/BullionBear/sequex/internal/nodeimpl/example/rng" // Import to register RNG node
 	_ "github.com/BullionBear/sequex/internal/nodeimpl/example/sum" // Import to register Sum node
+	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"
 )
 
 func main() {
+	// Initialize structured logger
+	logger := log.New(
+		log.WithLevel(log.LevelInfo),
+		log.WithEncoder(log.NewTextEncoder()),
+		log.WithTimeRotation("./logs", "node.log", 24*time.Hour, 7),
+	)
+
 	// Parse command line arguments
 	var configFile string
 	flag.StringVar(&configFile, "c", "config/rng.yml", "Configuration file path")
 	flag.Parse()
 
-	log.Printf("Starting NATS Microservices with config: %s", configFile)
+	logger.Info("Starting NATS Microservices",
+		log.String("config_file", configFile),
+		log.String("component", "node_deployer"),
+	)
 
 	// Load configuration
 	cfg, err := config.LoadConfig(configFile)
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		logger.Fatal("Failed to load configuration",
+			log.String("config_file", configFile),
+			log.Error(err),
+		)
 	}
 
 	// Create a single NATS connection for the entire process
 	nc, err := config.CreateNATSConnection(cfg.NATS.URL)
 	if err != nil {
-		log.Fatalf("Failed to connect to NATS: %v", err)
+		logger.Fatal("Failed to connect to NATS",
+			log.String("nats_url", cfg.NATS.URL),
+			log.Error(err),
+		)
 	}
 	defer nc.Close()
+
+	logger.Info("Successfully connected to NATS",
+		log.String("nats_url", cfg.NATS.URL),
+	)
 
 	// Create deployer
 	d := node.NewDeployer()
@@ -40,50 +61,71 @@ func main() {
 	// Create and register nodes based on configuration
 	for _, nodeConfig := range cfg.Deployer.Nodes {
 		nodeName := nodeConfig["name"].(string)
-		log.Printf("Creating node: %s", nodeName)
+		logger.Info("Creating node",
+			log.String("node_name", nodeName),
+			log.String("component", "node_deployer"),
+		)
 
 		node, err := config.CreateNode(nodeConfig, nc)
 		if err != nil {
-			log.Fatalf("Failed to create node %s: %v", nodeName, err)
+			logger.Fatal("Failed to create node",
+				log.String("node_name", nodeName),
+				log.Error(err),
+			)
 		}
 
 		if err := d.RegisterNode(node); err != nil {
-			log.Fatalf("Failed to register node %s: %v", nodeName, err)
+			logger.Fatal("Failed to register node",
+				log.String("node_name", nodeName),
+				log.Error(err),
+			)
 		}
 
-		log.Printf("Successfully registered node: %s", nodeName)
+		logger.Info("Successfully registered node",
+			log.String("node_name", nodeName),
+		)
 	}
 
 	// Start all nodes
 	for _, nodeConfig := range cfg.Deployer.Nodes {
 		nodeName := nodeConfig["name"].(string)
 		if err := d.Start(nodeName); err != nil {
-			log.Fatalf("Failed to start node %s: %v", nodeName, err)
+			logger.Fatal("Failed to start node",
+				log.String("node_name", nodeName),
+				log.Error(err),
+			)
 		}
-		log.Printf("Successfully started node: %s", nodeName)
+		logger.Info("Successfully started node",
+			log.String("node_name", nodeName),
+		)
 	}
 
-	log.Println("All nodes deployed successfully")
+	logger.Info("All nodes deployed successfully",
+		log.Int("node_count", len(cfg.Deployer.Nodes)),
+	)
 
 	// Wait for shutdown signal
-	waitForShutdown()
+	waitForShutdown(logger)
 
 	// Stop all nodes
 	for _, nodeConfig := range cfg.Deployer.Nodes {
 		nodeName := nodeConfig["name"].(string)
 		if err := d.Stop(nodeName); err != nil {
-			log.Printf("Error stopping node %s: %v", nodeName, err)
+			logger.Error("Error stopping node",
+				log.String("node_name", nodeName),
+				log.Error(err),
+			)
 		}
 	}
 
-	log.Println("All nodes stopped")
+	logger.Info("All nodes stopped")
 }
 
-func waitForShutdown() {
+func waitForShutdown(logger log.Logger) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	log.Println("Waiting for shutdown signal...")
+	logger.Info("Waiting for shutdown signal...")
 	<-sigChan
-	log.Println("Shutdown signal received")
+	logger.Info("Shutdown signal received")
 }

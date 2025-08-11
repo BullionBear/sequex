@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/nats-io/nats.go"
 )
 
@@ -16,14 +17,27 @@ const (
 )
 
 func main() {
+	// Initialize structured logger
+	logger := log.New(
+		log.WithLevel(log.LevelInfo),
+		log.WithEncoder(log.NewTextEncoder()),
+		log.WithTimeRotation("./logs", "pubsub_subscriber.log", 24*time.Hour, 7),
+	)
+
 	// Connect to NATS
 	nc, err := nats.Connect(url)
 	if err != nil {
-		log.Fatalf("Failed to connect to NATS: %v", err)
+		logger.Fatal("Failed to connect to NATS",
+			log.String("nats_url", url),
+			log.Error(err),
+		)
 	}
 	defer nc.Close()
 
-	log.Printf("Connected to NATS at %s", url)
+	logger.Info("Connected to NATS",
+		log.String("nats_url", url),
+		log.String("component", "pubsub_subscriber"),
+	)
 
 	// Create a context that can be cancelled
 	ctx, cancel := context.WithCancel(context.Background())
@@ -35,25 +49,34 @@ func main() {
 
 	go func() {
 		<-sigChan
-		log.Println("Received shutdown signal, stopping subscriber...")
+		logger.Info("Received shutdown signal, stopping subscriber")
 		cancel()
 	}()
 
 	// Subscribe to messages
 	subscription, err := nc.Subscribe(subject, func(msg *nats.Msg) {
-		log.Printf("Received message: %s", string(msg.Data))
+		logger.Info("Received message",
+			log.String("subject", msg.Subject),
+			log.String("message", string(msg.Data)),
+			log.String("reply", msg.Reply),
+		)
 
 		// Acknowledge the message
 		msg.Ack()
 	})
 	if err != nil {
-		log.Fatalf("Failed to subscribe: %v", err)
+		logger.Fatal("Failed to subscribe",
+			log.String("subject", subject),
+			log.Error(err),
+		)
 	}
 	defer subscription.Unsubscribe()
 
-	log.Printf("Subscribed to %s", subject)
+	logger.Info("Subscribed to subject",
+		log.String("subject", subject),
+	)
 
 	// Keep the subscriber running
 	<-ctx.Done()
-	log.Println("Subscriber stopped")
+	logger.Info("Subscriber stopped")
 }

@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/nats-io/nats.go"
 )
 
@@ -18,14 +18,27 @@ const (
 )
 
 func main() {
+	// Initialize structured logger
+	logger := log.New(
+		log.WithLevel(log.LevelInfo),
+		log.WithEncoder(log.NewTextEncoder()),
+		log.WithTimeRotation("./logs", "pubsub_publisher.log", 24*time.Hour, 7),
+	)
+
 	// Connect to NATS
 	nc, err := nats.Connect(url)
 	if err != nil {
-		log.Fatalf("Failed to connect to NATS: %v", err)
+		logger.Fatal("Failed to connect to NATS",
+			log.String("nats_url", url),
+			log.Error(err),
+		)
 	}
 	defer nc.Close()
 
-	log.Printf("Connected to NATS at %s", url)
+	logger.Info("Connected to NATS",
+		log.String("nats_url", url),
+		log.String("component", "pubsub_publisher"),
+	)
 
 	// Create a context that can be cancelled
 	ctx, cancel := context.WithCancel(context.Background())
@@ -37,24 +50,27 @@ func main() {
 
 	go func() {
 		<-sigChan
-		log.Println("Received shutdown signal, stopping publisher...")
+		logger.Info("Received shutdown signal, stopping publisher")
 		cancel()
 	}()
 
 	// Start publishing messages
-	publishMessages(ctx, nc)
+	publishMessages(ctx, nc, logger)
 }
 
-func publishMessages(ctx context.Context, nc *nats.Conn) {
+func publishMessages(ctx context.Context, nc *nats.Conn, logger log.Logger) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
 	messageCount := 0
+	publisherLogger := logger.With(log.String("component", "message_publisher"))
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Publisher stopped")
+			publisherLogger.Info("Publisher stopped",
+				log.Int("total_messages", messageCount),
+			)
 			return
 		case <-ticker.C:
 			messageCount++
@@ -63,18 +79,30 @@ func publishMessages(ctx context.Context, nc *nats.Conn) {
 			// Publish message
 			err := nc.Publish(subject, []byte(message))
 			if err != nil {
-				log.Printf("Failed to publish message: %v", err)
+				publisherLogger.Error("Failed to publish message",
+					log.Int("message_number", messageCount),
+					log.String("subject", subject),
+					log.String("message", message),
+					log.Error(err),
+				)
 				continue
 			}
 
 			// Flush to ensure message is sent
 			err = nc.Flush()
 			if err != nil {
-				log.Printf("Failed to flush: %v", err)
+				publisherLogger.Error("Failed to flush connection",
+					log.Int("message_number", messageCount),
+					log.Error(err),
+				)
 				continue
 			}
 
-			log.Printf("Published: %s", message)
+			publisherLogger.Info("Message published successfully",
+				log.Int("message_number", messageCount),
+				log.String("subject", subject),
+				log.String("message", message),
+			)
 		}
 	}
 }
