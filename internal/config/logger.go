@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -74,7 +75,9 @@ func (ls *LoggerSingleton) initialize() error {
 
 	// Add time rotation if path is specified
 	if ls.config.Path != "" {
-		opts = append(opts, log.WithTimeRotation("./logs", ls.config.Path, 24*time.Hour, 7))
+		dir := filepath.Dir(ls.config.Path)
+		filename := filepath.Base(ls.config.Path)
+		opts = append(opts, log.WithTimeRotation(dir, filename, 24*time.Hour, 7))
 	}
 
 	// Create the logger

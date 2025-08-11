@@ -1,3 +1,8 @@
+logger:
+  format: text # or json
+  path: ./logs/rng.log
+  level: info
+
 nats:
   url: nats://localhost:4222
 
@@ -18,7 +23,3 @@ deployer:
         high: -1
         interval: 1
 
-logger:
-  format: text # or json
-  path: ./logs/rng.log
-  level: info

@@ -13,9 +13,9 @@ import (
 
 // Config represents the merged configuration structure
 type Config struct {
+	Logger   LoggerConfig   `yaml:"logger"`
 	NATS     NATSConfig     `yaml:"nats"`
 	Deployer DeployerConfig `yaml:"deployer"`
-	Logger   LoggerConfig   `yaml:"logger"`
 }
 
 // NATSConfig represents NATS connection configuration
