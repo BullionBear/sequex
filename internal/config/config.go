@@ -2,9 +2,9 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 
+	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"
 
 	"github.com/nats-io/nats.go"
@@ -15,6 +15,7 @@ import (
 type Config struct {
 	NATS     NATSConfig     `yaml:"nats"`
 	Deployer DeployerConfig `yaml:"deployer"`
+	Logger   LoggerConfig   `yaml:"logger"`
 }
 
 // NATSConfig represents NATS connection configuration
@@ -25,6 +26,12 @@ type NATSConfig struct {
 // DeployerConfig represents deployer configuration
 type DeployerConfig struct {
 	Nodes []NodeConfig `yaml:"nodes"`
+}
+
+type LoggerConfig struct {
+	Format string `yaml:"format"`
+	Path   string `yaml:"path"`
+	Level  string `yaml:"level"`
 }
 
 // NodeConfig represents individual node configuration
@@ -51,7 +58,7 @@ func CreateNATSConnection(natsURL string) (*nats.Conn, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to NATS: %w", err)
 	}
-	log.Printf("Connected to NATS at: %s", natsURL)
+	Infof("Connected to NATS at: %s", natsURL)
 	return nc, nil
 }
 
@@ -102,4 +109,12 @@ func CreateNode(nodeConfig NodeConfig, nc *nats.Conn) (node.Node, error) {
 	}
 
 	return node, nil
+}
+
+// CreateLogger is deprecated, use InitializeLogger instead
+func CreateLogger(loggerConfig LoggerConfig) (log.Logger, error) {
+	if err := InitializeLogger(loggerConfig); err != nil {
+		return nil, err
+	}
+	return GetLogger(), nil
 }

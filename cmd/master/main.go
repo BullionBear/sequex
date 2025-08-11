@@ -1,17 +1,23 @@
 package main
 
 import (
+	"github.com/BullionBear/sequex/internal/config"
 	"github.com/BullionBear/sequex/pkg/log"
 )
 
 func main() {
-	// Initialize structured logger
-	logger := log.New(
-		log.WithLevel(log.LevelInfo),
-		log.WithEncoder(log.NewTextEncoder()),
-	)
+	// Initialize with default config
+	defaultConfig := config.LoggerConfig{
+		Format: "text",
+		Level:  "info",
+		Path:   "master.log",
+	}
 
-	logger.Info("Hello, World!",
+	if err := config.InitializeLogger(defaultConfig); err != nil {
+		panic(err)
+	}
+
+	config.Info("Hello, World!",
 		log.String("component", "master"),
 		log.String("version", "1.0.0"),
 	)

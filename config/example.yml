@@ -1,0 +1,31 @@
+# Example configuration file for sequex with logger configuration
+nats:
+  url: "nats://localhost:4222"
+
+logger:
+  # Log format: "text" or "json"
+  format: "text"
+  
+  # Log level: "debug", "info", "warn", "error", "fatal"
+  level: "info"
+  
+  # Log file path (optional, if not specified logs go to stdout)
+  path: "sequex.log"
+
+deployer:
+  nodes:
+    - name: "rng-01"
+      type: "rng"
+      config:
+        low: 1
+        high: 100
+        interval: 1.0
+      subscriptions:
+        - "sum-01"
+    
+    - name: "sum-01"
+      type: "sum"
+      config:
+        init_sum: 0
+        upper_limit: 1000
+        lower_limit: -1000
