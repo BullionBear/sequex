@@ -24,6 +24,7 @@ go.work
 experiment/
 bin
 config.yml
+logs/
 
 # test credentials
 env.sh
