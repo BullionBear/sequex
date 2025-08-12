@@ -9,9 +9,7 @@ import (
 func NewNode(rg *gin.RouterGroup) {
 	prg := rg.Group("/node")
 	prg.GET("/list", listNodes)
-	prg.POST("/register", registerNode)
 	prg.GET("/:name", getNode)
-	prg.DELETE("/:name", unregisterNode)
 }
 
 func listNodes(c *gin.Context) {

@@ -39,13 +39,13 @@ type DeployerConfig struct {
 type NodeConfig map[string]interface{}
 
 // LoadConfig loads the merged configuration from file
-func LoadConfig(configPath string) (*Config, error) {
+func LoadConfig[T any](configPath string) (*T, error) {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	var config Config
+	var config T
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}

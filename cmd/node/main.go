@@ -19,7 +19,7 @@ var logger log.Logger
 func main() {
 	// Parse command line arguments
 	var configFile string
-	flag.StringVar(&configFile, "c", "config/rng.yml", "Configuration file path")
+	flag.StringVar(&configFile, "c", "config/node/example.yml", "Configuration file path")
 	flag.Parse()
 
 	fmt.Println("Starting services with BuildTime:", env.BuildTime)
@@ -27,7 +27,7 @@ func main() {
 	fmt.Println("Starting services with CommitHash:", env.CommitHash)
 
 	// Load configuration
-	cfg, err := config.LoadConfig(configFile)
+	cfg, err := config.LoadConfig[config.Config](configFile)
 	if err != nil {
 		// Use fmt for error before logger is initialized
 		fmt.Printf("Failed to load configuration: %v\n", err)
