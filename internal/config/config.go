@@ -18,6 +18,18 @@ type Config struct {
 	Deployer DeployerConfig `yaml:"deployer"`
 }
 
+type MasterConfig struct {
+	App struct {
+		Port int    `yaml:"port"`
+		Host string `yaml:"host"`
+	} `yaml:"app"`
+	Logger LoggerConfig `yaml:"logger"`
+	Nats   NATSConfig   `yaml:"nats"`
+	Agents struct {
+		Target []string `yaml:"target"`
+	} `yaml:"agents"`
+}
+
 // LoggerConfig represents logger configuration
 type LoggerConfig struct {
 	Format string `yaml:"format"`

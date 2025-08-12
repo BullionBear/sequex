@@ -10,11 +10,7 @@ logger:
 nats:
   url: "nats://localhost:4222"
 
-deployer:
-  nodes:
-    - name: master
-      type: master
-      target:
-        - name: master
-        - name: rng-01
-        - name: sum-01
+agents:
+  target:
+    - name: rng-01
+    - name: sum-01

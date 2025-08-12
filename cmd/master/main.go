@@ -9,6 +9,7 @@ import (
 	"github.com/BullionBear/sequex/env"
 	"github.com/BullionBear/sequex/internal/config"
 	_ "github.com/BullionBear/sequex/internal/nodeimpl/init" // Import to register all nodes
+	"github.com/BullionBear/sequex/internal/nodeimpl/master"
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/gin-gonic/gin"
 )
@@ -40,10 +41,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	nc, err := config.CreateNATSConnection(cfg.Nats.URL)
+	if err != nil {
+		fmt.Printf("Failed to create NATS connection: %v\n", err)
+		os.Exit(1)
+	}
+
+	masterRPCClient := master.NewMasterRPCClient(nc)
+
 	rg := gin.New()
 	rg.Use(gin.Logger())
 	rg.Use(api.AllowAllCors)
 	v1rg := rg.Group("/v1", gin.Recovery())
-	api.NewNode(v1rg)
+	api.NewNode(v1rg, masterRPCClient)
 
 }
