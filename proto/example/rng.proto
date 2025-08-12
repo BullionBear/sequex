@@ -9,9 +9,11 @@ message RngMessage {
 }
 
 message RngCountRequest {
+    int64 id = 1;
 
 }
 
 message RngCountResponse {
-    int64 n_count = 1;
+    int64 id = 1;
+    int64 n_count = 2;
 }

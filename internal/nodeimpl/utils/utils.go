@@ -1,7 +1,7 @@
 package utils
 
 import (
-	pb "github.com/BullionBear/sequex/internal/model/protobuf/error"
+	pb "github.com/BullionBear/sequex/internal/model/protobuf/common"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
 )
@@ -21,12 +21,13 @@ func (e ErrorCode) Int() int {
 	return int(e)
 }
 
-func MakeErrorMessage(code ErrorCode, err error) *nats.Msg {
+func MakeErrorMessage(id int64, code ErrorCode, err error) *nats.Msg {
 	contentType := "application/protobuf"
 	messageType := "error"
 	pbError := &pb.ErrorResponse{
 		Message: err.Error(),
-		Code:    int64(code.Int()),
+		Code:    int64(code),
+		Id:      id,
 	}
 	data, err := MarshallProtobuf(pbError)
 	if err != nil {

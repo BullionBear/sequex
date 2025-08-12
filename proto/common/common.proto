@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package error;
+
+option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/error;commonpb";
+
+message ErrorResponse {
+    int64 id = 1;
+    int64 code = 2;
+    string message = 3;
+}
+
+message EmptyRequest {
+    int64 id = 1;
+    string type = 2;
+}

@@ -23,7 +23,8 @@ const (
 
 type SumRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Offset        int64                  `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Offset        int64                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -58,6 +59,13 @@ func (*SumRequest) Descriptor() ([]byte, []int) {
 	return file_example_sum_proto_rawDescGZIP(), []int{0}
 }
 
+func (x *SumRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
 func (x *SumRequest) GetOffset() int64 {
 	if x != nil {
 		return x.Offset
@@ -67,8 +75,9 @@ func (x *SumRequest) GetOffset() int64 {
 
 type SumResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	NSum          int64                  `protobuf:"varint,1,opt,name=n_sum,json=nSum,proto3" json:"n_sum,omitempty"`
-	NCount        int64                  `protobuf:"varint,2,opt,name=n_count,json=nCount,proto3" json:"n_count,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	NSum          int64                  `protobuf:"varint,2,opt,name=n_sum,json=nSum,proto3" json:"n_sum,omitempty"`
+	NCount        int64                  `protobuf:"varint,3,opt,name=n_count,json=nCount,proto3" json:"n_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -103,6 +112,13 @@ func (*SumResponse) Descriptor() ([]byte, []int) {
 	return file_example_sum_proto_rawDescGZIP(), []int{1}
 }
 
+func (x *SumResponse) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
 func (x *SumResponse) GetNSum() int64 {
 	if x != nil {
 		return x.NSum
@@ -121,13 +137,15 @@ var File_example_sum_proto protoreflect.FileDescriptor
 
 const file_example_sum_proto_rawDesc = "" +
 	"\n" +
-	"\x11example/sum.proto\x12\x03rng\"$\n" +
+	"\x11example/sum.proto\x12\x03rng\"4\n" +
 	"\n" +
-	"SumRequest\x12\x16\n" +
-	"\x06offset\x18\x01 \x01(\x03R\x06offset\";\n" +
-	"\vSumResponse\x12\x13\n" +
-	"\x05n_sum\x18\x01 \x01(\x03R\x04nSum\x12\x17\n" +
-	"\an_count\x18\x02 \x01(\x03R\x06nCountBGZEgithub.com/BullionBear/sequex/internal/model/protobuf/example;exampleb\x06proto3"
+	"SumRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x03R\x06offset\"K\n" +
+	"\vSumResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x13\n" +
+	"\x05n_sum\x18\x02 \x01(\x03R\x04nSum\x12\x17\n" +
+	"\an_count\x18\x03 \x01(\x03R\x06nCountBGZEgithub.com/BullionBear/sequex/internal/model/protobuf/example;exampleb\x06proto3"
 
 var (
 	file_example_sum_proto_rawDescOnce sync.Once

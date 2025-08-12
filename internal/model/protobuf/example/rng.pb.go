@@ -67,6 +67,7 @@ func (x *RngMessage) GetRandom() int64 {
 
 type RngCountRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -101,9 +102,17 @@ func (*RngCountRequest) Descriptor() ([]byte, []int) {
 	return file_example_rng_proto_rawDescGZIP(), []int{1}
 }
 
+func (x *RngCountRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
 type RngCountResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	NCount        int64                  `protobuf:"varint,1,opt,name=n_count,json=nCount,proto3" json:"n_count,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	NCount        int64                  `protobuf:"varint,2,opt,name=n_count,json=nCount,proto3" json:"n_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -138,6 +147,13 @@ func (*RngCountResponse) Descriptor() ([]byte, []int) {
 	return file_example_rng_proto_rawDescGZIP(), []int{2}
 }
 
+func (x *RngCountResponse) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
 func (x *RngCountResponse) GetNCount() int64 {
 	if x != nil {
 		return x.NCount
@@ -152,10 +168,12 @@ const file_example_rng_proto_rawDesc = "" +
 	"\x11example/rng.proto\x12\x03rng\"$\n" +
 	"\n" +
 	"RngMessage\x12\x16\n" +
-	"\x06random\x18\x01 \x01(\x03R\x06random\"\x11\n" +
-	"\x0fRngCountRequest\"+\n" +
-	"\x10RngCountResponse\x12\x17\n" +
-	"\an_count\x18\x01 \x01(\x03R\x06nCountB?Z=github.com/BullionBear/sequex/internal/model/protobuf/exampleb\x06proto3"
+	"\x06random\x18\x01 \x01(\x03R\x06random\"!\n" +
+	"\x0fRngCountRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\";\n" +
+	"\x10RngCountResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x17\n" +
+	"\an_count\x18\x02 \x01(\x03R\x06nCountB?Z=github.com/BullionBear/sequex/internal/model/protobuf/exampleb\x06proto3"
 
 var (
 	file_example_rng_proto_rawDescOnce sync.Once

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
 	pb "github.com/BullionBear/sequex/internal/model/protobuf/example"
 	"github.com/BullionBear/sequex/internal/nodeimpl/utils"
 	"github.com/BullionBear/sequex/pkg/log"
@@ -141,16 +142,31 @@ func (n *SumNode) OnRPC(req *nats.Msg) *nats.Msg {
 			n.Logger().Error("Error unmarshalling SumRequest",
 				log.Error(err),
 			)
-			return utils.MakeErrorMessage(utils.ErrorProtobufDeserialization, err)
+			return utils.MakeErrorMessage(0, utils.ErrorProtobufDeserialization, err)
 		}
 		return n.onSumRequest(&content)
-	case contentType == "application/json" && messageType == "Config":
-		return n.onConfig(&n.cfg)
+	case contentType == "application/protobuf" && messageType == "EmptyRequest":
+		var content pbCommon.EmptyRequest
+		if err := proto.Unmarshal(req.Data, &content); err != nil {
+			n.Logger().Error("Error unmarshalling EmptyRequest",
+				log.Error(err),
+			)
+			return utils.MakeErrorMessage(0, utils.ErrorProtobufDeserialization, err)
+		}
+		switch content.Type {
+		case "Config":
+			return n.onConfig(&content)
+		default:
+			n.Logger().Warn("Unknown request type",
+				log.String("request_type", content.Type),
+			)
+			return utils.MakeErrorMessage(content.Id, utils.ErrorUnknownMessageType, fmt.Errorf("unknown message type: %s", content.Type))
+		}
 	default:
 		n.Logger().Warn("Unknown message type",
 			log.String("message_type", messageType),
 		)
-		return utils.MakeErrorMessage(utils.ErrorUnknownMessageType, fmt.Errorf("unknown message type: %s", messageType))
+		return utils.MakeErrorMessage(0, utils.ErrorUnknownMessageType, fmt.Errorf("unknown message type: %s", messageType))
 	}
 }
 
@@ -168,7 +184,7 @@ func (n *SumNode) onSumRequest(req *pb.SumRequest) *nats.Msg {
 		n.Logger().Error("Error marshalling SumResponse",
 			log.Error(err),
 		)
-		return utils.MakeErrorMessage(utils.ErrorProtobufSerialization, err)
+		return utils.MakeErrorMessage(req.Id, utils.ErrorProtobufSerialization, err)
 	}
 	msg := nats.Msg{}
 	msg.Header.Set("Content-Type", "application/protobuf")
@@ -177,14 +193,14 @@ func (n *SumNode) onSumRequest(req *pb.SumRequest) *nats.Msg {
 	return &msg
 }
 
-func (n *SumNode) onConfig(content *SumConfig) *nats.Msg {
+func (n *SumNode) onConfig(content *pbCommon.EmptyRequest) *nats.Msg {
 	n.Logger().Debug("Processing config request")
-	responseBytes, err := json.Marshal(content)
+	responseBytes, err := json.Marshal(&n.cfg)
 	if err != nil {
 		n.Logger().Error("Error marshalling config response",
 			log.Error(err),
 		)
-		return utils.MakeErrorMessage(utils.ErrorJSONSerialization, err)
+		return utils.MakeErrorMessage(content.Id, utils.ErrorJSONSerialization, err)
 	}
 	msg := nats.Msg{}
 	msg.Header.Set("Content-Type", "application/json")
