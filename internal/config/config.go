@@ -25,9 +25,6 @@ type MasterConfig struct {
 	} `yaml:"app"`
 	Logger LoggerConfig `yaml:"logger"`
 	Nats   NATSConfig   `yaml:"nats"`
-	Agents struct {
-		Target []string `yaml:"target"`
-	} `yaml:"agents"`
 }
 
 // LoggerConfig represents logger configuration

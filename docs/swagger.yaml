@@ -1,0 +1,32 @@
+info:
+  contact: {}
+paths:
+  /node/{name}:
+    get:
+      consumes:
+      - application/json
+      description: Get a node
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Node
+          schema:
+            type: string
+      summary: Get a node
+  /nodes:
+    get:
+      consumes:
+      - application/json
+      description: List all nodes
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of nodes
+          schema:
+            items:
+              type: string
+            type: array
+      summary: List all nodes
+swagger: "2.0"

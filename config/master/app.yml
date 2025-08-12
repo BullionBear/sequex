@@ -5,12 +5,12 @@ app:
 logger:
   format: text
   level: info
-  path: "./logs/example.log" # empty string means stdout
+  path: "" # empty string means stdout
 
 nats:
   url: "nats://localhost:4222"
 
-agents:
+agent:
   target:
-    - name: rng-01
-    - name: sum-01
+    - rng-01
+    - sum-01

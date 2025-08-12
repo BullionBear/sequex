@@ -8,7 +8,10 @@ LDFLAGS := -X '${PACKAGE}/env.Version=${VERSION}' \
            -X '${PACKAGE}/env.BuildTime=${BUILD_TIMESTAMP}'
 
 build:
-	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/node-linux-x86 cmd/node/main.go
+	rm -rf docs
+	swag init --parseDependency --parseInternal -g cmd/master/main.go
+	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/master-linux-x86 cmd/master/main.go
+	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/node-linux-x86 cmd/node/main.go	
 
 test:
 	go test -v ./...
