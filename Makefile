@@ -26,6 +26,21 @@ proto:
 		echo "Generated: $$file -> $$dir/*.pb.go"; \
 	done
 	@echo "Organizing generated files..."
+	@if [ -f internal/model/protobuf/app/shared.pb.go ]; then \
+		mkdir -p internal/model/protobuf/app/shared; \
+		mv internal/model/protobuf/app/shared.pb.go internal/model/protobuf/app/shared/; \
+		echo "Moved shared.pb.go to internal/model/protobuf/app/shared/"; \
+	fi
+	@if [ -f internal/model/protobuf/app/order.pb.go ]; then \
+		mkdir -p internal/model/protobuf/app/order; \
+		mv internal/model/protobuf/app/order.pb.go internal/model/protobuf/app/order/; \
+		echo "Moved order.pb.go to internal/model/protobuf/app/order/"; \
+	fi
+	@if [ -f internal/model/protobuf/app/trade.pb.go ]; then \
+		mkdir -p internal/model/protobuf/app/trade; \
+		mv internal/model/protobuf/app/trade.pb.go internal/model/protobuf/app/trade/; \
+		echo "Moved trade.pb.go to internal/model/protobuf/app/trade/"; \
+	fi
 	@if [ -f internal/model/protobuf/example/rng.pb.go ]; then \
 		echo "RNG protobuf file generated in internal/model/protobuf/example/"; \
 	fi

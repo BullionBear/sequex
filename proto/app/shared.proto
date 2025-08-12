@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package shared;
+
+option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/app/shared;shared";
+
+// Shared enum that can be used across multiple proto files
+enum OrderSide {
+    ORDER_SIDE_BUY = 0;
+    ORDER_SIDE_SELL = 1;
+}
+
+// Shared message type
+message UserInfo {
+    string user_id = 1;
+    string username = 2;
+    int64 created_at = 3;
+}
