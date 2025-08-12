@@ -2,9 +2,9 @@ package node
 
 import (
 	"fmt"
-	"log"
 	"sync"
 
+	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/nats-io/nats.go"
 )
 
@@ -13,13 +13,15 @@ type Deployer struct {
 	nodes         map[string]Node
 	mutex         sync.RWMutex
 	subscriptions map[string][]*nats.Subscription
+	logger        log.Logger
 }
 
 // NewDeployer creates a new deployer instance
-func NewDeployer() *Deployer {
+func NewDeployer(logger *log.Logger) *Deployer {
 	return &Deployer{
 		nodes:         make(map[string]Node),
 		subscriptions: make(map[string][]*nats.Subscription),
+		logger:        *logger,
 	}
 }
 
@@ -33,7 +35,7 @@ func (d *Deployer) RegisterNode(n Node) error {
 	}
 
 	d.nodes[n.Name()] = n
-	log.Printf("Registered node: %s", n.Name())
+	d.logger.Info("Registered node", log.String("node_name", n.Name()))
 	return nil
 }
 
@@ -79,7 +81,7 @@ func (d *Deployer) Stop(name string) error {
 		return fmt.Errorf("node %s not found", name)
 	}
 	if err := node.Shutdown(); err != nil {
-		log.Printf("failed to shutdown node %s: %v", name, err)
+		d.logger.Errorf("failed to shutdown node %s: %v", name, err)
 	}
 	for _, sub := range d.subscriptions[name] {
 		sub.Unsubscribe()

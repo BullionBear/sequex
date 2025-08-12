@@ -10,14 +10,15 @@ func main() {
 	defaultConfig := config.LoggerConfig{
 		Format: "text",
 		Level:  "info",
-		Path:   "master.log",
+		Path:   "",
 	}
 
-	if err := config.InitializeLogger(defaultConfig); err != nil {
+	logger, err := config.CreateLogger(defaultConfig)
+	if err != nil {
 		panic(err)
 	}
 
-	config.Info("Hello, World!",
+	logger.Info("Hello, World!",
 		log.String("component", "master"),
 		log.String("version", "1.0.0"),
 	)

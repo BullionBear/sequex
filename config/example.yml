@@ -1,7 +1,7 @@
 logger:
   format: text
   level: info
-  path: logs/example.log
+  path: "./logs/example.log" # empty string means stdout
 
 nats:
   url: "nats://localhost:4222"
@@ -14,11 +14,11 @@ deployer:
         low: -100
         high: 100
         interval: 1.0
-      subscriptions:
-        - sum-01
     
     - name: sum-01
       type: sum
+      subscriptions:
+        - rng-01
       config:
         init_sum: 0
         upper_limit: 1000

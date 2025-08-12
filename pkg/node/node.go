@@ -3,6 +3,8 @@ package node
 import (
 	"sync"
 
+	"github.com/BullionBear/sequex/pkg/log"
+
 	"github.com/nats-io/nats.go"
 )
 
@@ -28,20 +30,22 @@ type Node interface {
 
 // BaseNode provides common functionality for all nodes
 type BaseNode struct {
-	name  string
-	mutex sync.Mutex
-	nc    *nats.Conn
-	msgCh chan *nats.Msg
-	subs  []string
+	name   string
+	mutex  sync.Mutex
+	nc     *nats.Conn
+	msgCh  chan *nats.Msg
+	subs   []string
+	logger log.Logger
 }
 
-func NewBaseNode(name string, nc *nats.Conn, sz int) *BaseNode {
+func NewBaseNode(name string, nc *nats.Conn, sz int, logger log.Logger) *BaseNode {
 	return &BaseNode{
-		name:  name,
-		nc:    nc,
-		msgCh: make(chan *nats.Msg, sz),
-		subs:  make([]string, 0),
-		mutex: sync.Mutex{},
+		name:   name,
+		nc:     nc,
+		msgCh:  make(chan *nats.Msg, sz),
+		subs:   make([]string, 0),
+		mutex:  sync.Mutex{},
+		logger: logger,
 	}
 }
 
@@ -64,4 +68,44 @@ func (bn *BaseNode) Subscriptions() []string {
 	bn.mutex.Lock()
 	defer bn.mutex.Unlock()
 	return bn.subs
+}
+
+func (bn *BaseNode) Info(msg string, fields ...log.Field) {
+	bn.logger.Info(msg, fields...)
+}
+
+func (bn *BaseNode) Infof(format string, v ...any) {
+	bn.logger.Infof(format, v...)
+}
+
+func (bn *BaseNode) Error(msg string, fields ...log.Field) {
+	bn.logger.Error(msg, fields...)
+}
+
+func (bn *BaseNode) Errorf(format string, v ...any) {
+	bn.logger.Errorf(format, v...)
+}
+
+func (bn *BaseNode) Debug(msg string, fields ...log.Field) {
+	bn.logger.Debug(msg, fields...)
+}
+
+func (bn *BaseNode) Debugf(format string, v ...any) {
+	bn.logger.Debugf(format, v...)
+}
+
+func (bn *BaseNode) Warn(msg string, fields ...log.Field) {
+	bn.logger.Warn(msg, fields...)
+}
+
+func (bn *BaseNode) Warnf(format string, v ...any) {
+	bn.logger.Warnf(format, v...)
+}
+
+func (bn *BaseNode) Fatal(msg string, fields ...log.Field) {
+	bn.logger.Fatal(msg, fields...)
+}
+
+func (bn *BaseNode) Fatalf(format string, v ...any) {
+	bn.logger.Fatalf(format, v...)
 }

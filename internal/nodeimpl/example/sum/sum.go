@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
-	"time"
 
 	pb "github.com/BullionBear/sequex/internal/model/protobuf/example"
 	"github.com/BullionBear/sequex/internal/nodeimpl/utils"
@@ -34,14 +33,7 @@ func init() {
 	node.RegisterNode("sum", NewSumNode)
 }
 
-func NewSumNode(name string, nc *nats.Conn, config node.NodeConfig) (node.Node, error) {
-	// Initialize structured logger
-	logger := log.New(
-		log.WithLevel(log.LevelInfo),
-		log.WithEncoder(log.NewTextEncoder()),
-		log.WithTimeRotation("./logs", fmt.Sprintf("%s.log", name), 24*time.Hour, 7),
-	)
-
+func NewSumNode(name string, nc *nats.Conn, config node.NodeConfig, logger *log.Logger) (node.Node, error) {
 	// Parse configuration
 	jsonBytes, err := json.Marshal(config)
 	if err != nil {
@@ -53,14 +45,13 @@ func NewSumNode(name string, nc *nats.Conn, config node.NodeConfig) (node.Node, 
 	}
 
 	sumNode := &SumNode{
-		BaseNode: node.NewBaseNode(name, nc, 100),
+		BaseNode: node.NewBaseNode(name, nc, 100, *logger),
 		cfg:      cfg,
 		sum:      cfg.InitSum,
 		count:    0,
-		logger:   logger.With(log.String("node_name", name), log.String("node_type", "sum")),
 	}
 
-	sumNode.logger.Info("SUM node created",
+	sumNode.Info("SUM node created",
 		log.Int64("init_sum", cfg.InitSum),
 		log.Int64("upper_limit", cfg.UpperLimit),
 		log.Int64("lower_limit", cfg.LowerLimit),
@@ -70,12 +61,12 @@ func NewSumNode(name string, nc *nats.Conn, config node.NodeConfig) (node.Node, 
 }
 
 func (n *SumNode) Start() error {
-	n.logger.Info("Starting SUM node")
+	n.Info("Starting SUM node")
 	return nil
 }
 
 func (n *SumNode) Shutdown() error {
-	n.logger.Info("Shutting down SUM node",
+	n.Info("Shutting down SUM node",
 		log.Int64("final_sum", n.sum),
 		log.Int64("total_count", n.count),
 	)
@@ -86,7 +77,7 @@ func (n *SumNode) OnMessage(msg *nats.Msg) {
 	contentType := msg.Header.Get("Content-Type")
 	messageType := msg.Header.Get("Message-Type")
 
-	n.logger.Debug("Received message",
+	n.Debug("Received message",
 		log.String("content_type", contentType),
 		log.String("message_type", messageType),
 	)
@@ -95,14 +86,14 @@ func (n *SumNode) OnMessage(msg *nats.Msg) {
 	case contentType == "application/protobuf" && messageType == "rng.RngMessage":
 		var content pb.RngMessage
 		if err := proto.Unmarshal(msg.Data, &content); err != nil {
-			n.logger.Error("Error unmarshalling RngMessage",
+			n.Error("Error unmarshalling RngMessage",
 				log.Error(err),
 			)
 			return
 		}
 		n.onRngMessage(&content)
 	default:
-		n.logger.Warn("Unknown message type",
+		n.Warn("Unknown message type",
 			log.String("message_type", messageType),
 		)
 	}
@@ -116,7 +107,7 @@ func (n *SumNode) onRngMessage(msg *pb.RngMessage) {
 	n.sum += msg.Random
 	if n.sum > n.cfg.UpperLimit || n.sum < n.cfg.LowerLimit {
 		n.sum = n.cfg.InitSum
-		n.logger.Info("Sum reset to initial value",
+		n.Info("Sum reset to initial value",
 			log.Int64("old_sum", oldSum),
 			log.Int64("random_value", msg.Random),
 			log.Int64("new_sum", n.sum),
@@ -125,7 +116,7 @@ func (n *SumNode) onRngMessage(msg *pb.RngMessage) {
 	}
 	n.count++
 
-	n.logger.Info("Sum updated",
+	n.Info("Sum updated",
 		log.Int64("old_sum", oldSum),
 		log.Int64("random_value", msg.Random),
 		log.Int64("new_sum", n.sum),
@@ -137,7 +128,7 @@ func (n *SumNode) OnRPC(req *nats.Msg) *nats.Msg {
 	contentType := req.Header.Get("Content-Type")
 	messageType := req.Header.Get("Message-Type")
 
-	n.logger.Debug("Received RPC request",
+	n.Debug("Received RPC request",
 		log.String("content_type", contentType),
 		log.String("message_type", messageType),
 	)
@@ -146,7 +137,7 @@ func (n *SumNode) OnRPC(req *nats.Msg) *nats.Msg {
 	case contentType == "application/protobuf" && messageType == "sum.SumRequest":
 		var content pb.SumRequest
 		if err := proto.Unmarshal(req.Data, &content); err != nil {
-			n.logger.Error("Error unmarshalling SumRequest",
+			n.Error("Error unmarshalling SumRequest",
 				log.Error(err),
 			)
 			return utils.MakeErrorMessage(utils.ErrorProtobufDeserialization, err)
@@ -155,7 +146,7 @@ func (n *SumNode) OnRPC(req *nats.Msg) *nats.Msg {
 	case contentType == "application/json" && messageType == "Config":
 		return n.onConfig(&n.cfg)
 	default:
-		n.logger.Warn("Unknown message type",
+		n.Warn("Unknown message type",
 			log.String("message_type", messageType),
 		)
 		return utils.MakeErrorMessage(utils.ErrorUnknownMessageType, fmt.Errorf("unknown message type: %s", messageType))
@@ -163,7 +154,7 @@ func (n *SumNode) OnRPC(req *nats.Msg) *nats.Msg {
 }
 
 func (n *SumNode) onSumRequest(req *pb.SumRequest) *nats.Msg {
-	n.logger.Debug("Processing SumRequest",
+	n.Info("Processing SumRequest",
 		log.Int64("offset", req.Offset),
 	)
 
@@ -173,7 +164,7 @@ func (n *SumNode) onSumRequest(req *pb.SumRequest) *nats.Msg {
 	}
 	responseBytes, err := utils.MarshallProtobuf(response)
 	if err != nil {
-		n.logger.Error("Error marshalling SumResponse",
+		n.Error("Error marshalling SumResponse",
 			log.Error(err),
 		)
 		return utils.MakeErrorMessage(utils.ErrorProtobufSerialization, err)
@@ -186,10 +177,10 @@ func (n *SumNode) onSumRequest(req *pb.SumRequest) *nats.Msg {
 }
 
 func (n *SumNode) onConfig(content *SumConfig) *nats.Msg {
-	n.logger.Debug("Processing config request")
+	n.Debug("Processing config request")
 	responseBytes, err := json.Marshal(content)
 	if err != nil {
-		n.logger.Error("Error marshalling config response",
+		n.Error("Error marshalling config response",
 			log.Error(err),
 		)
 		return utils.MakeErrorMessage(utils.ErrorJSONSerialization, err)

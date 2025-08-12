@@ -7,17 +7,24 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/BullionBear/sequex/env"
 	"github.com/BullionBear/sequex/internal/config"
 	_ "github.com/BullionBear/sequex/internal/nodeimpl/init" // Import to register all nodes
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"
 )
 
+var logger log.Logger
+
 func main() {
 	// Parse command line arguments
 	var configFile string
 	flag.StringVar(&configFile, "c", "config/rng.yml", "Configuration file path")
 	flag.Parse()
+
+	fmt.Println("Starting services with BuildTime:", env.BuildTime)
+	fmt.Println("Starting services with Version:", env.Version)
+	fmt.Println("Starting services with CommitHash:", env.CommitHash)
 
 	// Load configuration
 	cfg, err := config.LoadConfig(configFile)
@@ -28,12 +35,19 @@ func main() {
 	}
 
 	// Initialize global logger from config
-	if err := config.InitializeLogger(cfg.Logger); err != nil {
+	logger, err = config.CreateLogger(cfg.Logger)
+	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}
 
-	config.Info("Starting NATS Microservices",
+	logger.Info("Starting services with",
+		log.String("build_time", env.BuildTime),
+		log.String("version", env.Version),
+		log.String("commit_hash", env.CommitHash),
+	)
+
+	logger.Info("Starting NATS Microservices",
 		log.String("config_file", configFile),
 		log.String("component", "node_deployer"),
 	)
@@ -41,65 +55,42 @@ func main() {
 	// Create a single NATS connection for the entire process
 	nc, err := config.CreateNATSConnection(cfg.NATS.URL)
 	if err != nil {
-		config.Fatal("Failed to connect to NATS",
-			log.String("nats_url", cfg.NATS.URL),
-			log.Error(err),
-		)
+		logger.Fatalf("Failed to connect to NATS %s: %v", cfg.NATS.URL, err)
 	}
 	defer nc.Close()
 
-	config.Info("Successfully connected to NATS",
-		log.String("nats_url", cfg.NATS.URL),
-	)
+	logger.Infof("Successfully connected to NATS %s", cfg.NATS.URL)
 
 	// Create deployer
-	d := node.NewDeployer()
+	d := node.NewDeployer(&logger)
 
 	// Create and register nodes based on configuration
 	for _, nodeConfig := range cfg.Deployer.Nodes {
 		nodeName := nodeConfig["name"].(string)
-		config.Info("Creating node",
-			log.String("node_name", nodeName),
-			log.String("component", "node_deployer"),
-		)
+		logger.Infof("Creating node %s", nodeName)
 
-		node, err := config.CreateNode(nodeConfig, nc)
+		node, err := config.CreateNode(nodeConfig, nc, &logger)
 		if err != nil {
-			config.Fatal("Failed to create node",
-				log.String("node_name", nodeName),
-				log.Error(err),
-			)
+			logger.Fatalf("Failed to create node %s: %v", nodeName, err)
 		}
 
 		if err := d.RegisterNode(node); err != nil {
-			config.Fatal("Failed to register node",
-				log.String("node_name", nodeName),
-				log.Error(err),
-			)
+			logger.Fatalf("Failed to register node %s: %v", nodeName, err)
 		}
 
-		config.Info("Successfully registered node",
-			log.String("node_name", nodeName),
-		)
+		logger.Infof("Successfully registered node %s", nodeName)
 	}
 
 	// Start all nodes
 	for _, nodeConfig := range cfg.Deployer.Nodes {
 		nodeName := nodeConfig["name"].(string)
 		if err := d.Start(nodeName); err != nil {
-			config.Fatal("Failed to start node",
-				log.String("node_name", nodeName),
-				log.Error(err),
-			)
+			logger.Fatalf("Failed to start node %s: %v", nodeName, err)
 		}
-		config.Info("Successfully started node",
-			log.String("node_name", nodeName),
-		)
+		logger.Infof("Successfully started node %s", nodeName)
 	}
 
-	config.Info("All nodes deployed successfully",
-		log.Int("node_count", len(cfg.Deployer.Nodes)),
-	)
+	logger.Infof("All nodes deployed successfully, %d nodes", len(cfg.Deployer.Nodes))
 
 	// Wait for shutdown signal
 	waitForShutdown()
@@ -108,21 +99,18 @@ func main() {
 	for _, nodeConfig := range cfg.Deployer.Nodes {
 		nodeName := nodeConfig["name"].(string)
 		if err := d.Stop(nodeName); err != nil {
-			config.Error("Error stopping node",
-				log.String("node_name", nodeName),
-				log.Error(err),
-			)
+			logger.Errorf("Error stopping node %s: %v", nodeName, err)
 		}
 	}
 
-	config.Info("All nodes stopped")
+	logger.Info("All nodes stopped")
 }
 
 func waitForShutdown() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	config.Info("Waiting for shutdown signal...")
+	logger.Info("Waiting for shutdown signal...")
 	<-sigChan
-	config.Info("Shutdown signal received")
+	logger.Info("Shutdown signal received")
 }

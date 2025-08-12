@@ -33,21 +33,13 @@ type RNGNode struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	count  int64
-	logger log.Logger
 }
 
 func init() {
 	node.RegisterNode("rng", NewRNGNode)
 }
 
-func NewRNGNode(name string, nc *nats.Conn, config node.NodeConfig) (node.Node, error) {
-	// Initialize structured logger
-	logger := log.New(
-		log.WithLevel(log.LevelInfo),
-		log.WithEncoder(log.NewTextEncoder()),
-		log.WithTimeRotation("./logs", fmt.Sprintf("%s.log", name), 24*time.Hour, 7),
-	)
-
+func NewRNGNode(name string, nc *nats.Conn, config node.NodeConfig, logger *log.Logger) (node.Node, error) {
 	// Parse configuration
 	var cfg RNGConfig
 	configBytes, err := json.Marshal(config)
@@ -59,19 +51,18 @@ func NewRNGNode(name string, nc *nats.Conn, config node.NodeConfig) (node.Node, 
 	}
 
 	// Create base node
-	baseNode := node.NewBaseNode(name, nc, 100)
+	baseNode := node.NewBaseNode(name, nc, 100, *logger)
 
 	// Create RNG node
 	rngNode := &RNGNode{
 		BaseNode: baseNode,
 		cfg:      cfg,
 		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
-		logger:   logger.With(log.String("node_name", name), log.String("node_type", "rng")),
 	}
 
 	rngNode.ctx, rngNode.cancel = context.WithCancel(context.Background())
 
-	rngNode.logger.Info("RNG node created",
+	baseNode.Info("RNG node created",
 		log.Int("low", cfg.Low),
 		log.Int("high", cfg.High),
 		log.Float64("interval", cfg.Interval),
@@ -81,13 +72,13 @@ func NewRNGNode(name string, nc *nats.Conn, config node.NodeConfig) (node.Node, 
 }
 
 func (n *RNGNode) Start() error {
-	n.logger.Info("Starting RNG node")
+	n.Info("Starting RNG node")
 	go n.publishRng(n.ctx)
 	return nil
 }
 
 func (n *RNGNode) Shutdown() error {
-	n.logger.Info("Shutting down RNG node")
+	n.Info("Shutting down RNG node")
 	n.cancel()
 	return nil
 }
@@ -99,7 +90,7 @@ func (n *RNGNode) OnRPC(req *nats.Msg) *nats.Msg {
 	contentType := req.Header.Get("Content-Type")
 	messageType := req.Header.Get("Message-Type")
 
-	n.logger.Debug("Received RPC request",
+	n.Debug("Received RPC request",
 		log.String("content_type", contentType),
 		log.String("message_type", messageType),
 	)
@@ -108,7 +99,7 @@ func (n *RNGNode) OnRPC(req *nats.Msg) *nats.Msg {
 	case contentType == "application/protobuf" && messageType == "rng.RngCountRequest":
 		var content pb.RngCountRequest
 		if err := proto.Unmarshal(req.Data, &content); err != nil {
-			n.logger.Error("Error unmarshalling RngCountRequest",
+			n.Error("Error unmarshalling RngCountRequest",
 				log.Error(err),
 			)
 			return utils.MakeErrorMessage(utils.ErrorProtobufDeserialization, err)
@@ -117,7 +108,7 @@ func (n *RNGNode) OnRPC(req *nats.Msg) *nats.Msg {
 	case contentType == "application/json" && messageType == "Config":
 		return n.onConfig(&n.cfg)
 	default:
-		n.logger.Warn("Unknown message type",
+		n.Warn("Unknown message type",
 			log.String("content_type", contentType),
 			log.String("message_type", messageType),
 		)
@@ -126,7 +117,7 @@ func (n *RNGNode) OnRPC(req *nats.Msg) *nats.Msg {
 }
 
 func (n *RNGNode) onRngCountRequest(req *pb.RngCountRequest) *nats.Msg {
-	n.logger.Debug("Processing RngCountRequest",
+	n.Debug("Processing RngCountRequest",
 		log.String("request", req.String()),
 	)
 
@@ -135,7 +126,7 @@ func (n *RNGNode) onRngCountRequest(req *pb.RngCountRequest) *nats.Msg {
 	}
 	responseBytes, err := utils.MarshallProtobuf(response)
 	if err != nil {
-		n.logger.Error("Error marshalling RngCountResponse",
+		n.Error("Error marshalling RngCountResponse",
 			log.Error(err),
 		)
 		return utils.MakeErrorMessage(utils.ErrorProtobufSerialization, err)
@@ -148,10 +139,10 @@ func (n *RNGNode) onRngCountRequest(req *pb.RngCountRequest) *nats.Msg {
 }
 
 func (n *RNGNode) onConfig(content *RNGConfig) *nats.Msg {
-	n.logger.Debug("Processing config request")
+	n.Debug("Processing config request")
 	responseBytes, err := json.Marshal(content)
 	if err != nil {
-		n.logger.Error("Error marshalling config response",
+		n.Error("Error marshalling config response",
 			log.Error(err),
 		)
 		return utils.MakeErrorMessage(utils.ErrorJSONSerialization, err)
@@ -167,7 +158,7 @@ func (n *RNGNode) publishRng(ctx context.Context) {
 	ticker := time.NewTicker(time.Duration(n.cfg.Interval * float64(time.Second)))
 	defer ticker.Stop()
 
-	n.logger.Info("Starting RNG publishing loop",
+	n.Info("Starting RNG publishing loop",
 		log.Float64("interval_seconds", n.cfg.Interval),
 	)
 
@@ -183,7 +174,7 @@ func (n *RNGNode) publishRng(ctx context.Context) {
 			}
 			msgBytes, err := utils.MarshallProtobuf(content)
 			if err != nil {
-				n.logger.Error("Error marshalling RNG message",
+				n.Error("Error marshalling RNG message",
 					log.Int("random_value", rand),
 					log.Error(err),
 				)
@@ -203,7 +194,7 @@ func (n *RNGNode) publishRng(ctx context.Context) {
 			topic := fmt.Sprintf("%s.rng.RngMessage", n.Name())
 			msg.Subject = topic
 			if err := n.NATSConnection().PublishMsg(msg); err != nil {
-				n.logger.Error("Error publishing RNG message",
+				n.Error("Error publishing RNG message",
 					log.String("topic", topic),
 					log.Int("random_value", rand),
 					log.Error(err),
@@ -211,7 +202,7 @@ func (n *RNGNode) publishRng(ctx context.Context) {
 				continue
 			}
 			n.count++
-			n.logger.Info("Published random number",
+			n.Info("Published random number",
 				log.Int("random_value", rand),
 				log.String("topic", topic),
 				log.Int64("message_count", n.count),
@@ -221,7 +212,7 @@ func (n *RNGNode) publishRng(ctx context.Context) {
 }
 
 func (n *RNGNode) waitForShutdown() {
-	n.logger.Info("RNG node shutdown complete",
+	n.Info("RNG node shutdown complete",
 		log.String("node_name", n.Name()),
 		log.Int64("total_messages", n.count),
 	)

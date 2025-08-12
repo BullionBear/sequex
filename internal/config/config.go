@@ -18,6 +18,13 @@ type Config struct {
 	Deployer DeployerConfig `yaml:"deployer"`
 }
 
+// LoggerConfig represents logger configuration
+type LoggerConfig struct {
+	Format string `yaml:"format"`
+	Path   string `yaml:"path"`
+	Level  string `yaml:"level"`
+}
+
 // NATSConfig represents NATS connection configuration
 type NATSConfig struct {
 	URL string `yaml:"url"`
@@ -26,12 +33,6 @@ type NATSConfig struct {
 // DeployerConfig represents deployer configuration
 type DeployerConfig struct {
 	Nodes []NodeConfig `yaml:"nodes"`
-}
-
-type LoggerConfig struct {
-	Format string `yaml:"format"`
-	Path   string `yaml:"path"`
-	Level  string `yaml:"level"`
 }
 
 // NodeConfig represents individual node configuration
@@ -58,12 +59,11 @@ func CreateNATSConnection(natsURL string) (*nats.Conn, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to NATS: %w", err)
 	}
-	Infof("Connected to NATS at: %s", natsURL)
 	return nc, nil
 }
 
 // CreateNode creates a node based on its type name
-func CreateNode(nodeConfig NodeConfig, nc *nats.Conn) (node.Node, error) {
+func CreateNode(nodeConfig NodeConfig, nc *nats.Conn, logger *log.Logger) (node.Node, error) {
 	// Extract the node name
 	nodeName, ok := nodeConfig["name"].(string)
 	if !ok {
@@ -92,7 +92,7 @@ func CreateNode(nodeConfig NodeConfig, nc *nats.Conn) (node.Node, error) {
 	configMap["name"] = nodeName
 
 	// Create the node
-	node, err := node.CreateNode(nodeType, nc, configMap)
+	node, err := node.CreateNode(nodeType, nc, configMap, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -109,12 +109,4 @@ func CreateNode(nodeConfig NodeConfig, nc *nats.Conn) (node.Node, error) {
 	}
 
 	return node, nil
-}
-
-// CreateLogger is deprecated, use InitializeLogger instead
-func CreateLogger(loggerConfig LoggerConfig) (log.Logger, error) {
-	if err := InitializeLogger(loggerConfig); err != nil {
-		return nil, err
-	}
-	return GetLogger(), nil
 }
