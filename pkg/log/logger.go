@@ -151,11 +151,12 @@ func NewTextEncoder() Encoder {
 }
 
 func (e *TextEncoder) Encode(entry *LogEntry) ([]byte, error) {
-	// Format: timestamp level file:line > message key=value
+	// Format: timestamp level file:line function > message key=value
 	parts := []string{
 		entry.Timestamp.Format(time.RFC3339),
 		entry.Level.String(),
 		fmt.Sprintf("%s:%d", entry.File, entry.Line),
+		entry.Function,
 		">",
 		entry.Message,
 	}

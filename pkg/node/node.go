@@ -70,42 +70,6 @@ func (bn *BaseNode) Subscriptions() []string {
 	return bn.subs
 }
 
-func (bn *BaseNode) Info(msg string, fields ...log.Field) {
-	bn.logger.Info(msg, fields...)
-}
-
-func (bn *BaseNode) Infof(format string, v ...any) {
-	bn.logger.Infof(format, v...)
-}
-
-func (bn *BaseNode) Error(msg string, fields ...log.Field) {
-	bn.logger.Error(msg, fields...)
-}
-
-func (bn *BaseNode) Errorf(format string, v ...any) {
-	bn.logger.Errorf(format, v...)
-}
-
-func (bn *BaseNode) Debug(msg string, fields ...log.Field) {
-	bn.logger.Debug(msg, fields...)
-}
-
-func (bn *BaseNode) Debugf(format string, v ...any) {
-	bn.logger.Debugf(format, v...)
-}
-
-func (bn *BaseNode) Warn(msg string, fields ...log.Field) {
-	bn.logger.Warn(msg, fields...)
-}
-
-func (bn *BaseNode) Warnf(format string, v ...any) {
-	bn.logger.Warnf(format, v...)
-}
-
-func (bn *BaseNode) Fatal(msg string, fields ...log.Field) {
-	bn.logger.Fatal(msg, fields...)
-}
-
-func (bn *BaseNode) Fatalf(format string, v ...any) {
-	bn.logger.Fatalf(format, v...)
+func (bn *BaseNode) Logger() log.Logger {
+	return bn.logger
 }
