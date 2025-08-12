@@ -24,22 +24,25 @@ const (
 type RequestType int32
 
 const (
-	RequestType_REQUEST_TYPE_CONFIG RequestType = 0
-	RequestType_REQUEST_TYPE_HEALTH RequestType = 1
-	RequestType_REQUEST_TYPE_VARZ   RequestType = 2
+	RequestType_REQUEST_TYPE_UNDEFINED RequestType = 0
+	RequestType_REQUEST_TYPE_CONFIG    RequestType = 1
+	RequestType_REQUEST_TYPE_HEALTH    RequestType = 2
+	RequestType_REQUEST_TYPE_VARZ      RequestType = 3
 )
 
 // Enum value maps for RequestType.
 var (
 	RequestType_name = map[int32]string{
-		0: "REQUEST_TYPE_CONFIG",
-		1: "REQUEST_TYPE_HEALTH",
-		2: "REQUEST_TYPE_VARZ",
+		0: "REQUEST_TYPE_UNDEFINED",
+		1: "REQUEST_TYPE_CONFIG",
+		2: "REQUEST_TYPE_HEALTH",
+		3: "REQUEST_TYPE_VARZ",
 	}
 	RequestType_value = map[string]int32{
-		"REQUEST_TYPE_CONFIG": 0,
-		"REQUEST_TYPE_HEALTH": 1,
-		"REQUEST_TYPE_VARZ":   2,
+		"REQUEST_TYPE_UNDEFINED": 0,
+		"REQUEST_TYPE_CONFIG":    1,
+		"REQUEST_TYPE_HEALTH":    2,
+		"REQUEST_TYPE_VARZ":      3,
 	}
 )
 
@@ -179,7 +182,7 @@ func (x *EmptyRequest) GetType() RequestType {
 	if x != nil {
 		return x.Type
 	}
-	return RequestType_REQUEST_TYPE_CONFIG
+	return RequestType_REQUEST_TYPE_UNDEFINED
 }
 
 var File_common_common_proto protoreflect.FileDescriptor
@@ -193,11 +196,12 @@ const file_common_common_proto_rawDesc = "" +
 	"\amessage\x18\x03 \x01(\tR\amessage\"F\n" +
 	"\fEmptyRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12&\n" +
-	"\x04type\x18\x02 \x01(\x0e2\x12.error.RequestTypeR\x04type*V\n" +
-	"\vRequestType\x12\x17\n" +
-	"\x13REQUEST_TYPE_CONFIG\x10\x00\x12\x17\n" +
-	"\x13REQUEST_TYPE_HEALTH\x10\x01\x12\x15\n" +
-	"\x11REQUEST_TYPE_VARZ\x10\x02BFZDgithub.com/BullionBear/sequex/internal/model/protobuf/error;commonpbb\x06proto3"
+	"\x04type\x18\x02 \x01(\x0e2\x12.error.RequestTypeR\x04type*r\n" +
+	"\vRequestType\x12\x1a\n" +
+	"\x16REQUEST_TYPE_UNDEFINED\x10\x00\x12\x17\n" +
+	"\x13REQUEST_TYPE_CONFIG\x10\x01\x12\x17\n" +
+	"\x13REQUEST_TYPE_HEALTH\x10\x02\x12\x15\n" +
+	"\x11REQUEST_TYPE_VARZ\x10\x03BFZDgithub.com/BullionBear/sequex/internal/model/protobuf/error;commonpbb\x06proto3"
 
 var (
 	file_common_common_proto_rawDescOnce sync.Once
