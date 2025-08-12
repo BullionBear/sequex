@@ -1,0 +1,20 @@
+app:
+  port: 8385
+  host: "0.0.0.0"
+
+logger:
+  format: text
+  level: info
+  path: "./logs/example.log" # empty string means stdout
+
+nats:
+  url: "nats://localhost:4222"
+
+deployer:
+  nodes:
+    - name: master
+      type: master
+      target:
+        - name: master
+        - name: rng-01
+        - name: sum-01
