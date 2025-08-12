@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/signal"
 	"syscall"
 
 	"github.com/BullionBear/sequex/env"
@@ -12,6 +11,7 @@ import (
 	_ "github.com/BullionBear/sequex/internal/nodeimpl/init" // Import to register all nodes
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"
+	"github.com/BullionBear/sequex/pkg/shutdown"
 )
 
 var logger log.Logger
@@ -51,6 +51,9 @@ func main() {
 		log.String("config_file", configFile),
 		log.String("component", "node_deployer"),
 	)
+
+	// Create shutdown
+	shutdown := shutdown.NewShutdown(logger)
 
 	// Create a single NATS connection for the entire process
 	nc, err := config.CreateNATSConnection(cfg.NATS.URL)
@@ -93,7 +96,7 @@ func main() {
 	logger.Infof("All nodes deployed successfully, %d nodes", len(cfg.Deployer.Nodes))
 
 	// Wait for shutdown signal
-	waitForShutdown()
+	shutdown.WaitForShutdown(syscall.SIGINT, syscall.SIGTERM)
 
 	// Stop all nodes
 	for _, nodeConfig := range cfg.Deployer.Nodes {
@@ -104,13 +107,4 @@ func main() {
 	}
 
 	logger.Info("All nodes stopped")
-}
-
-func waitForShutdown() {
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-	logger.Info("Waiting for shutdown signal...")
-	<-sigChan
-	logger.Info("Shutdown signal received")
 }
