@@ -14,6 +14,19 @@ paths:
           schema:
             type: string
       summary: Get a node
+  /node/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a node
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Node
+          schema:
+            type: string
+      summary: Register a node
   /nodes:
     get:
       consumes:

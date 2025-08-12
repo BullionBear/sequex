@@ -15,6 +15,26 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/node/register": {
+            "post": {
+                "description": "Register a node",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Register a node",
+                "responses": {
+                    "200": {
+                        "description": "Node",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/node/{name}": {
             "get": {
                 "description": "Get a node",
