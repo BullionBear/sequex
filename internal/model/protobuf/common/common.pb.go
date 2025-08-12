@@ -21,6 +21,55 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type RequestType int32
+
+const (
+	RequestType_REQUEST_TYPE_CONFIG RequestType = 0
+	RequestType_REQUEST_TYPE_HEALTH RequestType = 1
+	RequestType_REQUEST_TYPE_VARZ   RequestType = 2
+)
+
+// Enum value maps for RequestType.
+var (
+	RequestType_name = map[int32]string{
+		0: "REQUEST_TYPE_CONFIG",
+		1: "REQUEST_TYPE_HEALTH",
+		2: "REQUEST_TYPE_VARZ",
+	}
+	RequestType_value = map[string]int32{
+		"REQUEST_TYPE_CONFIG": 0,
+		"REQUEST_TYPE_HEALTH": 1,
+		"REQUEST_TYPE_VARZ":   2,
+	}
+)
+
+func (x RequestType) Enum() *RequestType {
+	p := new(RequestType)
+	*p = x
+	return p
+}
+
+func (x RequestType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RequestType) Descriptor() protoreflect.EnumDescriptor {
+	return file_common_common_proto_enumTypes[0].Descriptor()
+}
+
+func (RequestType) Type() protoreflect.EnumType {
+	return &file_common_common_proto_enumTypes[0]
+}
+
+func (x RequestType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RequestType.Descriptor instead.
+func (RequestType) EnumDescriptor() ([]byte, []int) {
+	return file_common_common_proto_rawDescGZIP(), []int{0}
+}
+
 type ErrorResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -84,7 +133,7 @@ func (x *ErrorResponse) GetMessage() string {
 type EmptyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Type          RequestType            `protobuf:"varint,2,opt,name=type,proto3,enum=error.RequestType" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -126,11 +175,11 @@ func (x *EmptyRequest) GetId() int64 {
 	return 0
 }
 
-func (x *EmptyRequest) GetType() string {
+func (x *EmptyRequest) GetType() RequestType {
 	if x != nil {
 		return x.Type
 	}
-	return ""
+	return RequestType_REQUEST_TYPE_CONFIG
 }
 
 var File_common_common_proto protoreflect.FileDescriptor
@@ -141,10 +190,14 @@ const file_common_common_proto_rawDesc = "" +
 	"\rErrorResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\x03R\x04code\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage\"2\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\"F\n" +
 	"\fEmptyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
-	"\x04type\x18\x02 \x01(\tR\x04typeBFZDgithub.com/BullionBear/sequex/internal/model/protobuf/error;commonpbb\x06proto3"
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12&\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x12.error.RequestTypeR\x04type*V\n" +
+	"\vRequestType\x12\x17\n" +
+	"\x13REQUEST_TYPE_CONFIG\x10\x00\x12\x17\n" +
+	"\x13REQUEST_TYPE_HEALTH\x10\x01\x12\x15\n" +
+	"\x11REQUEST_TYPE_VARZ\x10\x02BFZDgithub.com/BullionBear/sequex/internal/model/protobuf/error;commonpbb\x06proto3"
 
 var (
 	file_common_common_proto_rawDescOnce sync.Once
@@ -158,17 +211,20 @@ func file_common_common_proto_rawDescGZIP() []byte {
 	return file_common_common_proto_rawDescData
 }
 
+var file_common_common_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_common_common_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_common_common_proto_goTypes = []any{
-	(*ErrorResponse)(nil), // 0: error.ErrorResponse
-	(*EmptyRequest)(nil),  // 1: error.EmptyRequest
+	(RequestType)(0),      // 0: error.RequestType
+	(*ErrorResponse)(nil), // 1: error.ErrorResponse
+	(*EmptyRequest)(nil),  // 2: error.EmptyRequest
 }
 var file_common_common_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: error.EmptyRequest.type:type_name -> error.RequestType
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_common_common_proto_init() }
@@ -181,13 +237,14 @@ func file_common_common_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_common_proto_rawDesc), len(file_common_common_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_common_common_proto_goTypes,
 		DependencyIndexes: file_common_common_proto_depIdxs,
+		EnumInfos:         file_common_common_proto_enumTypes,
 		MessageInfos:      file_common_common_proto_msgTypes,
 	}.Build()
 	File_common_common_proto = out.File

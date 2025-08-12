@@ -4,6 +4,12 @@ package error;
 
 option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/error;commonpb";
 
+enum RequestType {
+    REQUEST_TYPE_CONFIG = 0;
+    REQUEST_TYPE_HEALTH = 1;
+    REQUEST_TYPE_VARZ = 2;
+}
+
 message ErrorResponse {
     int64 id = 1;
     int64 code = 2;
@@ -12,5 +18,5 @@ message ErrorResponse {
 
 message EmptyRequest {
     int64 id = 1;
-    string type = 2;
+    RequestType type = 2;
 }

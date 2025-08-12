@@ -33,16 +33,14 @@ type BaseNode struct {
 	name   string
 	mutex  sync.Mutex
 	nc     *nats.Conn
-	msgCh  chan *nats.Msg
 	subs   []string
 	logger log.Logger
 }
 
-func NewBaseNode(name string, nc *nats.Conn, sz int, logger log.Logger) *BaseNode {
+func NewBaseNode(name string, nc *nats.Conn, logger log.Logger) *BaseNode {
 	return &BaseNode{
 		name:   name,
 		nc:     nc,
-		msgCh:  make(chan *nats.Msg, sz),
 		subs:   make([]string, 0),
 		mutex:  sync.Mutex{},
 		logger: logger,

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"sync"
 	"time"
 
 	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
@@ -30,7 +29,6 @@ type RNGNode struct {
 
 	// State variables
 	rand   *rand.Rand
-	mutex  sync.Mutex
 	ctx    context.Context
 	cancel context.CancelFunc
 	count  int64
@@ -52,7 +50,7 @@ func NewRNGNode(name string, nc *nats.Conn, config node.NodeConfig, logger *log.
 	}
 
 	// Create base node
-	baseNode := node.NewBaseNode(name, nc, 100, *logger)
+	baseNode := node.NewBaseNode(name, nc, *logger)
 
 	// Create RNG node
 	rngNode := &RNGNode{
@@ -106,7 +104,7 @@ func (n *RNGNode) OnRPC(req *nats.Msg) *nats.Msg {
 			return utils.MakeErrorMessage(content.Id, utils.ErrorProtobufDeserialization, err)
 		}
 		return n.onRngCountRequest(&content)
-	case contentType == "application/protobuf" && messageType == "EmptyRequest":
+	case contentType == "application/protobuf" && messageType == "common.EmptyRequest":
 		var content pbCommon.EmptyRequest
 		if err := proto.Unmarshal(req.Data, &content); err != nil {
 			n.Logger().Error("Error unmarshalling EmptyRequest",
@@ -115,11 +113,11 @@ func (n *RNGNode) OnRPC(req *nats.Msg) *nats.Msg {
 			return utils.MakeErrorMessage(content.Id, utils.ErrorProtobufDeserialization, err)
 		}
 		switch content.Type {
-		case "Config":
+		case pbCommon.RequestType_REQUEST_TYPE_CONFIG:
 			return n.onConfig(&content)
 		default:
 			n.Logger().Warn("Unknown request type",
-				log.String("request_type", content.Type),
+				log.Int("request_type", int(content.Type)),
 			)
 			return utils.MakeErrorMessage(content.Id, utils.ErrorUnknownMessageType, fmt.Errorf("unknown message type: %s", content.Type))
 		}

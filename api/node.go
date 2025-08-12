@@ -7,23 +7,14 @@ import (
 )
 
 func NewNode(rg *gin.RouterGroup) {
-	prg := rg.Group("/node")
-	prg.GET("/list", listNodes)
-	prg.GET("/:name", getNode)
+	rg.GET("/nodes", listNodes)
+	rg.GET("/node/:name", getNode)
 }
 
 func listNodes(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Hello, World!"})
 }
 
-func registerNode(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Hello, World!"})
-}
-
 func getNode(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Hello, World!"})
-}
-
-func unregisterNode(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Hello, World!"})
 }

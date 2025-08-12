@@ -24,10 +24,9 @@ type SumNode struct {
 	*node.BaseNode
 	cfg SumConfig
 
-	sum    int64
-	count  int64
-	mutex  sync.Mutex
-	logger log.Logger
+	sum   int64
+	count int64
+	mutex sync.Mutex
 }
 
 func init() {
@@ -44,7 +43,7 @@ func NewSumNode(name string, nc *nats.Conn, config node.NodeConfig, logger *log.
 	if err := json.Unmarshal(jsonBytes, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
 	}
-	baseNode := node.NewBaseNode(name, nc, 100, *logger)
+	baseNode := node.NewBaseNode(name, nc, *logger)
 
 	sumNode := &SumNode{
 		BaseNode: baseNode,
@@ -145,7 +144,7 @@ func (n *SumNode) OnRPC(req *nats.Msg) *nats.Msg {
 			return utils.MakeErrorMessage(0, utils.ErrorProtobufDeserialization, err)
 		}
 		return n.onSumRequest(&content)
-	case contentType == "application/protobuf" && messageType == "EmptyRequest":
+	case contentType == "application/protobuf" && messageType == "common.EmptyRequest":
 		var content pbCommon.EmptyRequest
 		if err := proto.Unmarshal(req.Data, &content); err != nil {
 			n.Logger().Error("Error unmarshalling EmptyRequest",
@@ -154,11 +153,11 @@ func (n *SumNode) OnRPC(req *nats.Msg) *nats.Msg {
 			return utils.MakeErrorMessage(0, utils.ErrorProtobufDeserialization, err)
 		}
 		switch content.Type {
-		case "Config":
+		case pbCommon.RequestType_REQUEST_TYPE_CONFIG:
 			return n.onConfig(&content)
 		default:
 			n.Logger().Warn("Unknown request type",
-				log.String("request_type", content.Type),
+				log.Int("request_type", int(content.Type)),
 			)
 			return utils.MakeErrorMessage(content.Id, utils.ErrorUnknownMessageType, fmt.Errorf("unknown message type: %s", content.Type))
 		}
