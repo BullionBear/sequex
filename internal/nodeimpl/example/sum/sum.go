@@ -1,17 +1,9 @@
 package sum
 
 import (
-	"encoding/json"
-	"fmt"
 	"sync"
 
-	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
-	pb "github.com/BullionBear/sequex/internal/model/protobuf/example"
-	"github.com/BullionBear/sequex/internal/nodeimpl/utils"
-	"github.com/BullionBear/sequex/pkg/log"
-	"github.com/BullionBear/sequex/pkg/node"
-	"github.com/nats-io/nats.go"
-	"google.golang.org/protobuf/proto"
+	"github.com/BullionBear/sequex/internal/nodeimpl/base"
 )
 
 type SumConfig struct {
@@ -21,7 +13,7 @@ type SumConfig struct {
 }
 
 type SumNode struct {
-	*node.BaseNode
+	*base.BaseNode
 	cfg SumConfig
 
 	sum   int64
@@ -29,6 +21,7 @@ type SumNode struct {
 	mutex sync.Mutex
 }
 
+/*
 func init() {
 	node.RegisterNode("sum", NewSumNode)
 }
@@ -207,3 +200,4 @@ func (n *SumNode) onConfig(content *pbCommon.EmptyRequest) *nats.Msg {
 	msg.Data = responseBytes
 	return &msg
 }
+*/
