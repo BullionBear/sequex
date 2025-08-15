@@ -93,7 +93,7 @@ func (s *Shutdown) shutdown() {
 			defer func() {
 				wg.Done()
 			}()
-			s.logger.Info("begin shutdown callback %s", log.String("name", f.name))
+			s.logger.Info("begin shutdown callback", log.String("name", f.name))
 
 			// Create context with timeout if specified
 			var ctx context.Context
