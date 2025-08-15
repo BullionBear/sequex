@@ -1,17 +1,13 @@
-eventbus:
-  url: nats://localhost:4222
-
-node:
-  name: sum
-  type: sum
-  on: 
-    on_random: on.sum.random
-  rpc:
-    req_metadata: rpc.sum.metadata
-    req_status: rpc.sum.status
-    req_parameters: rpc.sum.parameters
-    req_sum: rpc.sum.sum
-  params:
-    init_sum: 0
-    upper_limit: 500
-    lower_limit: -500
+name: sum
+type: sum
+on: 
+  on_random: on.rng.random
+rpc:
+  req_metadata: rpc.sum.metadata
+  req_status: rpc.sum.status
+  req_parameters: rpc.sum.parameters
+  req_sum: rpc.sum.sum
+params:
+  init_sum: 0
+  upper_limit: 500
+  lower_limit: -500

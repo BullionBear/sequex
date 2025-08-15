@@ -12,6 +12,7 @@ import (
 	"github.com/BullionBear/sequex/pkg/eventbus"
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -71,6 +72,63 @@ func NewSumNode(name string, eb *eventbus.EventBus, config *node.NodeConfig, log
 
 func (n *SumNode) Start() error {
 	n.Logger().Info("Starting SUM node")
+	random, err := n.GetOn(OnRandomKey)
+	if err != nil {
+		return err
+	}
+	n.EventBus().On(random, func() proto.Message {
+		return &pbExample.RandomNumberMessage{}
+	}, func(event proto.Message) {
+		n.OnRandom(event.(*pbExample.RandomNumberMessage))
+	})
+	metadata, err := n.GetRpc(RpcReqMetadataKey)
+	if err != nil {
+		return err
+	}
+	n.EventBus().RegisterRPC(metadata, func() proto.Message {
+		return &pbCommon.MetadataRequest{}
+	}, func(event proto.Message) proto.Message {
+		if req, ok := event.(*pbCommon.MetadataRequest); ok {
+			return n.RequestMetadata(req)
+		}
+		return &pbCommon.MetadataResponse{
+			Id:      -1,
+			Code:    pbCommon.ErrorCode_ERROR_CODE_INVALID_REQUEST,
+			Message: "Invalid request",
+		}
+	})
+	parameters, err := n.GetRpc(RpcReqParametersKey)
+	if err != nil {
+		return err
+	}
+	n.EventBus().RegisterRPC(parameters, func() proto.Message {
+		return &pbCommon.ParametersRequest{}
+	}, func(event proto.Message) proto.Message {
+		if req, ok := event.(*pbCommon.ParametersRequest); ok {
+			return n.RequestParameters(req)
+		}
+		return &pbCommon.ParametersResponse{
+			Id:      -1,
+			Code:    pbCommon.ErrorCode_ERROR_CODE_INVALID_REQUEST,
+			Message: "Invalid request",
+		}
+	})
+	status, err := n.GetRpc(RpcReqStatusKey)
+	if err != nil {
+		return err
+	}
+	n.EventBus().RegisterRPC(status, func() proto.Message {
+		return &pbCommon.StatusRequest{}
+	}, func(event proto.Message) proto.Message {
+		if req, ok := event.(*pbCommon.StatusRequest); ok {
+			return n.RequestStatus(req)
+		}
+		return &pbCommon.StatusResponse{
+			Id:      -1,
+			Code:    pbCommon.ErrorCode_ERROR_CODE_INVALID_REQUEST,
+			Message: "Invalid request",
+		}
+	})
 	return nil
 }
 

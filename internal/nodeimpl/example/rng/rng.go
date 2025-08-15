@@ -71,7 +71,9 @@ func (n *RNGNode) Start() error {
 	if metadata, err := n.GetRpc(RpcReqMetadataKey); err != nil {
 		return err
 	} else {
-		n.EventBus().RegisterRPC(metadata, func(event proto.Message) proto.Message {
+		n.EventBus().RegisterRPC(metadata, func() proto.Message {
+			return &pbCommon.MetadataRequest{}
+		}, func(event proto.Message) proto.Message {
 			if req, ok := event.(*pbCommon.MetadataRequest); ok {
 				return n.RequestMetadata(req)
 			}
@@ -85,7 +87,9 @@ func (n *RNGNode) Start() error {
 	if parameters, err := n.GetRpc(RpcReqParametersKey); err != nil {
 		return err
 	} else {
-		n.EventBus().RegisterRPC(parameters, func(event proto.Message) proto.Message {
+		n.EventBus().RegisterRPC(parameters, func() proto.Message {
+			return &pbCommon.ParametersRequest{}
+		}, func(event proto.Message) proto.Message {
 			if req, ok := event.(*pbCommon.ParametersRequest); ok {
 				return n.RequestParameters(req)
 			}
@@ -99,7 +103,9 @@ func (n *RNGNode) Start() error {
 	if status, err := n.GetRpc(RpcReqStatusKey); err != nil {
 		return err
 	} else {
-		n.EventBus().RegisterRPC(status, func(event proto.Message) proto.Message {
+		n.EventBus().RegisterRPC(status, func() proto.Message {
+			return &pbCommon.StatusRequest{}
+		}, func(event proto.Message) proto.Message {
 			if req, ok := event.(*pbCommon.StatusRequest); ok {
 				return n.RequestStatus(req)
 			}
