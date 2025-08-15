@@ -11,9 +11,10 @@ node:
   emit: 
     - on_tick: on.rng.random
   rpc:
-    - get_config: rpc.rng.config
-    - get_status: rpc.rng.status
-    - get_metadata: rpc.rng.metadata
+    - req_metadata: rpc.rng.metadata
+    - req_parameters: rpc.rng.parameters
+    - req_status: rpc.rng.status
+    - req_random: rpc.rng.random
   params:
     min: 0
     max: 100

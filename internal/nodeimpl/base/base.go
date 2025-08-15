@@ -5,6 +5,7 @@ import (
 
 	"github.com/BullionBear/sequex/pkg/log"
 
+	"github.com/BullionBear/sequex/internal/config"
 	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
 	"github.com/BullionBear/sequex/pkg/eventbus"
 )
@@ -14,14 +15,22 @@ type BaseNode struct {
 	eb        *eventbus.EventBus
 	logger    log.Logger
 	createdAt int64
+	params    map[string]any
+	emit      map[string]string
+	on        map[string]string
+	rpc       map[string]string
 }
 
-func NewBaseNode(name string, eb *eventbus.EventBus, logger log.Logger) *BaseNode {
+func NewBaseNode(name string, eb *eventbus.EventBus, logger log.Logger, config *config.NodeConfig) *BaseNode {
 	return &BaseNode{
 		name:      name,
 		eb:        eb,
 		logger:    logger,
 		createdAt: time.Now().Unix(),
+		params:    config.Params,
+		emit:      config.Emit,
+		on:        config.On,
+		rpc:       config.Rpc,
 	}
 }
 
@@ -46,8 +55,13 @@ func (bn *BaseNode) GetMetadata(pb *pbCommon.MetadataRequest) *pbCommon.Metadata
 	return &pbCommon.MetadataResponse{
 		Id:        pb.Id,
 		Code:      pbCommon.ErrorCode_ERROR_CODE_OK,
-		Message:   "OK",
+		Message:   "",
 		Name:      bn.name,
 		CreatedAt: bn.createdAt,
+		Emit:      bn.emit,
+		On:        bn.on,
+		Rpc:       bn.rpc,
 	}
 }
+
+func 

@@ -11,10 +11,10 @@ node:
   on: 
     - on_random: on.sum.random
   rpc:
-    - get_config: rpc.sum.config
-    - get_status: rpc.sum.status
-    - get_metadata: rpc.sum.metadata
-    - get_sum: rpc.sum.sum
+    - req_metadata: rpc.sum.metadata
+    - req_status: rpc.sum.status
+    - req_parameters: rpc.sum.parameters
+    - req_sum: rpc.sum.sum
   params:
     init_sum: 0
     upper_limit: 500

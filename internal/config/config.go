@@ -23,7 +23,14 @@ type SrvConfig struct {
 	Node NodeConfig `yaml:"node"`
 }
 
-type NodeConfig map[string]any
+type NodeConfig struct {
+	Name   string            `yaml:"name"`
+	Type   string            `yaml:"type"`
+	Params map[string]any    `yaml:"params,omitempty"`
+	On     map[string]string `yaml:"on,omitempty"`
+	Emit   map[string]string `yaml:"emit,omitempty"`
+	Rpc    map[string]string `yaml:"rpc,omitempty"`
+}
 
 // LoadConfig loads the merged configuration from file
 func LoadConfig[T any](configPath string) (*T, error) {
