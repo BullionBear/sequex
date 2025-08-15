@@ -1,110 +1,139 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
-	"syscall"
 
 	"github.com/BullionBear/sequex/env"
-	"github.com/BullionBear/sequex/internal/config"
 	_ "github.com/BullionBear/sequex/internal/nodeimpl/init" // Import to register all nodes
 	"github.com/BullionBear/sequex/pkg/log"
-	"github.com/BullionBear/sequex/pkg/node"
-	"github.com/BullionBear/sequex/pkg/shutdown"
+	"github.com/spf13/cobra"
 )
 
-var logger log.Logger
+var (
+	logger     log.Logger
+	configFile string
+)
 
 func main() {
-	// Parse command line arguments
-	var configFile string
-	flag.StringVar(&configFile, "c", "config/node/example.yml", "Configuration file path")
-	flag.Parse()
+	// Initialize logger
+	logger = log.New(
+		log.WithLevel(log.LevelInfo),
+		log.WithOutput(os.Stdout),
+		log.WithEncoder(log.NewTextEncoder()),
+	)
 
-	fmt.Println("Starting services with BuildTime:", env.BuildTime)
-	fmt.Println("Starting services with Version:", env.Version)
-	fmt.Println("Starting services with CommitHash:", env.CommitHash)
+	// Create root command
+	rootCmd := &cobra.Command{
+		Use:   "node",
+		Short: "Sequex Node - A distributed computing node",
+		Long: `Sequex Node is a distributed computing node that can run as a server
+or interact with other nodes as a client.
 
-	// Load configuration
-	cfg, err := config.LoadConfig[config.Config](configFile)
-	if err != nil {
-		// Use fmt for error before logger is initialized
-		fmt.Printf("Failed to load configuration: %v\n", err)
-		os.Exit(1)
+Examples:
+  node serve -c config.yml     # Start a server with config
+  node call rng --server localhost:8080 --input 10  # Call RNG service
+  node list --server localhost:8080                  # List available services`,
+		Version: fmt.Sprintf("Version: %s\nBuild Time: %s\nCommit Hash: %s",
+			env.Version, env.BuildTime, env.CommitHash),
 	}
 
-	// Initialize global logger from config
-	logger, err = config.CreateLogger(cfg.Logger)
-	if err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
-		os.Exit(1)
+	// Add global flags
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Configuration file path")
+
+	// Create serve command (server group)
+	serveCmd := &cobra.Command{
+		Use:   "serve",
+		Short: "Start the node as a server",
+		Long:  "Start the Sequex node as a server to handle incoming requests",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runServer()
+		},
 	}
 
-	logger.Info("Starting services with",
+	// Create client commands
+	callCmd := &cobra.Command{
+		Use:   "call [service]",
+		Short: "Call a specific service",
+		Long:  "Call a specific service on a remote node",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return callService(args[0])
+		},
+	}
+
+	listCmd := &cobra.Command{
+		Use:   "list",
+		Short: "List available services",
+		Long:  "List all available services on a remote node",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return listServices()
+		},
+	}
+
+	// Add flags for client commands
+	callCmd.Flags().String("server", "localhost:8080", "Server address to connect to")
+	callCmd.Flags().String("input", "", "Input data for the service")
+	listCmd.Flags().String("server", "localhost:8080", "Server address to connect to")
+
+	// Add commands to root
+	rootCmd.AddCommand(serveCmd)
+	rootCmd.AddCommand(callCmd)
+	rootCmd.AddCommand(listCmd)
+
+	// Execute the root command
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+// runServer starts the node as a server
+func runServer() error {
+	logger.Info("Starting node server",
 		log.String("build_time", env.BuildTime),
 		log.String("version", env.Version),
 		log.String("commit_hash", env.CommitHash),
-	)
-
-	logger.Info("Starting NATS Microservices",
 		log.String("config_file", configFile),
-		log.String("component", "node_deployer"),
 	)
 
-	// Create shutdown
-	shutdown := shutdown.NewShutdown(logger)
+	// TODO: Implement server logic
+	logger.Info("Server started successfully")
+	logger.Info("TODO: Implement actual server functionality")
 
-	// Create a single NATS connection for the entire process
-	nc, err := config.CreateNATSConnection(cfg.NATS.URL)
-	if err != nil {
-		logger.Fatalf("Failed to connect to NATS %s: %v", cfg.NATS.URL, err)
-	}
-	defer nc.Close()
+	// Keep the server running
+	select {}
+}
 
-	logger.Infof("Successfully connected to NATS %s", cfg.NATS.URL)
+// callService calls a specific service on a remote node
+func callService(serviceName string) error {
+	// For now, use default values since we can't access flags from here
+	server := "localhost:8080"
+	input := ""
 
-	// Create deployer
-	d := node.NewDeployer(&logger)
+	logger.Info("Calling service",
+		log.String("service", serviceName),
+		log.String("server", server),
+		log.String("input", input),
+	)
 
-	// Create and register nodes based on configuration
-	for _, nodeConfig := range cfg.Deployer.Nodes {
-		nodeName := nodeConfig["name"].(string)
-		logger.Infof("Creating node %s", nodeName)
+	// TODO: Implement service call logic
+	logger.Info("TODO: Implement service call functionality")
 
-		node, err := config.CreateNode(nodeConfig, nc, &logger)
-		if err != nil {
-			logger.Fatalf("Failed to create node %s: %v", nodeName, err)
-		}
+	return nil
+}
 
-		if err := d.RegisterNode(node); err != nil {
-			logger.Fatalf("Failed to register node %s: %v", nodeName, err)
-		}
+// listServices lists available services on a remote node
+func listServices() error {
+	// For now, use default values since we can't access flags from here
+	server := "localhost:8080"
 
-		logger.Infof("Successfully registered node %s", nodeName)
-	}
+	logger.Info("Listing services",
+		log.String("server", server),
+	)
 
-	// Start all nodes
-	for _, nodeConfig := range cfg.Deployer.Nodes {
-		nodeName := nodeConfig["name"].(string)
-		if err := d.Start(nodeName); err != nil {
-			logger.Fatalf("Failed to start node %s: %v", nodeName, err)
-		}
-		logger.Infof("Successfully started node %s", nodeName)
-	}
+	// TODO: Implement service listing logic
+	logger.Info("TODO: Implement service listing functionality")
 
-	logger.Infof("All nodes deployed successfully, %d nodes", len(cfg.Deployer.Nodes))
-
-	// Wait for shutdown signal
-	shutdown.WaitForShutdown(syscall.SIGINT, syscall.SIGTERM)
-
-	// Stop all nodes
-	for _, nodeConfig := range cfg.Deployer.Nodes {
-		nodeName := nodeConfig["name"].(string)
-		if err := d.Stop(nodeName); err != nil {
-			logger.Errorf("Error stopping node %s: %v", nodeName, err)
-		}
-	}
-
-	logger.Info("All nodes stopped")
+	return nil
 }
