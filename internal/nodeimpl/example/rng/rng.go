@@ -9,14 +9,16 @@ import (
 
 	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
 	pb "github.com/BullionBear/sequex/internal/model/protobuf/example"
+	"github.com/BullionBear/sequex/internal/nodeimpl/base"
 	"github.com/BullionBear/sequex/internal/nodeimpl/utils"
+	"github.com/BullionBear/sequex/pkg/eventbus"
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
 )
 
-type RNGConfig struct {
+type RNGParams struct {
 	Low      int     `json:"low"`
 	High     int     `json:"high"`
 	Interval float64 `json:"interval"`
@@ -24,9 +26,9 @@ type RNGConfig struct {
 }
 
 type RNGNode struct {
-	*node.BaseNode
+	*base.BaseNode
 	// Configurable parameters
-	cfg RNGConfig
+	cfg RNGParams
 
 	// State variables
 	rand   *rand.Rand
@@ -39,9 +41,9 @@ func init() {
 	node.RegisterNode("rng", NewRNGNode)
 }
 
-func NewRNGNode(name string, nc *nats.Conn, config node.NodeConfig, logger *log.Logger) (node.Node, error) {
+func NewRNGNode(name string, eb *eventbus.EventBus, config *node.NodeConfig, logger log.Logger) (node.Node, error) {
 	// Parse configuration
-	var cfg RNGConfig
+	var cfg RNGParams
 	configBytes, err := json.Marshal(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal config: %v", err)
@@ -50,23 +52,7 @@ func NewRNGNode(name string, nc *nats.Conn, config node.NodeConfig, logger *log.
 		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
 	}
 
-	// Create base node
-	baseNode := node.NewBaseNode(name, nc, *logger)
-
-	// Create RNG node
-	rngNode := &RNGNode{
-		BaseNode: baseNode,
-		cfg:      cfg,
-		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
-
-	rngNode.ctx, rngNode.cancel = context.WithCancel(context.Background())
-
-	baseNode.Logger().Info("RNG node created",
-		log.Int("low", cfg.Low),
-		log.Int("high", cfg.High),
-		log.Float64("interval", cfg.Interval),
-	)
+	baseNode := base.NewBaseNode(name, nc, logger, config)
 
 	return rngNode, nil
 }

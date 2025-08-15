@@ -6,7 +6,6 @@ import (
 
 	"github.com/BullionBear/sequex/pkg/log"
 
-	"github.com/BullionBear/sequex/internal/config"
 	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
 	"github.com/BullionBear/sequex/pkg/eventbus"
 )
@@ -22,7 +21,7 @@ type BaseNode struct {
 	rpc       map[string]string
 }
 
-func NewBaseNode(name string, eb *eventbus.EventBus, logger log.Logger, config *config.NodeConfig) *BaseNode {
+func NewBaseNode(name string, eb *eventbus.EventBus, config *NodeConfig, logger log.Logger) *BaseNode {
 	return &BaseNode{
 		name:      name,
 		eb:        eb,

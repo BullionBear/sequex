@@ -8,7 +8,14 @@ import (
 	"github.com/BullionBear/sequex/pkg/log"
 )
 
-type NodeConfig = map[string]any
+type NodeConfig struct {
+	Name   string            `yaml:"name"`
+	Type   string            `yaml:"type"`
+	Params map[string]any    `yaml:"params,omitempty"`
+	On     map[string]string `yaml:"on,omitempty"`
+	Emit   map[string]string `yaml:"emit,omitempty"`
+	Rpc    map[string]string `yaml:"rpc,omitempty"`
+}
 
 type NewNodeFunc func(name string, eb *eventbus.EventBus, config *NodeConfig, logger log.Logger) (Node, error)
 
@@ -35,11 +42,5 @@ func CreateNode(nodeType string, eb *eventbus.EventBus, config *NodeConfig, logg
 		return nil, fmt.Errorf("node type %s not found in factory", nodeType)
 	}
 
-	// Extract the node name from config or generate one
-	nodeName, ok := (*config)["name"].(string)
-	if !ok {
-		return nil, fmt.Errorf("name not found in config")
-	}
-
-	return fn(nodeName, eb, config, logger)
+	return fn(config.Name, eb, config, logger)
 }
