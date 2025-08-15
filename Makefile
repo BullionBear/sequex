@@ -1,4 +1,3 @@
-BINARY=node
 PACKAGE="github.com/BullionBear/sequex"
 VERSION := $(shell git describe --tags --always --abbrev=0 --match='v[0-9]*.[0-9]*.[0-9]*' 2> /dev/null)
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
@@ -6,6 +5,13 @@ BUILD_TIMESTAMP := $(shell date '+%Y-%m-%dT%H:%M:%S')
 LDFLAGS := -X '${PACKAGE}/env.Version=${VERSION}' \
            -X '${PACKAGE}/env.CommitHash=${COMMIT_HASH}' \
            -X '${PACKAGE}/env.BuildTime=${BUILD_TIMESTAMP}'
+
+PROTO_DIR = proto
+GO_OUT_DIR = internal/model
+PROTOC = protoc
+PROTOC_GEN_GO = protoc-gen-go
+# Find all proto files
+PROTO_FILES := $(shell find $(PROTO_DIR) -name "*.proto")
 
 build:
 	rm -rf docs
@@ -17,33 +23,19 @@ test:
 	go test -v ./...
 
 proto:
-	@echo "Generating protobuf files..."
-	@find proto -name "*.proto" -type f | while read file; do \
-		rel_path=$$(echo "$$file" | sed 's|^proto/||'); \
-		dir=$$(dirname "internal/model/protobuf/$$rel_path"); \
-		mkdir -p "$$dir"; \
-		protoc --proto_path=proto --go_out=internal/model/protobuf --go_opt=paths=source_relative "$$file"; \
-		echo "Generated: $$file -> $$dir/*.pb.go"; \
+	@echo "Generating Go code from protobuf files..."
+	@mkdir -p $(GO_OUT_DIR)
+	@for proto_file in $(PROTO_FILES); do \
+		echo "Processing $$proto_file..."; \
+		$(PROTOC) \
+			--proto_path=. \
+			--go_out=$(GO_OUT_DIR) \
+			--go_opt=paths=source_relative \
+			--go-grpc_out=$(GO_OUT_DIR) \
+			--go-grpc_opt=paths=source_relative \
+			$$proto_file; \
 	done
-	@echo "Organizing generated files..."
-	@if [ -f internal/model/protobuf/app/shared.pb.go ]; then \
-		mkdir -p internal/model/protobuf/app/shared; \
-		mv internal/model/protobuf/app/shared.pb.go internal/model/protobuf/app/shared/; \
-		echo "Moved shared.pb.go to internal/model/protobuf/app/shared/"; \
-	fi
-	@if [ -f internal/model/protobuf/app/order.pb.go ]; then \
-		mkdir -p internal/model/protobuf/app/order; \
-		mv internal/model/protobuf/app/order.pb.go internal/model/protobuf/app/order/; \
-		echo "Moved order.pb.go to internal/model/protobuf/app/order/"; \
-	fi
-	@if [ -f internal/model/protobuf/app/trade.pb.go ]; then \
-		mkdir -p internal/model/protobuf/app/trade; \
-		mv internal/model/protobuf/app/trade.pb.go internal/model/protobuf/app/trade/; \
-		echo "Moved trade.pb.go to internal/model/protobuf/app/trade/"; \
-	fi
-	@if [ -f internal/model/protobuf/example/rng.pb.go ]; then \
-		echo "RNG protobuf file generated in internal/model/protobuf/example/"; \
-	fi
+	@echo "Protobuf generation completed!"
 
 clean:
 	rm -rf bin/*
