@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package shared;
 
-option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/app/shared;shared";
+option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/common/shared;commonpb";
 
 // Shared enum that can be used across multiple proto files
 enum OrderSide {

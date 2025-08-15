@@ -1,25 +1,6 @@
-logger:
-  format: text # or json
-  path: ./logs/rng.log
-  level: info
-
-nats:
-  url: nats://localhost:4222
-
-deployer:
-  nodes:
-    - name: rng_positive
-      type: rng
-      subscriptions: []
-      config:
-        low: 1
-        high: 100
-        interval: 1
-    - name: rng_negative
-      type: rng
-      subscriptions: []
-      config:
-        low: -100
-        high: -1
-        interval: 1
-
+name: rng
+type: rng
+config:
+  low: 1
+  high: 100
+  interval: 1

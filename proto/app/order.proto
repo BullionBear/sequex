@@ -4,7 +4,17 @@ package order;
 
 option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/app/order;order";
 
-import "app/shared.proto";
+import "common/shared.proto";
+
+message TradeMessage {
+    int64 id = 1;
+    double price = 2;
+    double qty = 3;
+    double quote_qty = 4;
+    int64 time = 5;
+    shared.OrderSide side = 6;
+}
+
 
 // Order message that uses shared types
 message Order {

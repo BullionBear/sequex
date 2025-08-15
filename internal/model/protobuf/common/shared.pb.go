@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.7
 // 	protoc        v3.12.4
-// source: app/shared.proto
+// source: common/shared.proto
 
-package shared
+package commonpb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -52,11 +52,11 @@ func (x OrderSide) String() string {
 }
 
 func (OrderSide) Descriptor() protoreflect.EnumDescriptor {
-	return file_app_shared_proto_enumTypes[0].Descriptor()
+	return file_common_shared_proto_enumTypes[0].Descriptor()
 }
 
 func (OrderSide) Type() protoreflect.EnumType {
-	return &file_app_shared_proto_enumTypes[0]
+	return &file_common_shared_proto_enumTypes[0]
 }
 
 func (x OrderSide) Number() protoreflect.EnumNumber {
@@ -65,7 +65,7 @@ func (x OrderSide) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use OrderSide.Descriptor instead.
 func (OrderSide) EnumDescriptor() ([]byte, []int) {
-	return file_app_shared_proto_rawDescGZIP(), []int{0}
+	return file_common_shared_proto_rawDescGZIP(), []int{0}
 }
 
 // Shared message type
@@ -80,7 +80,7 @@ type UserInfo struct {
 
 func (x *UserInfo) Reset() {
 	*x = UserInfo{}
-	mi := &file_app_shared_proto_msgTypes[0]
+	mi := &file_common_shared_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -92,7 +92,7 @@ func (x *UserInfo) String() string {
 func (*UserInfo) ProtoMessage() {}
 
 func (x *UserInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_app_shared_proto_msgTypes[0]
+	mi := &file_common_shared_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -105,7 +105,7 @@ func (x *UserInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserInfo.ProtoReflect.Descriptor instead.
 func (*UserInfo) Descriptor() ([]byte, []int) {
-	return file_app_shared_proto_rawDescGZIP(), []int{0}
+	return file_common_shared_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *UserInfo) GetUserId() string {
@@ -129,11 +129,11 @@ func (x *UserInfo) GetCreatedAt() int64 {
 	return 0
 }
 
-var File_app_shared_proto protoreflect.FileDescriptor
+var File_common_shared_proto protoreflect.FileDescriptor
 
-const file_app_shared_proto_rawDesc = "" +
+const file_common_shared_proto_rawDesc = "" +
 	"\n" +
-	"\x10app/shared.proto\x12\x06shared\"^\n" +
+	"\x13common/shared.proto\x12\x06shared\"^\n" +
 	"\bUserInfo\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x1d\n" +
@@ -141,27 +141,27 @@ const file_app_shared_proto_rawDesc = "" +
 	"created_at\x18\x03 \x01(\x03R\tcreatedAt*4\n" +
 	"\tOrderSide\x12\x12\n" +
 	"\x0eORDER_SIDE_BUY\x10\x00\x12\x13\n" +
-	"\x0fORDER_SIDE_SELL\x10\x01BIZGgithub.com/BullionBear/sequex/internal/model/protobuf/app/shared;sharedb\x06proto3"
+	"\x0fORDER_SIDE_SELL\x10\x01BNZLgithub.com/BullionBear/sequex/internal/model/protobuf/common/shared;commonpbb\x06proto3"
 
 var (
-	file_app_shared_proto_rawDescOnce sync.Once
-	file_app_shared_proto_rawDescData []byte
+	file_common_shared_proto_rawDescOnce sync.Once
+	file_common_shared_proto_rawDescData []byte
 )
 
-func file_app_shared_proto_rawDescGZIP() []byte {
-	file_app_shared_proto_rawDescOnce.Do(func() {
-		file_app_shared_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_app_shared_proto_rawDesc), len(file_app_shared_proto_rawDesc)))
+func file_common_shared_proto_rawDescGZIP() []byte {
+	file_common_shared_proto_rawDescOnce.Do(func() {
+		file_common_shared_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_common_shared_proto_rawDesc), len(file_common_shared_proto_rawDesc)))
 	})
-	return file_app_shared_proto_rawDescData
+	return file_common_shared_proto_rawDescData
 }
 
-var file_app_shared_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_app_shared_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_app_shared_proto_goTypes = []any{
+var file_common_shared_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_common_shared_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_common_shared_proto_goTypes = []any{
 	(OrderSide)(0),   // 0: shared.OrderSide
 	(*UserInfo)(nil), // 1: shared.UserInfo
 }
-var file_app_shared_proto_depIdxs = []int32{
+var file_common_shared_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -169,27 +169,27 @@ var file_app_shared_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_app_shared_proto_init() }
-func file_app_shared_proto_init() {
-	if File_app_shared_proto != nil {
+func init() { file_common_shared_proto_init() }
+func file_common_shared_proto_init() {
+	if File_common_shared_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_shared_proto_rawDesc), len(file_app_shared_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_shared_proto_rawDesc), len(file_common_shared_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_app_shared_proto_goTypes,
-		DependencyIndexes: file_app_shared_proto_depIdxs,
-		EnumInfos:         file_app_shared_proto_enumTypes,
-		MessageInfos:      file_app_shared_proto_msgTypes,
+		GoTypes:           file_common_shared_proto_goTypes,
+		DependencyIndexes: file_common_shared_proto_depIdxs,
+		EnumInfos:         file_common_shared_proto_enumTypes,
+		MessageInfos:      file_common_shared_proto_msgTypes,
 	}.Build()
-	File_app_shared_proto = out.File
-	file_app_shared_proto_goTypes = nil
-	file_app_shared_proto_depIdxs = nil
+	File_common_shared_proto = out.File
+	file_common_shared_proto_goTypes = nil
+	file_common_shared_proto_depIdxs = nil
 }

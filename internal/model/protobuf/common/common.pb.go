@@ -136,7 +136,7 @@ func (x *ErrorResponse) GetMessage() string {
 type EmptyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Type          RequestType            `protobuf:"varint,2,opt,name=type,proto3,enum=error.RequestType" json:"type,omitempty"`
+	Type          RequestType            `protobuf:"varint,2,opt,name=type,proto3,enum=common.RequestType" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -189,19 +189,19 @@ var File_common_common_proto protoreflect.FileDescriptor
 
 const file_common_common_proto_rawDesc = "" +
 	"\n" +
-	"\x13common/common.proto\x12\x05error\"M\n" +
+	"\x13common/common.proto\x12\x06common\"M\n" +
 	"\rErrorResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\x03R\x04code\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage\"F\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\"G\n" +
 	"\fEmptyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12&\n" +
-	"\x04type\x18\x02 \x01(\x0e2\x12.error.RequestTypeR\x04type*r\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12'\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x13.common.RequestTypeR\x04type*r\n" +
 	"\vRequestType\x12\x1a\n" +
 	"\x16REQUEST_TYPE_UNDEFINED\x10\x00\x12\x17\n" +
 	"\x13REQUEST_TYPE_CONFIG\x10\x01\x12\x17\n" +
 	"\x13REQUEST_TYPE_HEALTH\x10\x02\x12\x15\n" +
-	"\x11REQUEST_TYPE_VARZ\x10\x03BFZDgithub.com/BullionBear/sequex/internal/model/protobuf/error;commonpbb\x06proto3"
+	"\x11REQUEST_TYPE_VARZ\x10\x03BNZLgithub.com/BullionBear/sequex/internal/model/protobuf/common/common;commonpbb\x06proto3"
 
 var (
 	file_common_common_proto_rawDescOnce sync.Once
@@ -218,12 +218,12 @@ func file_common_common_proto_rawDescGZIP() []byte {
 var file_common_common_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_common_common_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_common_common_proto_goTypes = []any{
-	(RequestType)(0),      // 0: error.RequestType
-	(*ErrorResponse)(nil), // 1: error.ErrorResponse
-	(*EmptyRequest)(nil),  // 2: error.EmptyRequest
+	(RequestType)(0),      // 0: common.RequestType
+	(*ErrorResponse)(nil), // 1: common.ErrorResponse
+	(*EmptyRequest)(nil),  // 2: common.EmptyRequest
 }
 var file_common_common_proto_depIdxs = []int32{
-	0, // 0: error.EmptyRequest.type:type_name -> error.RequestType
+	0, // 0: common.EmptyRequest.type:type_name -> common.RequestType
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name

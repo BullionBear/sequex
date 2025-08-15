@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package error;
+package common;
 
-option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/error;commonpb";
+option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/common/common;commonpb";
 
 enum RequestType {
     REQUEST_TYPE_UNDEFINED = 0;
