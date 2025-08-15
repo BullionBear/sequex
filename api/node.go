@@ -3,11 +3,10 @@ package api
 import (
 	"net/http"
 
-	"github.com/BullionBear/sequex/internal/nodeimpl/master"
 	"github.com/gin-gonic/gin"
 )
 
-func NewNode(rg *gin.RouterGroup, masterRPCClient *master.MasterRPCClient) {
+func NewNode(rg *gin.RouterGroup) {
 	rg.GET("/nodes", listNodes)
 	rg.GET("/node/:name", getNode)
 	rg.POST("/node/register", registerNode)
