@@ -104,7 +104,7 @@ type LogEntry struct {
 	File      string
 	Function  string
 	Line      int
-	Fields    map[string]interface{}
+	Fields    []Field // Changed from map[string]interface{} to []Field to maintain order
 }
 
 // JSONEncoder implements JSON format encoding
@@ -125,18 +125,19 @@ func (e *JSONEncoder) Encode(entry *LogEntry) ([]byte, error) {
 	fields = append(fields, fmt.Sprintf(`"function":"%s"`, entry.Function))
 	fields = append(fields, fmt.Sprintf(`"line":%d`, entry.Line))
 
-	for k, v := range entry.Fields {
-		switch val := v.(type) {
+	// Add fields in order to maintain consistent output
+	for _, field := range entry.Fields {
+		switch val := field.Value.(type) {
 		case string:
-			fields = append(fields, fmt.Sprintf(`"%s":"%s"`, k, val))
+			fields = append(fields, fmt.Sprintf(`"%s":"%s"`, field.Key, val))
 		case int, int64:
-			fields = append(fields, fmt.Sprintf(`"%s":%v`, k, val))
+			fields = append(fields, fmt.Sprintf(`"%s":%v`, field.Key, val))
 		case float64:
-			fields = append(fields, fmt.Sprintf(`"%s":%f`, k, val))
+			fields = append(fields, fmt.Sprintf(`"%s":%f`, field.Key, val))
 		case bool:
-			fields = append(fields, fmt.Sprintf(`"%s":%t`, k, val))
+			fields = append(fields, fmt.Sprintf(`"%s":%t`, field.Key, val))
 		default:
-			fields = append(fields, fmt.Sprintf(`"%s":"%v"`, k, val))
+			fields = append(fields, fmt.Sprintf(`"%s":"%v"`, field.Key, val))
 		}
 	}
 
@@ -161,9 +162,9 @@ func (e *TextEncoder) Encode(entry *LogEntry) ([]byte, error) {
 		entry.Message,
 	}
 
-	// Add fields as key=value pairs
-	for k, v := range entry.Fields {
-		parts = append(parts, fmt.Sprintf("%s=%v", k, v))
+	// Add fields as key=value pairs in order to maintain consistent output
+	for _, field := range entry.Fields {
+		parts = append(parts, fmt.Sprintf("%s=%v", field.Key, field.Value))
 	}
 
 	return []byte(strings.Join(parts, " ") + "\n"), nil
@@ -284,7 +285,7 @@ type logger struct {
 	encoder    Encoder
 	mu         sync.Mutex
 	callerSkip int
-	fields     map[string]interface{}
+	fields     []Field // Changed from map[string]interface{} to []Field to maintain order
 }
 
 // Option is a function that configures a logger
@@ -297,7 +298,7 @@ func New(opts ...Option) Logger {
 		output:     os.Stdout,
 		encoder:    NewJSONEncoder(),
 		callerSkip: 2,
-		fields:     make(map[string]interface{}),
+		fields:     make([]Field, 0),
 	}
 
 	for _, opt := range opts {
@@ -376,12 +377,12 @@ func (l *logger) log(level Level, msg string, fields ...Field) {
 	}
 
 	// Combine fields
-	allFields := make(map[string]interface{})
-	for k, v := range l.fields {
-		allFields[k] = v
+	allFields := make([]Field, 0, len(l.fields)+len(fields))
+	for _, field := range l.fields {
+		allFields = append(allFields, field)
 	}
 	for _, field := range fields {
-		allFields[field.Key] = field.Value
+		allFields = append(allFields, field)
 	}
 
 	entry := &LogEntry{
@@ -460,17 +461,17 @@ func (l *logger) With(fields ...Field) Logger {
 		output:     l.output,
 		encoder:    l.encoder,
 		callerSkip: l.callerSkip,
-		fields:     make(map[string]interface{}),
+		fields:     make([]Field, 0, len(l.fields)+len(fields)),
 	}
 
 	// Copy existing fields
-	for k, v := range l.fields {
-		newLogger.fields[k] = v
+	for _, field := range l.fields {
+		newLogger.fields = append(newLogger.fields, field)
 	}
 
 	// Add new fields
 	for _, field := range fields {
-		newLogger.fields[field.Key] = field.Value
+		newLogger.fields = append(newLogger.fields, field)
 	}
 
 	return newLogger

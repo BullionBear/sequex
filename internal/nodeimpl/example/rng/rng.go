@@ -1,219 +1,195 @@
 package rng
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"math/rand"
-	"sync"
 	"time"
 
-	pb "github.com/BullionBear/sequex/internal/model/protobuf/example"
-	"github.com/BullionBear/sequex/internal/nodeimpl/utils"
+	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
+	pbExample "github.com/BullionBear/sequex/internal/model/protobuf/example"
+	"github.com/BullionBear/sequex/internal/nodeimpl/base"
+	"github.com/BullionBear/sequex/pkg/eventbus"
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"
-	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
 )
 
-type RNGConfig struct {
-	Low      int     `json:"low"`
-	High     int     `json:"high"`
-	Interval float64 `json:"interval"`
+const (
+	EmitRandomKey = "emit_random"
+
+	RpcReqMetadataKey   = "req_metadata"
+	RpcReqParametersKey = "req_parameters"
+	RpcReqStatusKey     = "req_status"
+)
+
+type RNGParams struct {
+	Low      int           `json:"low"`
+	High     int           `json:"high"`
+	Interval time.Duration `json:"interval"`
+	Seed     int           `json:"seed"`
 }
 
 type RNGNode struct {
-	*node.BaseNode
+	*base.BaseNode
 	// Configurable parameters
-	cfg RNGConfig
+	cfg RNGParams
 
 	// State variables
-	rand   *rand.Rand
-	mutex  sync.Mutex
-	ctx    context.Context
-	cancel context.CancelFunc
-	count  int64
+	rand      *rand.Rand
+	shutdownC chan struct{}
+	doneC     chan struct{}
+	count     int64
 }
 
 func init() {
 	node.RegisterNode("rng", NewRNGNode)
 }
 
-func NewRNGNode(name string, nc *nats.Conn, config node.NodeConfig, logger *log.Logger) (node.Node, error) {
-	// Parse configuration
-	var cfg RNGConfig
-	configBytes, err := json.Marshal(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal config: %v", err)
-	}
-	if err := json.Unmarshal(configBytes, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
-	}
+func NewRNGNode(name string, eb *eventbus.EventBus, config *node.NodeConfig, logger log.Logger) (node.Node, error) {
+	baseNode := base.NewBaseNode(name, eb, config, logger)
 
-	// Create base node
-	baseNode := node.NewBaseNode(name, nc, 100, *logger)
-
-	// Create RNG node
-	rngNode := &RNGNode{
-		BaseNode: baseNode,
-		cfg:      cfg,
-		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
+	cfg := RNGParams{
+		Low:      config.Params["low"].(int),
+		High:     config.Params["high"].(int),
+		Interval: time.Duration(config.Params["interval"].(int)) * time.Second,
+		Seed:     config.Params["seed"].(int),
 	}
 
-	rngNode.ctx, rngNode.cancel = context.WithCancel(context.Background())
-
-	baseNode.Logger().Info("RNG node created",
-		log.Int("low", cfg.Low),
-		log.Int("high", cfg.High),
-		log.Float64("interval", cfg.Interval),
-	)
-
-	return rngNode, nil
+	return &RNGNode{
+		BaseNode:  baseNode,
+		cfg:       cfg,
+		rand:      rand.New(rand.NewSource(int64(cfg.Seed))),
+		shutdownC: make(chan struct{}),
+		doneC:     make(chan struct{}),
+	}, nil
 }
 
 func (n *RNGNode) Start() error {
 	n.Logger().Info("Starting RNG node")
-	go n.publishRng(n.ctx)
+
+	go n.emitRandom(n.shutdownC, n.doneC)
+	if metadata, err := n.GetRpc(RpcReqMetadataKey); err != nil {
+		return err
+	} else {
+		n.EventBus().RegisterRPC(metadata, func() proto.Message {
+			return &pbCommon.MetadataRequest{}
+		}, func(event proto.Message) proto.Message {
+			if req, ok := event.(*pbCommon.MetadataRequest); ok {
+				return n.RequestMetadata(req)
+			}
+			return &pbCommon.MetadataResponse{
+				Id:      -1,
+				Code:    pbCommon.ErrorCode_ERROR_CODE_INVALID_REQUEST,
+				Message: "Invalid request",
+			}
+		})
+	}
+	if parameters, err := n.GetRpc(RpcReqParametersKey); err != nil {
+		return err
+	} else {
+		n.EventBus().RegisterRPC(parameters, func() proto.Message {
+			return &pbCommon.ParametersRequest{}
+		}, func(event proto.Message) proto.Message {
+			if req, ok := event.(*pbCommon.ParametersRequest); ok {
+				return n.RequestParameters(req)
+			}
+			return &pbCommon.ParametersResponse{
+				Id:      -1,
+				Code:    pbCommon.ErrorCode_ERROR_CODE_INVALID_REQUEST,
+				Message: "Invalid request",
+			}
+		})
+	}
+	if status, err := n.GetRpc(RpcReqStatusKey); err != nil {
+		return err
+	} else {
+		n.EventBus().RegisterRPC(status, func() proto.Message {
+			return &pbCommon.StatusRequest{}
+		}, func(event proto.Message) proto.Message {
+			if req, ok := event.(*pbCommon.StatusRequest); ok {
+				return n.RequestStatus(req)
+			}
+			return &pbCommon.StatusResponse{
+				Id:      -1,
+				Code:    pbCommon.ErrorCode_ERROR_CODE_INVALID_REQUEST,
+				Message: "Invalid request",
+			}
+		})
+	}
 	return nil
 }
 
 func (n *RNGNode) Shutdown() error {
 	n.Logger().Info("Shutting down RNG node")
-	n.cancel()
+	close(n.shutdownC)
+	<-n.doneC
 	return nil
 }
-
-func (n *RNGNode) OnMessage(msg *nats.Msg) {
-}
-
-func (n *RNGNode) OnRPC(req *nats.Msg) *nats.Msg {
-	contentType := req.Header.Get("Content-Type")
-	messageType := req.Header.Get("Message-Type")
-
-	n.Logger().Debug("Received RPC request",
-		log.String("content_type", contentType),
-		log.String("message_type", messageType),
-	)
-
-	switch {
-	case contentType == "application/protobuf" && messageType == "rng.RngCountRequest":
-		var content pb.RngCountRequest
-		if err := proto.Unmarshal(req.Data, &content); err != nil {
-			n.Logger().Error("Error unmarshalling RngCountRequest",
-				log.Error(err),
-			)
-			return utils.MakeErrorMessage(utils.ErrorProtobufDeserialization, err)
-		}
-		return n.onRngCountRequest(&content)
-	case contentType == "application/json" && messageType == "Config":
-		return n.onConfig(&n.cfg)
-	default:
-		n.Logger().Warn("Unknown message type",
-			log.String("content_type", contentType),
-			log.String("message_type", messageType),
-		)
-		return utils.MakeErrorMessage(utils.ErrorUnknownMessageType, fmt.Errorf("unknown content-type: %s, message-type: %s", contentType, messageType))
-	}
-}
-
-func (n *RNGNode) onRngCountRequest(req *pb.RngCountRequest) *nats.Msg {
-	n.Logger().Debug("Processing RngCountRequest",
-		log.String("request", req.String()),
-	)
-
-	response := &pb.RngCountResponse{
-		NCount: n.count,
-	}
-	responseBytes, err := utils.MarshallProtobuf(response)
-	if err != nil {
-		n.Logger().Error("Error marshalling RngCountResponse",
-			log.Error(err),
-		)
-		return utils.MakeErrorMessage(utils.ErrorProtobufSerialization, err)
-	}
-	msg := nats.Msg{}
-	msg.Header.Set("Content-Type", "application/protobuf")
-	msg.Header.Set("Message-Type", "rng.RngCountResponse")
-	msg.Data = responseBytes
-	return &msg
-}
-
-func (n *RNGNode) onConfig(content *RNGConfig) *nats.Msg {
-	n.Logger().Debug("Processing config request")
-	responseBytes, err := json.Marshal(content)
-	if err != nil {
-		n.Logger().Error("Error marshalling config response",
-			log.Error(err),
-		)
-		return utils.MakeErrorMessage(utils.ErrorJSONSerialization, err)
-	}
-	msg := nats.Msg{}
-	msg.Header.Set("Content-Type", "application/json")
-	msg.Header.Set("Message-Type", "RngConfig")
-	msg.Data = responseBytes
-	return &msg
-}
-
-func (n *RNGNode) publishRng(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(n.cfg.Interval * float64(time.Second)))
+func (n *RNGNode) emitRandom(shutdownC chan struct{}, doneC chan struct{}) {
+	ticker := time.NewTicker(n.cfg.Interval)
 	defer ticker.Stop()
-
-	n.Logger().Info("Starting RNG publishing loop",
-		log.Float64("interval_seconds", n.cfg.Interval),
-	)
-
+	subject, err := n.GetEmit(EmitRandomKey)
+	if err != nil {
+		n.Logger().Fatal("Failed to get emit subject", log.Error(err))
+		return
+	}
 	for {
 		select {
-		case <-ctx.Done():
-			n.waitForShutdown()
+		case <-shutdownC:
+			n.Logger().Info("Stopping emitRandom")
+			close(doneC)
 			return
 		case <-ticker.C:
-			rand := n.rand.Intn(n.cfg.High-n.cfg.Low+1) + n.cfg.Low
-			content := &pb.RngMessage{
-				Random: int64(rand),
-			}
-			msgBytes, err := utils.MarshallProtobuf(content)
-			if err != nil {
-				n.Logger().Error("Error marshalling RNG message",
-					log.Int("random_value", rand),
-					log.Error(err),
-				)
-				continue
-			}
-
-			// Create message with proper headers
-			msg := &nats.Msg{
-				Header: map[string][]string{
-					"Content-Type": {"application/protobuf"},
-					"Message-Type": {"rng.RngMessage"},
-				},
-				Data: msgBytes,
-			}
-
-			// Publish to the topic with the node name
-			topic := fmt.Sprintf("%s.rng.RngMessage", n.Name())
-			msg.Subject = topic
-			if err := n.NATSConnection().PublishMsg(msg); err != nil {
-				n.Logger().Error("Error publishing RNG message",
-					log.String("topic", topic),
-					log.Int("random_value", rand),
-					log.Error(err),
-				)
-				continue
-			}
+			random := n.rand.Intn(n.cfg.High-n.cfg.Low+1) + n.cfg.Low
+			n.EventBus().Emit(subject, &pbExample.RandomNumberMessage{
+				Id:    n.count,
+				Value: int64(random),
+			})
+			n.Logger().Info("Emitting random number", log.Int64("random", int64(random)), log.Int64("count", n.count))
 			n.count++
-			n.Logger().Info("Published random number",
-				log.Int("random_value", rand),
-				log.String("topic", topic),
-				log.Int64("message_count", n.count),
-			)
 		}
 	}
 }
 
-func (n *RNGNode) waitForShutdown() {
-	n.Logger().Info("RNG node shutdown complete",
-		log.String("node_name", n.Name()),
-		log.Int64("total_messages", n.count),
-	)
+func (n *RNGNode) RequestParameters(req *pbCommon.ParametersRequest) *pbCommon.ParametersResponse {
+	jsonBytes, err := json.Marshal(map[string]any{
+		"low":      n.cfg.Low,
+		"high":     n.cfg.High,
+		"interval": n.cfg.Interval.Seconds(),
+		"seed":     n.cfg.Seed,
+	})
+	if err != nil {
+		n.Logger().Error("Failed to marshal parameters", log.Error(err))
+		return &pbCommon.ParametersResponse{
+			Id:      -1,
+			Code:    pbCommon.ErrorCode_ERROR_CODE_SERIALIZATION_ERROR,
+			Message: "Failed to json marshal parameters",
+		}
+	}
+	return &pbCommon.ParametersResponse{
+		Id:         req.Id,
+		Code:       pbCommon.ErrorCode_ERROR_CODE_OK,
+		Message:    "",
+		Parameters: jsonBytes,
+	}
+}
+
+func (n *RNGNode) RequestStatus(req *pbCommon.StatusRequest) *pbCommon.StatusResponse {
+	jsonBytes, err := json.Marshal(map[string]any{
+		"count": n.count,
+	})
+	if err != nil {
+		n.Logger().Error("Failed to marshal status", log.Error(err))
+		return &pbCommon.StatusResponse{
+			Id:      req.Id,
+			Code:    pbCommon.ErrorCode_ERROR_CODE_SERIALIZATION_ERROR,
+			Message: "Failed to json marshal status",
+		}
+	}
+	return &pbCommon.StatusResponse{
+		Id:      req.Id,
+		Code:    pbCommon.ErrorCode_ERROR_CODE_OK,
+		Message: "",
+		Status:  jsonBytes,
+	}
 }

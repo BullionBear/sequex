@@ -3,110 +3,90 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
-	"github.com/BullionBear/sequex/pkg/log"
-	"github.com/BullionBear/sequex/pkg/node"
-
-	"github.com/nats-io/nats.go"
 	"gopkg.in/yaml.v3"
 )
 
-// Config represents the merged configuration structure
-type Config struct {
-	Logger   LoggerConfig   `yaml:"logger"`
-	NATS     NATSConfig     `yaml:"nats"`
-	Deployer DeployerConfig `yaml:"deployer"`
+const (
+	PathGlobalConfig = "~/.sequex/config.yml"
+)
+
+type GlobalConfig struct {
+	EventBus struct {
+		Url string `yaml:"url"`
+	} `yaml:"eventbus"`
 }
 
-// LoggerConfig represents logger configuration
-type LoggerConfig struct {
-	Format string `yaml:"format"`
-	Path   string `yaml:"path"`
-	Level  string `yaml:"level"`
+// expandTilde expands the tilde (~) to the user's home directory
+func expandTilde(path string) string {
+	if strings.HasPrefix(path, "~") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return path // Return original path if we can't get home dir
+		}
+		return filepath.Join(home, path[1:])
+	}
+	return path
 }
 
-// NATSConfig represents NATS connection configuration
-type NATSConfig struct {
-	URL string `yaml:"url"`
-}
+// createDefaultConfig creates a default configuration file at the specified path
+func createDefaultConfig(configPath string) error {
+	// Expand tilde in path
+	expandedPath := expandTilde(configPath)
 
-// DeployerConfig represents deployer configuration
-type DeployerConfig struct {
-	Nodes []NodeConfig `yaml:"nodes"`
-}
+	// Create directory if it doesn't exist
+	dir := filepath.Dir(expandedPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
 
-// NodeConfig represents individual node configuration
-type NodeConfig map[string]interface{}
+	// Create default config
+	defaultConfig := GlobalConfig{}
+	defaultConfig.EventBus.Url = "nats://localhost:4222"
+
+	// Marshal to YAML
+	data, err := yaml.Marshal(defaultConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal default config: %w", err)
+	}
+
+	// Write to file
+	if err := os.WriteFile(expandedPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write default config file: %w", err)
+	}
+
+	return nil
+}
 
 // LoadConfig loads the merged configuration from file
-func LoadConfig(configPath string) (*Config, error) {
-	data, err := os.ReadFile(configPath)
+func LoadConfig[T any](configPath string) (*T, error) {
+	// Expand tilde in path
+	expandedPath := expandTilde(configPath)
+
+	// Check if file exists, if not create default config
+	if _, err := os.Stat(expandedPath); os.IsNotExist(err) {
+		// Only create default config for GlobalConfig type
+		// We can detect this by checking if the configPath matches PathGlobalConfig
+		if configPath == PathGlobalConfig {
+			if err := createDefaultConfig(configPath); err != nil {
+				return nil, fmt.Errorf("failed to create default config: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("config file does not exist: %s", expandedPath)
+		}
+	}
+
+	data, err := os.ReadFile(expandedPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	var config Config
+	var config T
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
 	return &config, nil
-}
-
-// CreateNATSConnection creates a single NATS connection for the entire process
-func CreateNATSConnection(natsURL string) (*nats.Conn, error) {
-	nc, err := nats.Connect(natsURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to NATS: %w", err)
-	}
-	return nc, nil
-}
-
-// CreateNode creates a node based on its type name
-func CreateNode(nodeConfig NodeConfig, nc *nats.Conn, logger *log.Logger) (node.Node, error) {
-	// Extract the node name
-	nodeName, ok := nodeConfig["name"].(string)
-	if !ok {
-		return nil, fmt.Errorf("node name not found in config")
-	}
-
-	// Extract the node type
-	nodeType, ok := nodeConfig["type"].(string)
-	if !ok {
-		return nil, fmt.Errorf("node type not found for node %s", nodeName)
-	}
-
-	// Extract the actual configuration
-	config, ok := nodeConfig["config"]
-	if !ok {
-		return nil, fmt.Errorf("config not found for node %s", nodeName)
-	}
-
-	// Convert config to NodeConfig
-	configMap, ok := config.(NodeConfig)
-	if !ok {
-		return nil, fmt.Errorf("invalid config format for node %s, got type %T", nodeName, config)
-	}
-
-	// Add the node name to the config
-	configMap["name"] = nodeName
-
-	// Create the node
-	node, err := node.CreateNode(nodeType, nc, configMap, logger)
-	if err != nil {
-		return nil, err
-	}
-
-	// Set up subscriptions
-	if subscriptions, ok := nodeConfig["subscriptions"].([]interface{}); ok {
-		for _, sub := range subscriptions {
-			if subStr, ok := sub.(string); ok {
-				// Format the subscription topic to match the RNG publishing format
-				topic := fmt.Sprintf("%s.rng.RngMessage", subStr)
-				node.AddSubscription(topic)
-			}
-		}
-	}
-
-	return node, nil
 }
