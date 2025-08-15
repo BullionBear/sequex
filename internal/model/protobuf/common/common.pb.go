@@ -74,43 +74,46 @@ func (Side) EnumDescriptor() ([]byte, []int) {
 type ErrorCode int32
 
 const (
-	ErrorCode_ERROR_CODE_UNSPECIFIED           ErrorCode = 0
-	ErrorCode_ERROR_CODE_DESERIALIZATION_ERROR ErrorCode = 1
-	ErrorCode_ERROR_CODE_SERIALIZATION_ERROR   ErrorCode = 2
-	ErrorCode_ERROR_CODE_INVALID_REQUEST       ErrorCode = 3
-	ErrorCode_ERROR_CODE_UNAUTHORIZED          ErrorCode = 4
-	ErrorCode_ERROR_CODE_FORBIDDEN             ErrorCode = 5
-	ErrorCode_ERROR_CODE_INTERNAL_SERVER_ERROR ErrorCode = 6
-	ErrorCode_ERROR_CODE_NOT_FOUND             ErrorCode = 7
-	ErrorCode_ERROR_CODE_CONFLICT              ErrorCode = 8
-	ErrorCode_ERROR_CODE_BAD_REQUEST           ErrorCode = 9
+	ErrorCode_ERROR_CODE_OK                    ErrorCode = 0
+	ErrorCode_ERROR_CODE_UNSPECIFIED           ErrorCode = 1
+	ErrorCode_ERROR_CODE_DESERIALIZATION_ERROR ErrorCode = 2
+	ErrorCode_ERROR_CODE_SERIALIZATION_ERROR   ErrorCode = 3
+	ErrorCode_ERROR_CODE_INVALID_REQUEST       ErrorCode = 4
+	ErrorCode_ERROR_CODE_UNAUTHORIZED          ErrorCode = 5
+	ErrorCode_ERROR_CODE_FORBIDDEN             ErrorCode = 6
+	ErrorCode_ERROR_CODE_INTERNAL_SERVER_ERROR ErrorCode = 7
+	ErrorCode_ERROR_CODE_NOT_FOUND             ErrorCode = 8
+	ErrorCode_ERROR_CODE_CONFLICT              ErrorCode = 9
+	ErrorCode_ERROR_CODE_BAD_REQUEST           ErrorCode = 10
 )
 
 // Enum value maps for ErrorCode.
 var (
 	ErrorCode_name = map[int32]string{
-		0: "ERROR_CODE_UNSPECIFIED",
-		1: "ERROR_CODE_DESERIALIZATION_ERROR",
-		2: "ERROR_CODE_SERIALIZATION_ERROR",
-		3: "ERROR_CODE_INVALID_REQUEST",
-		4: "ERROR_CODE_UNAUTHORIZED",
-		5: "ERROR_CODE_FORBIDDEN",
-		6: "ERROR_CODE_INTERNAL_SERVER_ERROR",
-		7: "ERROR_CODE_NOT_FOUND",
-		8: "ERROR_CODE_CONFLICT",
-		9: "ERROR_CODE_BAD_REQUEST",
+		0:  "ERROR_CODE_OK",
+		1:  "ERROR_CODE_UNSPECIFIED",
+		2:  "ERROR_CODE_DESERIALIZATION_ERROR",
+		3:  "ERROR_CODE_SERIALIZATION_ERROR",
+		4:  "ERROR_CODE_INVALID_REQUEST",
+		5:  "ERROR_CODE_UNAUTHORIZED",
+		6:  "ERROR_CODE_FORBIDDEN",
+		7:  "ERROR_CODE_INTERNAL_SERVER_ERROR",
+		8:  "ERROR_CODE_NOT_FOUND",
+		9:  "ERROR_CODE_CONFLICT",
+		10: "ERROR_CODE_BAD_REQUEST",
 	}
 	ErrorCode_value = map[string]int32{
-		"ERROR_CODE_UNSPECIFIED":           0,
-		"ERROR_CODE_DESERIALIZATION_ERROR": 1,
-		"ERROR_CODE_SERIALIZATION_ERROR":   2,
-		"ERROR_CODE_INVALID_REQUEST":       3,
-		"ERROR_CODE_UNAUTHORIZED":          4,
-		"ERROR_CODE_FORBIDDEN":             5,
-		"ERROR_CODE_INTERNAL_SERVER_ERROR": 6,
-		"ERROR_CODE_NOT_FOUND":             7,
-		"ERROR_CODE_CONFLICT":              8,
-		"ERROR_CODE_BAD_REQUEST":           9,
+		"ERROR_CODE_OK":                    0,
+		"ERROR_CODE_UNSPECIFIED":           1,
+		"ERROR_CODE_DESERIALIZATION_ERROR": 2,
+		"ERROR_CODE_SERIALIZATION_ERROR":   3,
+		"ERROR_CODE_INVALID_REQUEST":       4,
+		"ERROR_CODE_UNAUTHORIZED":          5,
+		"ERROR_CODE_FORBIDDEN":             6,
+		"ERROR_CODE_INTERNAL_SERVER_ERROR": 7,
+		"ERROR_CODE_NOT_FOUND":             8,
+		"ERROR_CODE_CONFLICT":              9,
+		"ERROR_CODE_BAD_REQUEST":           10,
 	}
 )
 
@@ -141,59 +144,6 @@ func (ErrorCode) EnumDescriptor() ([]byte, []int) {
 	return file_protobuf_common_common_proto_rawDescGZIP(), []int{1}
 }
 
-// Common error response
-type ErrorResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          ErrorCode              `protobuf:"varint,1,opt,name=code,proto3,enum=common.ErrorCode" json:"code,omitempty"`
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ErrorResponse) Reset() {
-	*x = ErrorResponse{}
-	mi := &file_protobuf_common_common_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ErrorResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ErrorResponse) ProtoMessage() {}
-
-func (x *ErrorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_protobuf_common_common_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ErrorResponse.ProtoReflect.Descriptor instead.
-func (*ErrorResponse) Descriptor() ([]byte, []int) {
-	return file_protobuf_common_common_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ErrorResponse) GetCode() ErrorCode {
-	if x != nil {
-		return x.Code
-	}
-	return ErrorCode_ERROR_CODE_UNSPECIFIED
-}
-
-func (x *ErrorResponse) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
 type ParametersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -203,7 +153,7 @@ type ParametersRequest struct {
 
 func (x *ParametersRequest) Reset() {
 	*x = ParametersRequest{}
-	mi := &file_protobuf_common_common_proto_msgTypes[1]
+	mi := &file_protobuf_common_common_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -215,7 +165,7 @@ func (x *ParametersRequest) String() string {
 func (*ParametersRequest) ProtoMessage() {}
 
 func (x *ParametersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_protobuf_common_common_proto_msgTypes[1]
+	mi := &file_protobuf_common_common_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -228,7 +178,7 @@ func (x *ParametersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ParametersRequest.ProtoReflect.Descriptor instead.
 func (*ParametersRequest) Descriptor() ([]byte, []int) {
-	return file_protobuf_common_common_proto_rawDescGZIP(), []int{1}
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ParametersRequest) GetId() int64 {
@@ -241,14 +191,16 @@ func (x *ParametersRequest) GetId() int64 {
 type ParametersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Parameters    string                 `protobuf:"bytes,2,opt,name=parameters,proto3" json:"parameters,omitempty"`
+	Code          ErrorCode              `protobuf:"varint,2,opt,name=code,proto3,enum=common.ErrorCode" json:"code,omitempty"`
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Parameters    string                 `protobuf:"bytes,4,opt,name=parameters,proto3" json:"parameters,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ParametersResponse) Reset() {
 	*x = ParametersResponse{}
-	mi := &file_protobuf_common_common_proto_msgTypes[2]
+	mi := &file_protobuf_common_common_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -260,7 +212,7 @@ func (x *ParametersResponse) String() string {
 func (*ParametersResponse) ProtoMessage() {}
 
 func (x *ParametersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_protobuf_common_common_proto_msgTypes[2]
+	mi := &file_protobuf_common_common_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -273,7 +225,7 @@ func (x *ParametersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ParametersResponse.ProtoReflect.Descriptor instead.
 func (*ParametersResponse) Descriptor() ([]byte, []int) {
-	return file_protobuf_common_common_proto_rawDescGZIP(), []int{2}
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ParametersResponse) GetId() int64 {
@@ -281,6 +233,20 @@ func (x *ParametersResponse) GetId() int64 {
 		return x.Id
 	}
 	return 0
+}
+
+func (x *ParametersResponse) GetCode() ErrorCode {
+	if x != nil {
+		return x.Code
+	}
+	return ErrorCode_ERROR_CODE_OK
+}
+
+func (x *ParametersResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
 }
 
 func (x *ParametersResponse) GetParameters() string {
@@ -299,7 +265,7 @@ type StatusRequest struct {
 
 func (x *StatusRequest) Reset() {
 	*x = StatusRequest{}
-	mi := &file_protobuf_common_common_proto_msgTypes[3]
+	mi := &file_protobuf_common_common_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -311,7 +277,7 @@ func (x *StatusRequest) String() string {
 func (*StatusRequest) ProtoMessage() {}
 
 func (x *StatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_protobuf_common_common_proto_msgTypes[3]
+	mi := &file_protobuf_common_common_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -324,7 +290,7 @@ func (x *StatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatusRequest.ProtoReflect.Descriptor instead.
 func (*StatusRequest) Descriptor() ([]byte, []int) {
-	return file_protobuf_common_common_proto_rawDescGZIP(), []int{3}
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *StatusRequest) GetId() int64 {
@@ -337,14 +303,16 @@ func (x *StatusRequest) GetId() int64 {
 type StatusResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Status        [][]byte               `protobuf:"bytes,2,rep,name=status,proto3" json:"status,omitempty"`
+	Code          ErrorCode              `protobuf:"varint,2,opt,name=code,proto3,enum=common.ErrorCode" json:"code,omitempty"`
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Status        [][]byte               `protobuf:"bytes,4,rep,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StatusResponse) Reset() {
 	*x = StatusResponse{}
-	mi := &file_protobuf_common_common_proto_msgTypes[4]
+	mi := &file_protobuf_common_common_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -356,7 +324,7 @@ func (x *StatusResponse) String() string {
 func (*StatusResponse) ProtoMessage() {}
 
 func (x *StatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_protobuf_common_common_proto_msgTypes[4]
+	mi := &file_protobuf_common_common_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -369,7 +337,7 @@ func (x *StatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatusResponse.ProtoReflect.Descriptor instead.
 func (*StatusResponse) Descriptor() ([]byte, []int) {
-	return file_protobuf_common_common_proto_rawDescGZIP(), []int{4}
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *StatusResponse) GetId() int64 {
@@ -377,6 +345,20 @@ func (x *StatusResponse) GetId() int64 {
 		return x.Id
 	}
 	return 0
+}
+
+func (x *StatusResponse) GetCode() ErrorCode {
+	if x != nil {
+		return x.Code
+	}
+	return ErrorCode_ERROR_CODE_OK
+}
+
+func (x *StatusResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
 }
 
 func (x *StatusResponse) GetStatus() [][]byte {
@@ -395,7 +377,7 @@ type MetadataRequest struct {
 
 func (x *MetadataRequest) Reset() {
 	*x = MetadataRequest{}
-	mi := &file_protobuf_common_common_proto_msgTypes[5]
+	mi := &file_protobuf_common_common_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -407,7 +389,7 @@ func (x *MetadataRequest) String() string {
 func (*MetadataRequest) ProtoMessage() {}
 
 func (x *MetadataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_protobuf_common_common_proto_msgTypes[5]
+	mi := &file_protobuf_common_common_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -420,7 +402,7 @@ func (x *MetadataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetadataRequest.ProtoReflect.Descriptor instead.
 func (*MetadataRequest) Descriptor() ([]byte, []int) {
-	return file_protobuf_common_common_proto_rawDescGZIP(), []int{5}
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *MetadataRequest) GetId() int64 {
@@ -433,18 +415,20 @@ func (x *MetadataRequest) GetId() int64 {
 type MetadataResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	Emit          map[string]string      `protobuf:"bytes,4,rep,name=emit,proto3" json:"emit,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	On            map[string]string      `protobuf:"bytes,5,rep,name=on,proto3" json:"on,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Rpc           map[string]string      `protobuf:"bytes,6,rep,name=rpc,proto3" json:"rpc,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Code          ErrorCode              `protobuf:"varint,2,opt,name=code,proto3,enum=common.ErrorCode" json:"code,omitempty"`
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Emit          map[string]string      `protobuf:"bytes,6,rep,name=emit,proto3" json:"emit,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	On            map[string]string      `protobuf:"bytes,7,rep,name=on,proto3" json:"on,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Rpc           map[string]string      `protobuf:"bytes,8,rep,name=rpc,proto3" json:"rpc,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MetadataResponse) Reset() {
 	*x = MetadataResponse{}
-	mi := &file_protobuf_common_common_proto_msgTypes[6]
+	mi := &file_protobuf_common_common_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -456,7 +440,7 @@ func (x *MetadataResponse) String() string {
 func (*MetadataResponse) ProtoMessage() {}
 
 func (x *MetadataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_protobuf_common_common_proto_msgTypes[6]
+	mi := &file_protobuf_common_common_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -469,7 +453,7 @@ func (x *MetadataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetadataResponse.ProtoReflect.Descriptor instead.
 func (*MetadataResponse) Descriptor() ([]byte, []int) {
-	return file_protobuf_common_common_proto_rawDescGZIP(), []int{6}
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *MetadataResponse) GetId() int64 {
@@ -477,6 +461,20 @@ func (x *MetadataResponse) GetId() int64 {
 		return x.Id
 	}
 	return 0
+}
+
+func (x *MetadataResponse) GetCode() ErrorCode {
+	if x != nil {
+		return x.Code
+	}
+	return ErrorCode_ERROR_CODE_OK
+}
+
+func (x *MetadataResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
 }
 
 func (x *MetadataResponse) GetName() string {
@@ -518,32 +516,35 @@ var File_protobuf_common_common_proto protoreflect.FileDescriptor
 
 const file_protobuf_common_common_proto_rawDesc = "" +
 	"\n" +
-	"\x1cprotobuf/common/common.proto\x12\x06common\"P\n" +
-	"\rErrorResponse\x12%\n" +
-	"\x04code\x18\x01 \x01(\x0e2\x11.common.ErrorCodeR\x04code\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"#\n" +
+	"\x1cprotobuf/common/common.proto\x12\x06common\"#\n" +
 	"\x11ParametersRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\"D\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"\x85\x01\n" +
 	"\x12ParametersResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
+	"\x04code\x18\x02 \x01(\x0e2\x11.common.ErrorCodeR\x04code\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12\x1e\n" +
 	"\n" +
-	"parameters\x18\x02 \x01(\tR\n" +
+	"parameters\x18\x04 \x01(\tR\n" +
 	"parameters\"\x1f\n" +
 	"\rStatusRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\"8\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"y\n" +
 	"\x0eStatusResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x16\n" +
-	"\x06status\x18\x02 \x03(\fR\x06status\"!\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
+	"\x04code\x18\x02 \x01(\x0e2\x11.common.ErrorCodeR\x04code\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12\x16\n" +
+	"\x06status\x18\x04 \x03(\fR\x06status\"!\n" +
 	"\x0fMetadataRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\"\x9c\x03\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"\xdd\x03\n" +
 	"\x10MetadataResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
+	"\x04code\x18\x02 \x01(\x0e2\x11.common.ErrorCodeR\x04code\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\x03R\tcreatedAt\x126\n" +
-	"\x04emit\x18\x04 \x03(\v2\".common.MetadataResponse.EmitEntryR\x04emit\x120\n" +
-	"\x02on\x18\x05 \x03(\v2 .common.MetadataResponse.OnEntryR\x02on\x123\n" +
-	"\x03rpc\x18\x06 \x03(\v2!.common.MetadataResponse.RpcEntryR\x03rpc\x1a7\n" +
+	"created_at\x18\x05 \x01(\x03R\tcreatedAt\x126\n" +
+	"\x04emit\x18\x06 \x03(\v2\".common.MetadataResponse.EmitEntryR\x04emit\x120\n" +
+	"\x02on\x18\a \x03(\v2 .common.MetadataResponse.OnEntryR\x02on\x123\n" +
+	"\x03rpc\x18\b \x03(\v2!.common.MetadataResponse.RpcEntryR\x03rpc\x1a7\n" +
 	"\tEmitEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a5\n" +
@@ -556,18 +557,20 @@ const file_protobuf_common_common_proto_rawDesc = "" +
 	"\x04Side\x12\x14\n" +
 	"\x10SIDE_UNSPECIFIED\x10\x00\x12\f\n" +
 	"\bSIDE_BUY\x10\x01\x12\r\n" +
-	"\tSIDE_SELL\x10\x02*\xbd\x02\n" +
-	"\tErrorCode\x12\x1a\n" +
-	"\x16ERROR_CODE_UNSPECIFIED\x10\x00\x12$\n" +
-	" ERROR_CODE_DESERIALIZATION_ERROR\x10\x01\x12\"\n" +
-	"\x1eERROR_CODE_SERIALIZATION_ERROR\x10\x02\x12\x1e\n" +
-	"\x1aERROR_CODE_INVALID_REQUEST\x10\x03\x12\x1b\n" +
-	"\x17ERROR_CODE_UNAUTHORIZED\x10\x04\x12\x18\n" +
-	"\x14ERROR_CODE_FORBIDDEN\x10\x05\x12$\n" +
-	" ERROR_CODE_INTERNAL_SERVER_ERROR\x10\x06\x12\x18\n" +
-	"\x14ERROR_CODE_NOT_FOUND\x10\a\x12\x17\n" +
-	"\x13ERROR_CODE_CONFLICT\x10\b\x12\x1a\n" +
-	"\x16ERROR_CODE_BAD_REQUEST\x10\tB>Z<github.com/BullionBear/sequex/internal/model/protobuf/commonb\x06proto3"
+	"\tSIDE_SELL\x10\x02*\xd0\x02\n" +
+	"\tErrorCode\x12\x11\n" +
+	"\rERROR_CODE_OK\x10\x00\x12\x1a\n" +
+	"\x16ERROR_CODE_UNSPECIFIED\x10\x01\x12$\n" +
+	" ERROR_CODE_DESERIALIZATION_ERROR\x10\x02\x12\"\n" +
+	"\x1eERROR_CODE_SERIALIZATION_ERROR\x10\x03\x12\x1e\n" +
+	"\x1aERROR_CODE_INVALID_REQUEST\x10\x04\x12\x1b\n" +
+	"\x17ERROR_CODE_UNAUTHORIZED\x10\x05\x12\x18\n" +
+	"\x14ERROR_CODE_FORBIDDEN\x10\x06\x12$\n" +
+	" ERROR_CODE_INTERNAL_SERVER_ERROR\x10\a\x12\x18\n" +
+	"\x14ERROR_CODE_NOT_FOUND\x10\b\x12\x17\n" +
+	"\x13ERROR_CODE_CONFLICT\x10\t\x12\x1a\n" +
+	"\x16ERROR_CODE_BAD_REQUEST\x10\n" +
+	"B>Z<github.com/BullionBear/sequex/internal/model/protobuf/commonb\x06proto3"
 
 var (
 	file_protobuf_common_common_proto_rawDescOnce sync.Once
@@ -582,31 +585,32 @@ func file_protobuf_common_common_proto_rawDescGZIP() []byte {
 }
 
 var file_protobuf_common_common_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_protobuf_common_common_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_protobuf_common_common_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_protobuf_common_common_proto_goTypes = []any{
 	(Side)(0),                  // 0: common.Side
 	(ErrorCode)(0),             // 1: common.ErrorCode
-	(*ErrorResponse)(nil),      // 2: common.ErrorResponse
-	(*ParametersRequest)(nil),  // 3: common.ParametersRequest
-	(*ParametersResponse)(nil), // 4: common.ParametersResponse
-	(*StatusRequest)(nil),      // 5: common.StatusRequest
-	(*StatusResponse)(nil),     // 6: common.StatusResponse
-	(*MetadataRequest)(nil),    // 7: common.MetadataRequest
-	(*MetadataResponse)(nil),   // 8: common.MetadataResponse
-	nil,                        // 9: common.MetadataResponse.EmitEntry
-	nil,                        // 10: common.MetadataResponse.OnEntry
-	nil,                        // 11: common.MetadataResponse.RpcEntry
+	(*ParametersRequest)(nil),  // 2: common.ParametersRequest
+	(*ParametersResponse)(nil), // 3: common.ParametersResponse
+	(*StatusRequest)(nil),      // 4: common.StatusRequest
+	(*StatusResponse)(nil),     // 5: common.StatusResponse
+	(*MetadataRequest)(nil),    // 6: common.MetadataRequest
+	(*MetadataResponse)(nil),   // 7: common.MetadataResponse
+	nil,                        // 8: common.MetadataResponse.EmitEntry
+	nil,                        // 9: common.MetadataResponse.OnEntry
+	nil,                        // 10: common.MetadataResponse.RpcEntry
 }
 var file_protobuf_common_common_proto_depIdxs = []int32{
-	1,  // 0: common.ErrorResponse.code:type_name -> common.ErrorCode
-	9,  // 1: common.MetadataResponse.emit:type_name -> common.MetadataResponse.EmitEntry
-	10, // 2: common.MetadataResponse.on:type_name -> common.MetadataResponse.OnEntry
-	11, // 3: common.MetadataResponse.rpc:type_name -> common.MetadataResponse.RpcEntry
-	4,  // [4:4] is the sub-list for method output_type
-	4,  // [4:4] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	1,  // 0: common.ParametersResponse.code:type_name -> common.ErrorCode
+	1,  // 1: common.StatusResponse.code:type_name -> common.ErrorCode
+	1,  // 2: common.MetadataResponse.code:type_name -> common.ErrorCode
+	8,  // 3: common.MetadataResponse.emit:type_name -> common.MetadataResponse.EmitEntry
+	9,  // 4: common.MetadataResponse.on:type_name -> common.MetadataResponse.OnEntry
+	10, // 5: common.MetadataResponse.rpc:type_name -> common.MetadataResponse.RpcEntry
+	6,  // [6:6] is the sub-list for method output_type
+	6,  // [6:6] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_protobuf_common_common_proto_init() }
@@ -620,7 +624,7 @@ func file_protobuf_common_common_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_protobuf_common_common_proto_rawDesc), len(file_protobuf_common_common_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   10,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -42,9 +42,12 @@ func (bn *BaseNode) CreatedAt() int64 {
 	return bn.createdAt
 }
 
-func (bn *BaseNode) GetMetadata(pb *pbCommon.MetadataRequest) *pbCommon {
+func (bn *BaseNode) GetMetadata(pb *pbCommon.MetadataRequest) *pbCommon.MetadataResponse {
 	return &pbCommon.MetadataResponse{
-		Id:        bn.name,
+		Id:        pb.Id,
+		Code:      pbCommon.ErrorCode_ERROR_CODE_OK,
+		Message:   "OK",
+		Name:      bn.name,
 		CreatedAt: bn.createdAt,
 	}
 }
