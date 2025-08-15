@@ -21,68 +21,131 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Common status enum used across different services
-type Status int32
+// Common side enum used across different services
+type Side int32
 
 const (
-	Status_STATUS_UNSPECIFIED Status = 0
-	Status_STATUS_ACTIVE      Status = 1
-	Status_STATUS_INACTIVE    Status = 2
-	Status_STATUS_PENDING     Status = 3
-	Status_STATUS_ERROR       Status = 4
+	Side_SIDE_UNSPECIFIED Side = 0
+	Side_SIDE_BUY         Side = 1
+	Side_SIDE_SELL        Side = 2
 )
 
-// Enum value maps for Status.
+// Enum value maps for Side.
 var (
-	Status_name = map[int32]string{
-		0: "STATUS_UNSPECIFIED",
-		1: "STATUS_ACTIVE",
-		2: "STATUS_INACTIVE",
-		3: "STATUS_PENDING",
-		4: "STATUS_ERROR",
+	Side_name = map[int32]string{
+		0: "SIDE_UNSPECIFIED",
+		1: "SIDE_BUY",
+		2: "SIDE_SELL",
 	}
-	Status_value = map[string]int32{
-		"STATUS_UNSPECIFIED": 0,
-		"STATUS_ACTIVE":      1,
-		"STATUS_INACTIVE":    2,
-		"STATUS_PENDING":     3,
-		"STATUS_ERROR":       4,
+	Side_value = map[string]int32{
+		"SIDE_UNSPECIFIED": 0,
+		"SIDE_BUY":         1,
+		"SIDE_SELL":        2,
 	}
 )
 
-func (x Status) Enum() *Status {
-	p := new(Status)
+func (x Side) Enum() *Side {
+	p := new(Side)
 	*p = x
 	return p
 }
 
-func (x Status) String() string {
+func (x Side) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (Status) Descriptor() protoreflect.EnumDescriptor {
+func (Side) Descriptor() protoreflect.EnumDescriptor {
 	return file_protobuf_common_common_proto_enumTypes[0].Descriptor()
 }
 
-func (Status) Type() protoreflect.EnumType {
+func (Side) Type() protoreflect.EnumType {
 	return &file_protobuf_common_common_proto_enumTypes[0]
 }
 
-func (x Status) Number() protoreflect.EnumNumber {
+func (x Side) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use Status.Descriptor instead.
-func (Status) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use Side.Descriptor instead.
+func (Side) EnumDescriptor() ([]byte, []int) {
 	return file_protobuf_common_common_proto_rawDescGZIP(), []int{0}
+}
+
+type ErrorCode int32
+
+const (
+	ErrorCode_ERROR_CODE_UNSPECIFIED           ErrorCode = 0
+	ErrorCode_ERROR_CODE_DESERIALIZATION_ERROR ErrorCode = 1
+	ErrorCode_ERROR_CODE_SERIALIZATION_ERROR   ErrorCode = 2
+	ErrorCode_ERROR_CODE_INVALID_REQUEST       ErrorCode = 3
+	ErrorCode_ERROR_CODE_UNAUTHORIZED          ErrorCode = 4
+	ErrorCode_ERROR_CODE_FORBIDDEN             ErrorCode = 5
+	ErrorCode_ERROR_CODE_INTERNAL_SERVER_ERROR ErrorCode = 6
+	ErrorCode_ERROR_CODE_NOT_FOUND             ErrorCode = 7
+	ErrorCode_ERROR_CODE_CONFLICT              ErrorCode = 8
+	ErrorCode_ERROR_CODE_BAD_REQUEST           ErrorCode = 9
+)
+
+// Enum value maps for ErrorCode.
+var (
+	ErrorCode_name = map[int32]string{
+		0: "ERROR_CODE_UNSPECIFIED",
+		1: "ERROR_CODE_DESERIALIZATION_ERROR",
+		2: "ERROR_CODE_SERIALIZATION_ERROR",
+		3: "ERROR_CODE_INVALID_REQUEST",
+		4: "ERROR_CODE_UNAUTHORIZED",
+		5: "ERROR_CODE_FORBIDDEN",
+		6: "ERROR_CODE_INTERNAL_SERVER_ERROR",
+		7: "ERROR_CODE_NOT_FOUND",
+		8: "ERROR_CODE_CONFLICT",
+		9: "ERROR_CODE_BAD_REQUEST",
+	}
+	ErrorCode_value = map[string]int32{
+		"ERROR_CODE_UNSPECIFIED":           0,
+		"ERROR_CODE_DESERIALIZATION_ERROR": 1,
+		"ERROR_CODE_SERIALIZATION_ERROR":   2,
+		"ERROR_CODE_INVALID_REQUEST":       3,
+		"ERROR_CODE_UNAUTHORIZED":          4,
+		"ERROR_CODE_FORBIDDEN":             5,
+		"ERROR_CODE_INTERNAL_SERVER_ERROR": 6,
+		"ERROR_CODE_NOT_FOUND":             7,
+		"ERROR_CODE_CONFLICT":              8,
+		"ERROR_CODE_BAD_REQUEST":           9,
+	}
+)
+
+func (x ErrorCode) Enum() *ErrorCode {
+	p := new(ErrorCode)
+	*p = x
+	return p
+}
+
+func (x ErrorCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ErrorCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_protobuf_common_common_proto_enumTypes[1].Descriptor()
+}
+
+func (ErrorCode) Type() protoreflect.EnumType {
+	return &file_protobuf_common_common_proto_enumTypes[1]
+}
+
+func (x ErrorCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ErrorCode.Descriptor instead.
+func (ErrorCode) EnumDescriptor() ([]byte, []int) {
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{1}
 }
 
 // Common error response
 type ErrorResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Code          ErrorCode              `protobuf:"varint,1,opt,name=code,proto3,enum=common.ErrorCode" json:"code,omitempty"`
 	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	Details       map[string]string      `protobuf:"bytes,3,rep,name=details,proto3" json:"details,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -117,11 +180,11 @@ func (*ErrorResponse) Descriptor() ([]byte, []int) {
 	return file_protobuf_common_common_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ErrorResponse) GetCode() string {
+func (x *ErrorResponse) GetCode() ErrorCode {
 	if x != nil {
 		return x.Code
 	}
-	return ""
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
 }
 
 func (x *ErrorResponse) GetMessage() string {
@@ -131,39 +194,220 @@ func (x *ErrorResponse) GetMessage() string {
 	return ""
 }
 
-func (x *ErrorResponse) GetDetails() map[string]string {
+type ParametersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ParametersRequest) Reset() {
+	*x = ParametersRequest{}
+	mi := &file_protobuf_common_common_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ParametersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ParametersRequest) ProtoMessage() {}
+
+func (x *ParametersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_protobuf_common_common_proto_msgTypes[1]
 	if x != nil {
-		return x.Details
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ParametersRequest.ProtoReflect.Descriptor instead.
+func (*ParametersRequest) Descriptor() ([]byte, []int) {
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ParametersRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type ParametersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Parameters    string                 `protobuf:"bytes,2,opt,name=parameters,proto3" json:"parameters,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ParametersResponse) Reset() {
+	*x = ParametersResponse{}
+	mi := &file_protobuf_common_common_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ParametersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ParametersResponse) ProtoMessage() {}
+
+func (x *ParametersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_protobuf_common_common_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ParametersResponse.ProtoReflect.Descriptor instead.
+func (*ParametersResponse) Descriptor() ([]byte, []int) {
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ParametersResponse) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *ParametersResponse) GetParameters() string {
+	if x != nil {
+		return x.Parameters
+	}
+	return ""
+}
+
+type StatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StatusRequest) Reset() {
+	*x = StatusRequest{}
+	mi := &file_protobuf_common_common_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StatusRequest) ProtoMessage() {}
+
+func (x *StatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_protobuf_common_common_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StatusRequest.ProtoReflect.Descriptor instead.
+func (*StatusRequest) Descriptor() ([]byte, []int) {
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *StatusRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type StatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Status        [][]byte               `protobuf:"bytes,2,rep,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StatusResponse) Reset() {
+	*x = StatusResponse{}
+	mi := &file_protobuf_common_common_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StatusResponse) ProtoMessage() {}
+
+func (x *StatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_protobuf_common_common_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StatusResponse.ProtoReflect.Descriptor instead.
+func (*StatusResponse) Descriptor() ([]byte, []int) {
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *StatusResponse) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *StatusResponse) GetStatus() [][]byte {
+	if x != nil {
+		return x.Status
 	}
 	return nil
 }
 
-// Common pagination request
-type PaginationRequest struct {
+type MetadataRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	SortBy        string                 `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
-	SortDesc      bool                   `protobuf:"varint,4,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PaginationRequest) Reset() {
-	*x = PaginationRequest{}
-	mi := &file_protobuf_common_common_proto_msgTypes[1]
+func (x *MetadataRequest) Reset() {
+	*x = MetadataRequest{}
+	mi := &file_protobuf_common_common_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PaginationRequest) String() string {
+func (x *MetadataRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PaginationRequest) ProtoMessage() {}
+func (*MetadataRequest) ProtoMessage() {}
 
-func (x *PaginationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_protobuf_common_common_proto_msgTypes[1]
+func (x *MetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_protobuf_common_common_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -174,234 +418,156 @@ func (x *PaginationRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PaginationRequest.ProtoReflect.Descriptor instead.
-func (*PaginationRequest) Descriptor() ([]byte, []int) {
-	return file_protobuf_common_common_proto_rawDescGZIP(), []int{1}
+// Deprecated: Use MetadataRequest.ProtoReflect.Descriptor instead.
+func (*MetadataRequest) Descriptor() ([]byte, []int) {
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *PaginationRequest) GetPage() int32 {
-	if x != nil {
-		return x.Page
-	}
-	return 0
-}
-
-func (x *PaginationRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-func (x *PaginationRequest) GetSortBy() string {
-	if x != nil {
-		return x.SortBy
-	}
-	return ""
-}
-
-func (x *PaginationRequest) GetSortDesc() bool {
-	if x != nil {
-		return x.SortDesc
-	}
-	return false
-}
-
-// Common pagination response
-type PaginationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TotalCount    int32                  `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
-	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	TotalPages    int32                  `protobuf:"varint,4,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PaginationResponse) Reset() {
-	*x = PaginationResponse{}
-	mi := &file_protobuf_common_common_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PaginationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PaginationResponse) ProtoMessage() {}
-
-func (x *PaginationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_protobuf_common_common_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PaginationResponse.ProtoReflect.Descriptor instead.
-func (*PaginationResponse) Descriptor() ([]byte, []int) {
-	return file_protobuf_common_common_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *PaginationResponse) GetTotalCount() int32 {
-	if x != nil {
-		return x.TotalCount
-	}
-	return 0
-}
-
-func (x *PaginationResponse) GetPage() int32 {
-	if x != nil {
-		return x.Page
-	}
-	return 0
-}
-
-func (x *PaginationResponse) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-func (x *PaginationResponse) GetTotalPages() int32 {
-	if x != nil {
-		return x.TotalPages
-	}
-	return 0
-}
-
-// Common metadata for resources
-type Metadata struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string                 `protobuf:"bytes,3,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	CreatedBy     string                 `protobuf:"bytes,4,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
-	UpdatedBy     string                 `protobuf:"bytes,5,opt,name=updated_by,json=updatedBy,proto3" json:"updated_by,omitempty"`
-	Status        Status                 `protobuf:"varint,6,opt,name=status,proto3,enum=common.Status" json:"status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Metadata) Reset() {
-	*x = Metadata{}
-	mi := &file_protobuf_common_common_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Metadata) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Metadata) ProtoMessage() {}
-
-func (x *Metadata) ProtoReflect() protoreflect.Message {
-	mi := &file_protobuf_common_common_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Metadata.ProtoReflect.Descriptor instead.
-func (*Metadata) Descriptor() ([]byte, []int) {
-	return file_protobuf_common_common_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *Metadata) GetId() string {
+func (x *MetadataRequest) GetId() int64 {
 	if x != nil {
 		return x.Id
 	}
+	return 0
+}
+
+type MetadataResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Emit          map[string]string      `protobuf:"bytes,4,rep,name=emit,proto3" json:"emit,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	On            map[string]string      `protobuf:"bytes,5,rep,name=on,proto3" json:"on,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Rpc           map[string]string      `protobuf:"bytes,6,rep,name=rpc,proto3" json:"rpc,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MetadataResponse) Reset() {
+	*x = MetadataResponse{}
+	mi := &file_protobuf_common_common_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetadataResponse) ProtoMessage() {}
+
+func (x *MetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_protobuf_common_common_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetadataResponse.ProtoReflect.Descriptor instead.
+func (*MetadataResponse) Descriptor() ([]byte, []int) {
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *MetadataResponse) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *MetadataResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
 	return ""
 }
 
-func (x *Metadata) GetCreatedAt() string {
+func (x *MetadataResponse) GetCreatedAt() int64 {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return ""
+	return 0
 }
 
-func (x *Metadata) GetUpdatedAt() string {
+func (x *MetadataResponse) GetEmit() map[string]string {
 	if x != nil {
-		return x.UpdatedAt
+		return x.Emit
 	}
-	return ""
+	return nil
 }
 
-func (x *Metadata) GetCreatedBy() string {
+func (x *MetadataResponse) GetOn() map[string]string {
 	if x != nil {
-		return x.CreatedBy
+		return x.On
 	}
-	return ""
+	return nil
 }
 
-func (x *Metadata) GetUpdatedBy() string {
+func (x *MetadataResponse) GetRpc() map[string]string {
 	if x != nil {
-		return x.UpdatedBy
+		return x.Rpc
 	}
-	return ""
-}
-
-func (x *Metadata) GetStatus() Status {
-	if x != nil {
-		return x.Status
-	}
-	return Status_STATUS_UNSPECIFIED
+	return nil
 }
 
 var File_protobuf_common_common_proto protoreflect.FileDescriptor
 
 const file_protobuf_common_common_proto_rawDesc = "" +
 	"\n" +
-	"\x1cprotobuf/common/common.proto\x12\x06common\"\xb7\x01\n" +
-	"\rErrorResponse\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\tR\x04code\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\x12<\n" +
-	"\adetails\x18\x03 \x03(\v2\".common.ErrorResponse.DetailsEntryR\adetails\x1a:\n" +
-	"\fDetailsEntry\x12\x10\n" +
+	"\x1cprotobuf/common/common.proto\x12\x06common\"P\n" +
+	"\rErrorResponse\x12%\n" +
+	"\x04code\x18\x01 \x01(\x0e2\x11.common.ErrorCodeR\x04code\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"#\n" +
+	"\x11ParametersRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"D\n" +
+	"\x12ParametersResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1e\n" +
+	"\n" +
+	"parameters\x18\x02 \x01(\tR\n" +
+	"parameters\"\x1f\n" +
+	"\rStatusRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"8\n" +
+	"\x0eStatusResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x16\n" +
+	"\x06status\x18\x02 \x03(\fR\x06status\"!\n" +
+	"\x0fMetadataRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"\x9c\x03\n" +
+	"\x10MetadataResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x03 \x01(\x03R\tcreatedAt\x126\n" +
+	"\x04emit\x18\x04 \x03(\v2\".common.MetadataResponse.EmitEntryR\x04emit\x120\n" +
+	"\x02on\x18\x05 \x03(\v2 .common.MetadataResponse.OnEntryR\x02on\x123\n" +
+	"\x03rpc\x18\x06 \x03(\v2!.common.MetadataResponse.RpcEntryR\x03rpc\x1a7\n" +
+	"\tEmitEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"z\n" +
-	"\x11PaginationRequest\x12\x12\n" +
-	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x17\n" +
-	"\asort_by\x18\x03 \x01(\tR\x06sortBy\x12\x1b\n" +
-	"\tsort_desc\x18\x04 \x01(\bR\bsortDesc\"\x87\x01\n" +
-	"\x12PaginationResponse\x12\x1f\n" +
-	"\vtotal_count\x18\x01 \x01(\x05R\n" +
-	"totalCount\x12\x12\n" +
-	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x1f\n" +
-	"\vtotal_pages\x18\x04 \x01(\x05R\n" +
-	"totalPages\"\xbe\x01\n" +
-	"\bMetadata\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
-	"\n" +
-	"created_at\x18\x02 \x01(\tR\tcreatedAt\x12\x1d\n" +
-	"\n" +
-	"updated_at\x18\x03 \x01(\tR\tupdatedAt\x12\x1d\n" +
-	"\n" +
-	"created_by\x18\x04 \x01(\tR\tcreatedBy\x12\x1d\n" +
-	"\n" +
-	"updated_by\x18\x05 \x01(\tR\tupdatedBy\x12&\n" +
-	"\x06status\x18\x06 \x01(\x0e2\x0e.common.StatusR\x06status*n\n" +
-	"\x06Status\x12\x16\n" +
-	"\x12STATUS_UNSPECIFIED\x10\x00\x12\x11\n" +
-	"\rSTATUS_ACTIVE\x10\x01\x12\x13\n" +
-	"\x0fSTATUS_INACTIVE\x10\x02\x12\x12\n" +
-	"\x0eSTATUS_PENDING\x10\x03\x12\x10\n" +
-	"\fSTATUS_ERROR\x10\x04B>Z<github.com/BullionBear/sequex/internal/model/protobuf/commonb\x06proto3"
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a5\n" +
+	"\aOnEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a6\n" +
+	"\bRpcEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*9\n" +
+	"\x04Side\x12\x14\n" +
+	"\x10SIDE_UNSPECIFIED\x10\x00\x12\f\n" +
+	"\bSIDE_BUY\x10\x01\x12\r\n" +
+	"\tSIDE_SELL\x10\x02*\xbd\x02\n" +
+	"\tErrorCode\x12\x1a\n" +
+	"\x16ERROR_CODE_UNSPECIFIED\x10\x00\x12$\n" +
+	" ERROR_CODE_DESERIALIZATION_ERROR\x10\x01\x12\"\n" +
+	"\x1eERROR_CODE_SERIALIZATION_ERROR\x10\x02\x12\x1e\n" +
+	"\x1aERROR_CODE_INVALID_REQUEST\x10\x03\x12\x1b\n" +
+	"\x17ERROR_CODE_UNAUTHORIZED\x10\x04\x12\x18\n" +
+	"\x14ERROR_CODE_FORBIDDEN\x10\x05\x12$\n" +
+	" ERROR_CODE_INTERNAL_SERVER_ERROR\x10\x06\x12\x18\n" +
+	"\x14ERROR_CODE_NOT_FOUND\x10\a\x12\x17\n" +
+	"\x13ERROR_CODE_CONFLICT\x10\b\x12\x1a\n" +
+	"\x16ERROR_CODE_BAD_REQUEST\x10\tB>Z<github.com/BullionBear/sequex/internal/model/protobuf/commonb\x06proto3"
 
 var (
 	file_protobuf_common_common_proto_rawDescOnce sync.Once
@@ -415,24 +581,32 @@ func file_protobuf_common_common_proto_rawDescGZIP() []byte {
 	return file_protobuf_common_common_proto_rawDescData
 }
 
-var file_protobuf_common_common_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_protobuf_common_common_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_protobuf_common_common_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_protobuf_common_common_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_protobuf_common_common_proto_goTypes = []any{
-	(Status)(0),                // 0: common.Status
-	(*ErrorResponse)(nil),      // 1: common.ErrorResponse
-	(*PaginationRequest)(nil),  // 2: common.PaginationRequest
-	(*PaginationResponse)(nil), // 3: common.PaginationResponse
-	(*Metadata)(nil),           // 4: common.Metadata
-	nil,                        // 5: common.ErrorResponse.DetailsEntry
+	(Side)(0),                  // 0: common.Side
+	(ErrorCode)(0),             // 1: common.ErrorCode
+	(*ErrorResponse)(nil),      // 2: common.ErrorResponse
+	(*ParametersRequest)(nil),  // 3: common.ParametersRequest
+	(*ParametersResponse)(nil), // 4: common.ParametersResponse
+	(*StatusRequest)(nil),      // 5: common.StatusRequest
+	(*StatusResponse)(nil),     // 6: common.StatusResponse
+	(*MetadataRequest)(nil),    // 7: common.MetadataRequest
+	(*MetadataResponse)(nil),   // 8: common.MetadataResponse
+	nil,                        // 9: common.MetadataResponse.EmitEntry
+	nil,                        // 10: common.MetadataResponse.OnEntry
+	nil,                        // 11: common.MetadataResponse.RpcEntry
 }
 var file_protobuf_common_common_proto_depIdxs = []int32{
-	5, // 0: common.ErrorResponse.details:type_name -> common.ErrorResponse.DetailsEntry
-	0, // 1: common.Metadata.status:type_name -> common.Status
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	1,  // 0: common.ErrorResponse.code:type_name -> common.ErrorCode
+	9,  // 1: common.MetadataResponse.emit:type_name -> common.MetadataResponse.EmitEntry
+	10, // 2: common.MetadataResponse.on:type_name -> common.MetadataResponse.OnEntry
+	11, // 3: common.MetadataResponse.rpc:type_name -> common.MetadataResponse.RpcEntry
+	4,  // [4:4] is the sub-list for method output_type
+	4,  // [4:4] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_protobuf_common_common_proto_init() }
@@ -445,8 +619,8 @@ func file_protobuf_common_common_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_protobuf_common_common_proto_rawDesc), len(file_protobuf_common_common_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   5,
+			NumEnums:      2,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

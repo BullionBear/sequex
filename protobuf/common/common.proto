@@ -24,19 +24,15 @@ enum ErrorCode {
   ERROR_CODE_BAD_REQUEST = 9;
 }
 
-// Common error response
-message ErrorResponse {
-  ErrorCode code = 1;
-  string message = 2;
-}
-
 message ParametersRequest {
   int64 id = 1;
 }
 
 message ParametersResponse {
   int64 id = 1;
-  string parameters = 2;
+  ErrorCode code = 2;
+  string message = 3;
+  string parameters = 4;
 }
 
 message StatusRequest {
@@ -45,7 +41,9 @@ message StatusRequest {
   
 message StatusResponse {
   int64 id = 1;
-  repeated bytes status = 2;
+  ErrorCode code = 2;
+  string message = 3;
+  repeated bytes status = 4;
 }
 
 message MetadataRequest {
@@ -54,9 +52,11 @@ message MetadataRequest {
 
 message MetadataResponse {
   int64 id = 1;
-  string name = 2;
-  int64 created_at = 3;
-  map<string, string> emit = 4;
-  map<string, string> on = 5;
-  map<string, string> rpc = 6;
+  ErrorCode code = 2;
+  string message = 3;
+  string name = 4;
+  int64 created_at = 5;
+  map<string, string> emit = 6;
+  map<string, string> on = 7;
+  map<string, string> rpc = 8;
 }
