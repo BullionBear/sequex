@@ -8,8 +8,13 @@ eventbus:
 node:
   name: rng
   type: rng
-  emit: rng.random
-  config:
+  emit: 
+    - on_tick: on.rng.random
+  rpc:
+    - get_config: rpc.rng.config
+    - get_status: rpc.rng.status
+    - get_metadata: rpc.rng.metadata
+  params:
     min: 0
     max: 100
     seed: 1234567890

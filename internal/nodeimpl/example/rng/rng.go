@@ -20,6 +20,7 @@ type RNGConfig struct {
 	Low      int     `json:"low"`
 	High     int     `json:"high"`
 	Interval float64 `json:"interval"`
+	Seed     int64   `json:"seed"`
 }
 
 type RNGNode struct {

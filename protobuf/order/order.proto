@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package order;
 
-option go_package = "github.com/yitech/protolayout/protobuf/proto/order";
+option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/order";
 
-import "proto/common/common.proto";
-import "proto/user/user.proto";
-import "proto/product/product.proto";
+import "protobuf/common/common.proto";
+import "protobuf/user/user.proto";
+import "protobuf/product/product.proto";
 
 // Order service definition
 service OrderService {

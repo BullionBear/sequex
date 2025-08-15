@@ -6,7 +6,7 @@ LDFLAGS := -X '${PACKAGE}/env.Version=${VERSION}' \
            -X '${PACKAGE}/env.CommitHash=${COMMIT_HASH}' \
            -X '${PACKAGE}/env.BuildTime=${BUILD_TIMESTAMP}'
 
-PROTO_DIR = proto
+PROTO_DIR = protobuf
 GO_OUT_DIR = internal/model
 PROTOC = protoc
 PROTOC_GEN_GO = protoc-gen-go
@@ -40,6 +40,7 @@ proto:
 clean:
 	rm -rf bin/*
 	rm -rf logs/*
+	rm -rf $(GO_OUT_DIR)/protobuf
 
 
 .PHONY: build, clean, proto

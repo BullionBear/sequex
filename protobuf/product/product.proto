@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package product;
 
-option go_package = "github.com/yitech/protolayout/protobuf/proto/product";
+option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/product";
 
-import "proto/common/common.proto";
-import "proto/user/user.proto";
+import "protobuf/common/common.proto";
+import "protobuf/user/user.proto";
 
 // Product service definition
 service ProductService {
