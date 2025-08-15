@@ -1,6 +1,7 @@
 package base
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/BullionBear/sequex/pkg/log"
@@ -51,7 +52,7 @@ func (bn *BaseNode) CreatedAt() int64 {
 	return bn.createdAt
 }
 
-func (bn *BaseNode) GetMetadata(pb *pbCommon.MetadataRequest) *pbCommon.MetadataResponse {
+func (bn *BaseNode) RequestMetadata(pb *pbCommon.MetadataRequest) *pbCommon.MetadataResponse {
 	return &pbCommon.MetadataResponse{
 		Id:        pb.Id,
 		Code:      pbCommon.ErrorCode_ERROR_CODE_OK,
@@ -64,4 +65,23 @@ func (bn *BaseNode) GetMetadata(pb *pbCommon.MetadataRequest) *pbCommon.Metadata
 	}
 }
 
-func 
+func (bn *BaseNode) GetEmit(key string) (string, error) {
+	if value, ok := bn.emit[key]; ok {
+		return value, nil
+	}
+	return "", fmt.Errorf("emit key %s not found", key)
+}
+
+func (bn *BaseNode) GetOn(key string) (string, error) {
+	if value, ok := bn.on[key]; ok {
+		return value, nil
+	}
+	return "", fmt.Errorf("on key %s not found", key)
+}
+
+func (bn *BaseNode) GetRpc(key string) (string, error) {
+	if value, ok := bn.rpc[key]; ok {
+		return value, nil
+	}
+	return "", fmt.Errorf("rpc key %s not found", key)
+}
