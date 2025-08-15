@@ -14,10 +14,11 @@ PROTOC_GEN_GO = protoc-gen-go
 PROTO_FILES := $(shell find $(PROTO_DIR) -name "*.proto")
 
 build:
-	rm -rf docs
+	make clean
+	make proto
 	swag init --parseDependency --parseInternal -g cmd/master/main.go
 	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/master-linux-x86 cmd/master/main.go
-	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/node-linux-x86 cmd/node/main.go	
+	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/sqx-linux-x86 cmd/sqx/main.go	
 
 test:
 	go test -v ./...
@@ -41,6 +42,6 @@ clean:
 	rm -rf bin/*
 	rm -rf logs/*
 	rm -rf $(GO_OUT_DIR)/protobuf
-
+	rm -rf docs/*
 
 .PHONY: build, clean, proto

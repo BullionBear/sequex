@@ -33,15 +33,15 @@ func main() {
 
 	// Create root command
 	rootCmd := &cobra.Command{
-		Use:   "node",
+		Use:   "sqx",
 		Short: "Sequex Node - A distributed computing node",
 		Long: `Sequex Node is a distributed computing node that can run as a server
 or interact with other nodes as a client.
 
 Examples:
-  node serve -c config.yml     # Start a server with config
-  node call rng --server localhost:8080 --input 10  # Call RNG service
-  node list --server localhost:8080                  # List available services`,
+  sqx serve -c config.yml     # Start a server with config
+  sqx call rng --server localhost:8080 --input 10  # Call RNG service
+  sqx list --server localhost:8080                  # List available services`,
 		Version: fmt.Sprintf("Version: %s\nBuild Time: %s\nCommit Hash: %s",
 			env.Version, env.BuildTime, env.CommitHash),
 	}
