@@ -1,9 +1,26 @@
 package sum
 
 import (
+	"encoding/json"
+	"fmt"
+	"math"
 	"sync"
 
+	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
+	pbExample "github.com/BullionBear/sequex/internal/model/protobuf/example"
 	"github.com/BullionBear/sequex/internal/nodeimpl/base"
+	"github.com/BullionBear/sequex/pkg/eventbus"
+	"github.com/BullionBear/sequex/pkg/log"
+	"github.com/BullionBear/sequex/pkg/node"
+)
+
+const (
+	OnRandomKey = "on_random"
+
+	RpcReqMetadataKey   = "req_metadata"
+	RpcReqParametersKey = "req_parameters"
+	RpcReqStatusKey     = "req_status"
+	RpcReqSumKey        = "req_sum"
 )
 
 type SumConfig struct {
@@ -21,37 +38,35 @@ type SumNode struct {
 	mutex sync.Mutex
 }
 
-/*
 func init() {
 	node.RegisterNode("sum", NewSumNode)
 }
 
-func NewSumNode(name string, nc *nats.Conn, config node.NodeConfig, logger *log.Logger) (node.Node, error) {
-	// Parse configuration
-	jsonBytes, err := json.Marshal(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal config: %v", err)
+func NewSumNode(name string, eb *eventbus.EventBus, config *node.NodeConfig, logger log.Logger) (node.Node, error) {
+	baseNode := base.NewBaseNode(name, eb, config, logger)
+	initSum, ok := config.Params["init_sum"].(int)
+	if !ok {
+		return nil, fmt.Errorf("init_sum is not an int")
 	}
-	var cfg SumConfig
-	if err := json.Unmarshal(jsonBytes, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
+	upperLimit, ok := config.Params["upper_limit"].(int)
+	if !ok {
+		return nil, fmt.Errorf("upper_limit is not an int")
 	}
-	baseNode := node.NewBaseNode(name, nc, *logger)
-
-	sumNode := &SumNode{
+	lowerLimit, ok := config.Params["lower_limit"].(int)
+	if !ok {
+		return nil, fmt.Errorf("lower_limit is not an int")
+	}
+	cfg := SumConfig{
+		InitSum:    int64(initSum),
+		UpperLimit: int64(upperLimit),
+		LowerLimit: int64(lowerLimit),
+	}
+	return &SumNode{
 		BaseNode: baseNode,
 		cfg:      cfg,
 		sum:      cfg.InitSum,
 		count:    0,
-	}
-
-	baseNode.Logger().Info("SUM node created",
-		log.Int64("init_sum", cfg.InitSum),
-		log.Int64("upper_limit", cfg.UpperLimit),
-		log.Int64("lower_limit", cfg.LowerLimit),
-	)
-
-	return sumNode, nil
+	}, nil
 }
 
 func (n *SumNode) Start() error {
@@ -67,137 +82,57 @@ func (n *SumNode) Shutdown() error {
 	return nil
 }
 
-func (n *SumNode) OnMessage(msg *nats.Msg) {
-	contentType := msg.Header.Get("Content-Type")
-	messageType := msg.Header.Get("Message-Type")
-
-	n.Logger().Debug("Received message",
-		log.String("content_type", contentType),
-		log.String("message_type", messageType),
-	)
-
-	switch {
-	case contentType == "application/protobuf" && messageType == "rng.RngMessage":
-		var content pb.RngMessage
-		if err := proto.Unmarshal(msg.Data, &content); err != nil {
-			n.Logger().Error("Error unmarshalling RngMessage",
-				log.Error(err),
-			)
-			return
-		}
-		n.onRngMessage(&content)
-	default:
-		n.Logger().Warn("Unknown message type",
-			log.String("message_type", messageType),
-		)
-	}
-}
-
-func (n *SumNode) onRngMessage(msg *pb.RngMessage) {
+func (n *SumNode) OnRandom(msg *pbExample.RandomNumberMessage) {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
-	oldSum := n.sum
-	n.sum += msg.Random
-	if n.sum > n.cfg.UpperLimit || n.sum < n.cfg.LowerLimit {
-		n.sum = n.cfg.InitSum
-		n.Logger().Info("Sum reset to initial value",
-			log.Int64("old_sum", oldSum),
-			log.Int64("random_value", msg.Random),
-			log.Int64("new_sum", n.sum),
-			log.String("reason", "limit_exceeded"),
-		)
-	}
+	n.sum += int64(msg.Value)
+	n.sum = int64(math.Min(float64(n.sum), float64(n.cfg.UpperLimit)))
+	n.sum = int64(math.Max(float64(n.sum), float64(n.cfg.LowerLimit)))
 	n.count++
-
 	n.Logger().Info("Sum updated",
-		log.Int64("old_sum", oldSum),
-		log.Int64("random_value", msg.Random),
-		log.Int64("new_sum", n.sum),
+		log.Int64("sum", n.sum),
+		log.Int64("random", msg.Value),
 		log.Int64("count", n.count),
 	)
 }
 
-func (n *SumNode) OnRPC(req *nats.Msg) *nats.Msg {
-	contentType := req.Header.Get("Content-Type")
-	messageType := req.Header.Get("Message-Type")
-
-	n.Logger().Debug("Received RPC request",
-		log.String("content_type", contentType),
-		log.String("message_type", messageType),
-	)
-
-	switch {
-	case contentType == "application/protobuf" && messageType == "sum.SumRequest":
-		var content pb.SumRequest
-		if err := proto.Unmarshal(req.Data, &content); err != nil {
-			n.Logger().Error("Error unmarshalling SumRequest",
-				log.Error(err),
-			)
-			return utils.MakeErrorMessage(0, utils.ErrorProtobufDeserialization, err)
-		}
-		return n.onSumRequest(&content)
-	case contentType == "application/protobuf" && messageType == "common.EmptyRequest":
-		var content pbCommon.EmptyRequest
-		if err := proto.Unmarshal(req.Data, &content); err != nil {
-			n.Logger().Error("Error unmarshalling EmptyRequest",
-				log.Error(err),
-			)
-			return utils.MakeErrorMessage(0, utils.ErrorProtobufDeserialization, err)
-		}
-		switch content.Type {
-		case pbCommon.RequestType_REQUEST_TYPE_CONFIG:
-			return n.onConfig(&content)
-		default:
-			n.Logger().Warn("Unknown request type",
-				log.Int("request_type", int(content.Type)),
-			)
-			return utils.MakeErrorMessage(content.Id, utils.ErrorUnknownMessageType, fmt.Errorf("unknown message type: %s", content.Type))
-		}
-	default:
-		n.Logger().Warn("Unknown message type",
-			log.String("message_type", messageType),
-		)
-		return utils.MakeErrorMessage(0, utils.ErrorUnknownMessageType, fmt.Errorf("unknown message type: %s", messageType))
-	}
-}
-
-func (n *SumNode) onSumRequest(req *pb.SumRequest) *nats.Msg {
-	n.Logger().Info("Processing SumRequest",
-		log.Int64("offset", req.Offset),
-	)
-
-	response := &pb.SumResponse{
-		NSum:   n.sum + req.Offset,
-		NCount: n.count,
-	}
-	responseBytes, err := utils.MarshallProtobuf(response)
+func (n *SumNode) RequestParameters(req *pbCommon.ParametersRequest) *pbCommon.ParametersResponse {
+	jsonBytes, err := json.Marshal(n.cfg)
 	if err != nil {
-		n.Logger().Error("Error marshalling SumResponse",
-			log.Error(err),
-		)
-		return utils.MakeErrorMessage(req.Id, utils.ErrorProtobufSerialization, err)
+		n.Logger().Error("Failed to marshal parameters", log.Error(err))
+		return &pbCommon.ParametersResponse{
+			Id:         req.Id,
+			Code:       pbCommon.ErrorCode_ERROR_CODE_SERIALIZATION_ERROR,
+			Message:    "Failed to json marshal parameters",
+			Parameters: jsonBytes,
+		}
 	}
-	msg := nats.Msg{}
-	msg.Header.Set("Content-Type", "application/protobuf")
-	msg.Header.Set("Message-Type", "sum.SumResponse")
-	msg.Data = responseBytes
-	return &msg
+	return &pbCommon.ParametersResponse{
+		Id:         req.Id,
+		Code:       pbCommon.ErrorCode_ERROR_CODE_OK,
+		Message:    "",
+		Parameters: jsonBytes,
+	}
 }
 
-func (n *SumNode) onConfig(content *pbCommon.EmptyRequest) *nats.Msg {
-	n.Logger().Debug("Processing config request")
-	responseBytes, err := json.Marshal(&n.cfg)
+func (n *SumNode) RequestStatus(req *pbCommon.StatusRequest) *pbCommon.StatusResponse {
+	jsonBytes, err := json.Marshal(map[string]any{
+		"sum":   n.sum,
+		"count": n.count,
+	})
 	if err != nil {
-		n.Logger().Error("Error marshalling config response",
-			log.Error(err),
-		)
-		return utils.MakeErrorMessage(content.Id, utils.ErrorJSONSerialization, err)
+		n.Logger().Error("Failed to marshal status", log.Error(err))
+		return &pbCommon.StatusResponse{
+			Id:      req.Id,
+			Code:    pbCommon.ErrorCode_ERROR_CODE_SERIALIZATION_ERROR,
+			Message: "Failed to json marshal status",
+		}
 	}
-	msg := nats.Msg{}
-	msg.Header.Set("Content-Type", "application/json")
-	msg.Header.Set("Message-Type", "SumConfig")
-	msg.Data = responseBytes
-	return &msg
+	return &pbCommon.StatusResponse{
+		Id:      req.Id,
+		Code:    pbCommon.ErrorCode_ERROR_CODE_OK,
+		Message: "",
+		Status:  jsonBytes,
+	}
 }
-*/

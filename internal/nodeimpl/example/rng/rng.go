@@ -23,10 +23,10 @@ const (
 )
 
 type RNGParams struct {
-	Low      int     `json:"low"`
-	High     int     `json:"high"`
-	Interval float64 `json:"interval"`
-	Seed     int64   `json:"seed"`
+	Low      int           `json:"low"`
+	High     int           `json:"high"`
+	Interval time.Duration `json:"interval"`
+	Seed     int           `json:"seed"`
 }
 
 type RNGNode struct {
@@ -51,14 +51,14 @@ func NewRNGNode(name string, eb *eventbus.EventBus, config *node.NodeConfig, log
 	cfg := RNGParams{
 		Low:      config.Params["low"].(int),
 		High:     config.Params["high"].(int),
-		Interval: config.Params["interval"].(float64),
-		Seed:     config.Params["seed"].(int64),
+		Interval: time.Duration(config.Params["interval"].(int)) * time.Second,
+		Seed:     config.Params["seed"].(int),
 	}
 
 	return &RNGNode{
 		BaseNode:  baseNode,
 		cfg:       cfg,
-		rand:      rand.New(rand.NewSource(cfg.Seed)),
+		rand:      rand.New(rand.NewSource(int64(cfg.Seed))),
 		shutdownC: make(chan struct{}),
 		doneC:     make(chan struct{}),
 	}, nil
@@ -120,7 +120,7 @@ func (n *RNGNode) Shutdown() error {
 	return nil
 }
 func (n *RNGNode) emitRandom(shutdownC chan struct{}, doneC chan struct{}) {
-	ticker := time.NewTicker(time.Duration(n.cfg.Interval) * time.Second)
+	ticker := time.NewTicker(n.cfg.Interval)
 	defer ticker.Stop()
 	subject, err := n.GetEmit(EmitRandomKey)
 	if err != nil {
@@ -146,7 +146,12 @@ func (n *RNGNode) emitRandom(shutdownC chan struct{}, doneC chan struct{}) {
 }
 
 func (n *RNGNode) RequestParameters(req *pbCommon.ParametersRequest) *pbCommon.ParametersResponse {
-	jsonBytes, err := json.Marshal(n.cfg)
+	jsonBytes, err := json.Marshal(map[string]any{
+		"low":      n.cfg.Low,
+		"high":     n.cfg.High,
+		"interval": n.cfg.Interval.Seconds(),
+		"seed":     n.cfg.Seed,
+	})
 	if err != nil {
 		n.Logger().Error("Failed to marshal parameters", log.Error(err))
 		return &pbCommon.ParametersResponse{

@@ -1,22 +1,13 @@
-app:
-  host: localhost
-  port: 8080
-
-eventbus:
-  url: nats://localhost:4222
-
-node:
-  name: rng
-  type: rng
-  emit: 
-    - emit_random: on.rng.random
-  rpc:
-    - req_metadata: rpc.rng.metadata
-    - req_parameters: rpc.rng.parameters
-    - req_status: rpc.rng.status
-  params:
-    low: 0
-    high: 100
-    seed: 1234567890
-    interval: 1
-
+name: rng
+type: rng
+emit: 
+  emit_random: on.rng.random
+rpc:
+  req_metadata: rpc.rng.metadata
+  req_parameters: rpc.rng.parameters
+  req_status: rpc.rng.status
+params:
+  low: 0
+  high: 100
+  seed: 1234567890
+  interval: 1

@@ -3,10 +3,18 @@ package main
 import (
 	"fmt"
 	"os"
+	"syscall"
+	"time"
 
 	"github.com/BullionBear/sequex/env"
-	// _ "github.com/BullionBear/sequex/internal/nodeimpl/init" // Import to register all nodes
+	"github.com/BullionBear/sequex/internal/config"
+	"github.com/nats-io/nats.go"
+
+	_ "github.com/BullionBear/sequex/internal/nodeimpl/init" // Import to register all nodes
+	"github.com/BullionBear/sequex/pkg/eventbus"
 	"github.com/BullionBear/sequex/pkg/log"
+	"github.com/BullionBear/sequex/pkg/node"
+	"github.com/BullionBear/sequex/pkg/shutdown"
 	"github.com/spf13/cobra"
 )
 
@@ -97,12 +105,43 @@ func runServer() error {
 		log.String("config_file", configFile),
 	)
 
-	// TODO: Implement server logic
-	logger.Info("Server started successfully")
-	logger.Info("TODO: Implement actual server functionality")
+	// Load global config
+	globalCfg, err := config.LoadConfig[config.GlobalConfig](config.PathGlobalConfig)
+	if err != nil {
+		return fmt.Errorf("failed to load global config: %w", err)
+	}
 
-	// Keep the server running
-	select {}
+	cfg, err := config.LoadConfig[node.NodeConfig](configFile)
+	if err != nil {
+		return err
+	}
+
+	conn, err := nats.Connect(globalCfg.EventBus.Url)
+	if err != nil {
+		return err
+	}
+	eventBus := eventbus.NewEventBus(conn)
+	shutdown := shutdown.NewShutdown(logger)
+
+	nodeInstance, err := node.CreateNode(cfg.Type, eventBus, cfg, logger)
+	if err != nil {
+		return err
+	}
+
+	if err := nodeInstance.Start(); err != nil {
+		return err
+	}
+
+	logger.Info("Server started successfully",
+		log.String("name", cfg.Name),
+		log.String("type", cfg.Type),
+	)
+	shutdown.HookShutdownCallback(fmt.Sprintf("(%s).shutdown", cfg.Name), func() {
+		nodeInstance.Shutdown()
+	}, 10*time.Second)
+	shutdown.WaitForShutdown(os.Interrupt, syscall.SIGTERM)
+
+	return nil
 }
 
 // callService calls a specific service on a remote node
