@@ -4,48 +4,26 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/BullionBear/sequex/pkg/eventbus"
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"
 
-	"github.com/nats-io/nats.go"
 	"gopkg.in/yaml.v3"
 )
 
 // Config represents the merged configuration structure
-type Config struct {
-	Logger   LoggerConfig   `yaml:"logger"`
-	NATS     NATSConfig     `yaml:"nats"`
-	Deployer DeployerConfig `yaml:"deployer"`
-}
-
-type MasterConfig struct {
+type SrvConfig struct {
 	App struct {
-		Port int    `yaml:"port"`
 		Host string `yaml:"host"`
+		Port int    `yaml:"port"`
 	} `yaml:"app"`
-	Logger LoggerConfig `yaml:"logger"`
-	Nats   NATSConfig   `yaml:"nats"`
+	EventBus struct {
+		Url string `yaml:"url"`
+	} `yaml:"eventbus"`
+	Node NodeConfig `yaml:"node"`
 }
 
-// LoggerConfig represents logger configuration
-type LoggerConfig struct {
-	Format string `yaml:"format"`
-	Path   string `yaml:"path"`
-	Level  string `yaml:"level"`
-}
-
-// NATSConfig represents NATS connection configuration
-type NATSConfig struct {
-	URL string `yaml:"url"`
-}
-
-// DeployerConfig represents deployer configuration
-type DeployerConfig struct {
-	Nodes []NodeConfig `yaml:"nodes"`
-}
-
-// NodeConfig represents individual node configuration
-type NodeConfig map[string]interface{}
+type NodeConfig map[string]any
 
 // LoadConfig loads the merged configuration from file
 func LoadConfig[T any](configPath string) (*T, error) {
@@ -62,17 +40,8 @@ func LoadConfig[T any](configPath string) (*T, error) {
 	return &config, nil
 }
 
-// CreateNATSConnection creates a single NATS connection for the entire process
-func CreateNATSConnection(natsURL string) (*nats.Conn, error) {
-	nc, err := nats.Connect(natsURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to NATS: %w", err)
-	}
-	return nc, nil
-}
-
 // CreateNode creates a node based on its type name
-func CreateNode(nodeConfig NodeConfig, nc *nats.Conn, logger *log.Logger) (node.Node, error) {
+func CreateNode(nodeConfig NodeConfig, eventbus *eventbus.EventBus, logger log.Logger) (node.Node, error) {
 	// Extract the node name
 	nodeName, ok := nodeConfig["name"].(string)
 	if !ok {
@@ -101,20 +70,9 @@ func CreateNode(nodeConfig NodeConfig, nc *nats.Conn, logger *log.Logger) (node.
 	configMap["name"] = nodeName
 
 	// Create the node
-	node, err := node.CreateNode(nodeType, nc, configMap, logger)
+	node, err := node.CreateNode(nodeType, eventbus, configMap, logger)
 	if err != nil {
 		return nil, err
-	}
-
-	// Set up subscriptions
-	if subscriptions, ok := nodeConfig["subscriptions"].([]interface{}); ok {
-		for _, sub := range subscriptions {
-			if subStr, ok := sub.(string); ok {
-				// Format the subscription topic to match the RNG publishing format
-				topic := fmt.Sprintf("%s.rng.RngMessage", subStr)
-				node.AddSubscription(topic)
-			}
-		}
 	}
 
 	return node, nil

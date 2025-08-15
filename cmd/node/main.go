@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/BullionBear/sequex/env"
-	_ "github.com/BullionBear/sequex/internal/nodeimpl/init" // Import to register all nodes
+	// _ "github.com/BullionBear/sequex/internal/nodeimpl/init" // Import to register all nodes
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/spf13/cobra"
 )
