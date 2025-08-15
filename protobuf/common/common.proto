@@ -33,7 +33,7 @@ message ParametersResponse {
   int64 id = 1;
   ErrorCode code = 2;
   string message = 3;
-  string parameters = 4;
+  bytes parameters = 4;
 }
 
 message StatusRequest {
@@ -44,7 +44,7 @@ message StatusResponse {
   int64 id = 1;
   ErrorCode code = 2;
   string message = 3;
-  repeated bytes status = 4;
+  bytes status = 4;
 }
 
 message MetadataRequest {

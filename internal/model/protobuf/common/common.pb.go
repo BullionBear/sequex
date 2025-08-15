@@ -193,7 +193,7 @@ type ParametersResponse struct {
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Code          ErrorCode              `protobuf:"varint,2,opt,name=code,proto3,enum=common.ErrorCode" json:"code,omitempty"`
 	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
-	Parameters    string                 `protobuf:"bytes,4,opt,name=parameters,proto3" json:"parameters,omitempty"`
+	Parameters    []byte                 `protobuf:"bytes,4,opt,name=parameters,proto3" json:"parameters,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,11 +249,11 @@ func (x *ParametersResponse) GetMessage() string {
 	return ""
 }
 
-func (x *ParametersResponse) GetParameters() string {
+func (x *ParametersResponse) GetParameters() []byte {
 	if x != nil {
 		return x.Parameters
 	}
-	return ""
+	return nil
 }
 
 type StatusRequest struct {
@@ -305,7 +305,7 @@ type StatusResponse struct {
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Code          ErrorCode              `protobuf:"varint,2,opt,name=code,proto3,enum=common.ErrorCode" json:"code,omitempty"`
 	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
-	Status        [][]byte               `protobuf:"bytes,4,rep,name=status,proto3" json:"status,omitempty"`
+	Status        []byte                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -361,7 +361,7 @@ func (x *StatusResponse) GetMessage() string {
 	return ""
 }
 
-func (x *StatusResponse) GetStatus() [][]byte {
+func (x *StatusResponse) GetStatus() []byte {
 	if x != nil {
 		return x.Status
 	}
@@ -524,7 +524,7 @@ const file_protobuf_common_common_proto_rawDesc = "" +
 	"\x04code\x18\x02 \x01(\x0e2\x11.common.ErrorCodeR\x04code\x12\x18\n" +
 	"\amessage\x18\x03 \x01(\tR\amessage\x12\x1e\n" +
 	"\n" +
-	"parameters\x18\x04 \x01(\tR\n" +
+	"parameters\x18\x04 \x01(\fR\n" +
 	"parameters\"\x1f\n" +
 	"\rStatusRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"y\n" +
@@ -532,7 +532,7 @@ const file_protobuf_common_common_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
 	"\x04code\x18\x02 \x01(\x0e2\x11.common.ErrorCodeR\x04code\x12\x18\n" +
 	"\amessage\x18\x03 \x01(\tR\amessage\x12\x16\n" +
-	"\x06status\x18\x04 \x03(\fR\x06status\"!\n" +
+	"\x06status\x18\x04 \x01(\fR\x06status\"!\n" +
 	"\x0fMetadataRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"\xdd\x03\n" +
 	"\x10MetadataResponse\x12\x0e\n" +

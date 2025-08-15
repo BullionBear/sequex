@@ -1,15 +1,16 @@
 package rng
 
 import (
+	"encoding/json"
 	"math/rand"
 	"time"
 
+	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
 	pbExample "github.com/BullionBear/sequex/internal/model/protobuf/example"
 	"github.com/BullionBear/sequex/internal/nodeimpl/base"
 	"github.com/BullionBear/sequex/pkg/eventbus"
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"
-	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -70,11 +71,45 @@ func (n *RNGNode) Start() error {
 	if metadata, err := n.GetRpc(RpcReqMetadataKey); err != nil {
 		return err
 	} else {
-		n.EventBus().RegisterRPC(metadata, func(event *proto.Message) *proto.Message {
-			return n.RequestMetadata(event)
+		n.EventBus().RegisterRPC(metadata, func(event proto.Message) proto.Message {
+			if req, ok := event.(*pbCommon.MetadataRequest); ok {
+				return n.RequestMetadata(req)
+			}
+			return &pbCommon.MetadataResponse{
+				Id:      -1,
+				Code:    pbCommon.ErrorCode_ERROR_CODE_INVALID_REQUEST,
+				Message: "Invalid request",
+			}
 		})
 	}
-
+	if parameters, err := n.GetRpc(RpcReqParametersKey); err != nil {
+		return err
+	} else {
+		n.EventBus().RegisterRPC(parameters, func(event proto.Message) proto.Message {
+			if req, ok := event.(*pbCommon.ParametersRequest); ok {
+				return n.RequestParameters(req)
+			}
+			return &pbCommon.ParametersResponse{
+				Id:      -1,
+				Code:    pbCommon.ErrorCode_ERROR_CODE_INVALID_REQUEST,
+				Message: "Invalid request",
+			}
+		})
+	}
+	if status, err := n.GetRpc(RpcReqStatusKey); err != nil {
+		return err
+	} else {
+		n.EventBus().RegisterRPC(status, func(event proto.Message) proto.Message {
+			if req, ok := event.(*pbCommon.StatusRequest); ok {
+				return n.RequestStatus(req)
+			}
+			return &pbCommon.StatusResponse{
+				Id:      -1,
+				Code:    pbCommon.ErrorCode_ERROR_CODE_INVALID_REQUEST,
+				Message: "Invalid request",
+			}
+		})
+	}
 	return nil
 }
 
@@ -110,14 +145,40 @@ func (n *RNGNode) emitRandom(shutdownC chan struct{}, doneC chan struct{}) {
 	}
 }
 
-func (n *RNGNode) requestMetadata(req *nats.Msg) *nats.Msg {
-
+func (n *RNGNode) RequestParameters(req *pbCommon.ParametersRequest) *pbCommon.ParametersResponse {
+	jsonBytes, err := json.Marshal(n.cfg)
+	if err != nil {
+		n.Logger().Error("Failed to marshal parameters", log.Error(err))
+		return &pbCommon.ParametersResponse{
+			Id:      -1,
+			Code:    pbCommon.ErrorCode_ERROR_CODE_SERIALIZATION_ERROR,
+			Message: "Failed to json marshal parameters",
+		}
+	}
+	return &pbCommon.ParametersResponse{
+		Id:         req.Id,
+		Code:       pbCommon.ErrorCode_ERROR_CODE_OK,
+		Message:    "",
+		Parameters: jsonBytes,
+	}
 }
 
-func (n *RNGNode) requestParameters(req *nats.Msg) *nats.Msg {
-
-}
-
-func (n *RNGNode) requestStatus(req *nats.Msg) *nats.Msg {
-
+func (n *RNGNode) RequestStatus(req *pbCommon.StatusRequest) *pbCommon.StatusResponse {
+	jsonBytes, err := json.Marshal(map[string]any{
+		"count": n.count,
+	})
+	if err != nil {
+		n.Logger().Error("Failed to marshal status", log.Error(err))
+		return &pbCommon.StatusResponse{
+			Id:      req.Id,
+			Code:    pbCommon.ErrorCode_ERROR_CODE_SERIALIZATION_ERROR,
+			Message: "Failed to json marshal status",
+		}
+	}
+	return &pbCommon.StatusResponse{
+		Id:      req.Id,
+		Code:    pbCommon.ErrorCode_ERROR_CODE_OK,
+		Message: "",
+		Status:  jsonBytes,
+	}
 }
