@@ -9,4 +9,4 @@ rpc:
 params:
   exchange: binance
   symbol: BTC-USDT
-  instrument: spot
+  instrument: SPOT
