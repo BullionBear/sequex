@@ -1,0 +1,12 @@
+name: binancetrade
+type: trade
+emit: 
+  emit_trade: on.binance.trade
+rpc:
+  req_metadata: rpc.binancetrade.metadata
+  req_parameters: rpc.binancetrade.parameters
+  req_status: rpc.binancetrade.status
+params:
+  exchange: binance
+  symbol: BTC-USDT
+  instrument: spot
