@@ -52,8 +52,8 @@ func main() {
 or interact with other nodes as a client.
 
 Examples:
-  sqx serve -c config.yml     # Start a server with config
-  sqx call rng --server localhost:8080 --input 10  # Call RNG service`,
+  sqx serve -c config.yml     		# Start a server with config
+  sqx call metadata -c config.yml   # Call RNG service`,
 		Version: fmt.Sprintf("Version: %s\nBuild Time: %s\nCommit Hash: %s",
 			env.Version, env.BuildTime, env.CommitHash),
 	}
