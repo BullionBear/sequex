@@ -15,8 +15,8 @@ PROTO_FILES := $(shell find $(PROTO_DIR) -name "*.proto")
 
 install:
 	make build
+	chmod +x bin/sqx-linux-amd64
 	cp bin/sqx-linux-amd64 /usr/local/bin/sqx
-	chmod +x /usr/local/bin/sqx
 
 build:
 	make clean
