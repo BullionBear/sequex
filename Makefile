@@ -49,4 +49,4 @@ clean:
 	rm -rf $(GO_OUT_DIR)/protobuf
 	rm -rf docs/*
 
-.PHONY: build, clean, proto
+.PHONY: install, build, clean, proto

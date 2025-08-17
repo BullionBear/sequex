@@ -171,6 +171,19 @@ func (n *TradeNode) emitTrade(shutdownC chan struct{}, doneC chan struct{}) {
 			}
 			n.currentId++
 			n.EventBus().Emit(subject, appTrade)
+			n.Logger().Infof("Emitting trade %d", appTrade.Id)
+		},
+		OnError: func(err error) {
+			n.Logger().Error("Failed to subscribe to trade", log.Error(err))
+		},
+		OnDisconnect: func() {
+			n.Logger().Info("Disconnected from trade")
+		},
+		OnConnect: func() {
+			n.Logger().Info("Connected to trade")
+		},
+		OnReconnect: func() {
+			n.Logger().Info("Reconnected to trade")
 		},
 	})
 	if err != nil {

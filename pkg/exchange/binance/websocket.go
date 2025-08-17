@@ -106,8 +106,8 @@ func (w *BinanceWSConn) pingLoop() {
 		case <-ticker.C:
 			w.mu.Lock()
 			if w.conn != nil {
-				if err := w.conn.WriteMessage(websocket.PongMessage, nil); err != nil {
-					log.Printf("[WS] Pong error: %v", err)
+				if err := w.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+					log.Printf("[WS] Ping error: %v", err)
 				}
 			}
 			w.mu.Unlock()
