@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package base;
+package app;
 
-option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/app/base";
+option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/app";
 
 enum Instrument {
   INSTRUMENT_UNSPECIFIED = 0;

@@ -21,56 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Common side enum used across different services
-type Side int32
-
-const (
-	Side_SIDE_UNSPECIFIED Side = 0
-	Side_SIDE_BUY         Side = 1
-	Side_SIDE_SELL        Side = 2
-)
-
-// Enum value maps for Side.
-var (
-	Side_name = map[int32]string{
-		0: "SIDE_UNSPECIFIED",
-		1: "SIDE_BUY",
-		2: "SIDE_SELL",
-	}
-	Side_value = map[string]int32{
-		"SIDE_UNSPECIFIED": 0,
-		"SIDE_BUY":         1,
-		"SIDE_SELL":        2,
-	}
-)
-
-func (x Side) Enum() *Side {
-	p := new(Side)
-	*p = x
-	return p
-}
-
-func (x Side) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (Side) Descriptor() protoreflect.EnumDescriptor {
-	return file_protobuf_common_common_proto_enumTypes[0].Descriptor()
-}
-
-func (Side) Type() protoreflect.EnumType {
-	return &file_protobuf_common_common_proto_enumTypes[0]
-}
-
-func (x Side) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use Side.Descriptor instead.
-func (Side) EnumDescriptor() ([]byte, []int) {
-	return file_protobuf_common_common_proto_rawDescGZIP(), []int{0}
-}
-
 type ErrorCode int32
 
 const (
@@ -128,11 +78,11 @@ func (x ErrorCode) String() string {
 }
 
 func (ErrorCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_protobuf_common_common_proto_enumTypes[1].Descriptor()
+	return file_protobuf_common_common_proto_enumTypes[0].Descriptor()
 }
 
 func (ErrorCode) Type() protoreflect.EnumType {
-	return &file_protobuf_common_common_proto_enumTypes[1]
+	return &file_protobuf_common_common_proto_enumTypes[0]
 }
 
 func (x ErrorCode) Number() protoreflect.EnumNumber {
@@ -141,7 +91,7 @@ func (x ErrorCode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ErrorCode.Descriptor instead.
 func (ErrorCode) EnumDescriptor() ([]byte, []int) {
-	return file_protobuf_common_common_proto_rawDescGZIP(), []int{1}
+	return file_protobuf_common_common_proto_rawDescGZIP(), []int{0}
 }
 
 type ParametersRequest struct {
@@ -553,11 +503,7 @@ const file_protobuf_common_common_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a6\n" +
 	"\bRpcEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*9\n" +
-	"\x04Side\x12\x14\n" +
-	"\x10SIDE_UNSPECIFIED\x10\x00\x12\f\n" +
-	"\bSIDE_BUY\x10\x01\x12\r\n" +
-	"\tSIDE_SELL\x10\x02*\xd0\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\xd0\x02\n" +
 	"\tErrorCode\x12\x11\n" +
 	"\rERROR_CODE_OK\x10\x00\x12\x1a\n" +
 	"\x16ERROR_CODE_UNSPECIFIED\x10\x01\x12$\n" +
@@ -584,33 +530,32 @@ func file_protobuf_common_common_proto_rawDescGZIP() []byte {
 	return file_protobuf_common_common_proto_rawDescData
 }
 
-var file_protobuf_common_common_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_protobuf_common_common_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_protobuf_common_common_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_protobuf_common_common_proto_goTypes = []any{
-	(Side)(0),                  // 0: common.Side
-	(ErrorCode)(0),             // 1: common.ErrorCode
-	(*ParametersRequest)(nil),  // 2: common.ParametersRequest
-	(*ParametersResponse)(nil), // 3: common.ParametersResponse
-	(*StatusRequest)(nil),      // 4: common.StatusRequest
-	(*StatusResponse)(nil),     // 5: common.StatusResponse
-	(*MetadataRequest)(nil),    // 6: common.MetadataRequest
-	(*MetadataResponse)(nil),   // 7: common.MetadataResponse
-	nil,                        // 8: common.MetadataResponse.EmitEntry
-	nil,                        // 9: common.MetadataResponse.OnEntry
-	nil,                        // 10: common.MetadataResponse.RpcEntry
+	(ErrorCode)(0),             // 0: common.ErrorCode
+	(*ParametersRequest)(nil),  // 1: common.ParametersRequest
+	(*ParametersResponse)(nil), // 2: common.ParametersResponse
+	(*StatusRequest)(nil),      // 3: common.StatusRequest
+	(*StatusResponse)(nil),     // 4: common.StatusResponse
+	(*MetadataRequest)(nil),    // 5: common.MetadataRequest
+	(*MetadataResponse)(nil),   // 6: common.MetadataResponse
+	nil,                        // 7: common.MetadataResponse.EmitEntry
+	nil,                        // 8: common.MetadataResponse.OnEntry
+	nil,                        // 9: common.MetadataResponse.RpcEntry
 }
 var file_protobuf_common_common_proto_depIdxs = []int32{
-	1,  // 0: common.ParametersResponse.code:type_name -> common.ErrorCode
-	1,  // 1: common.StatusResponse.code:type_name -> common.ErrorCode
-	1,  // 2: common.MetadataResponse.code:type_name -> common.ErrorCode
-	8,  // 3: common.MetadataResponse.emit:type_name -> common.MetadataResponse.EmitEntry
-	9,  // 4: common.MetadataResponse.on:type_name -> common.MetadataResponse.OnEntry
-	10, // 5: common.MetadataResponse.rpc:type_name -> common.MetadataResponse.RpcEntry
-	6,  // [6:6] is the sub-list for method output_type
-	6,  // [6:6] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	0, // 0: common.ParametersResponse.code:type_name -> common.ErrorCode
+	0, // 1: common.StatusResponse.code:type_name -> common.ErrorCode
+	0, // 2: common.MetadataResponse.code:type_name -> common.ErrorCode
+	7, // 3: common.MetadataResponse.emit:type_name -> common.MetadataResponse.EmitEntry
+	8, // 4: common.MetadataResponse.on:type_name -> common.MetadataResponse.OnEntry
+	9, // 5: common.MetadataResponse.rpc:type_name -> common.MetadataResponse.RpcEntry
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_protobuf_common_common_proto_init() }
@@ -623,7 +568,7 @@ func file_protobuf_common_common_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_protobuf_common_common_proto_rawDesc), len(file_protobuf_common_common_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      1,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
