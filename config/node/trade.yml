@@ -8,5 +8,5 @@ rpc:
   req_status: rpc.binancetrade.status
 params:
   exchange: binance
-  instrument: SPOT
+  instrument: spot
   symbol: BTC-USDT
