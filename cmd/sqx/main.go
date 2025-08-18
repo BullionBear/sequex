@@ -31,7 +31,7 @@ var (
 
 func main() {
 	// Initialize logger
-	logger = log.New(
+	logger = log.DefaultLogger(
 		log.WithLevel(log.LevelInfo),
 		log.WithOutput(os.Stdout),
 		log.WithEncoder(log.NewTextEncoder()),
@@ -52,8 +52,8 @@ func main() {
 or interact with other nodes as a client.
 
 Examples:
-  sqx serve -c config.yml     # Start a server with config
-  sqx call rng --server localhost:8080 --input 10  # Call RNG service`,
+  sqx serve -c config.yml     		# Start a server with config
+  sqx call metadata -c config.yml   # Call RNG service`,
 		Version: fmt.Sprintf("Version: %s\nBuild Time: %s\nCommit Hash: %s",
 			env.Version, env.BuildTime, env.CommitHash),
 	}
@@ -141,7 +141,7 @@ func runServer() error {
 
 // callService calls a specific service on a remote node
 func callService(serviceName, method string) error {
-	logger = log.New(
+	logger = log.DefaultLogger(
 		log.WithLevel(log.LevelInfo),
 		log.WithOutput(os.Stderr),
 		log.WithEncoder(log.NewTextEncoder()),
@@ -180,11 +180,6 @@ func callService(serviceName, method string) error {
 	default:
 		return fmt.Errorf("unknown service: %s. Supported services: metadata, status, params", serviceName)
 	}
-
-	if rpcEndpoint == "" {
-		return fmt.Errorf("RPC endpoint not found for service: %s", serviceName)
-	}
-
 	// Create appropriate request based on service
 	var request proto.Message
 	var responseFactory func() proto.Message

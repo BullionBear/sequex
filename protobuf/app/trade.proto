@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package app;
+
+option go_package = "github.com/BullionBear/sequex/internal/model/protobuf/app";
+
+import "protobuf/app/shared.proto";
+
+message Trade {
+  int64 id = 1;
+  app.Exchange exchange = 2;
+  app.Instrument instrument = 3;
+  app.Symbol symbol = 4;
+  app.Side side = 5;
+  double price = 7;
+  double quantity = 8;
+  int64 timestamp = 9;
+}
+
+message Bar {
+  app.Symbol symbol = 1;
+  app.Instrument instrument = 2;
+  app.Exchange exchange = 3;
+  int64 start_seq = 4;
+  int64 end_seq = 5;
+  int64 next_seq = 6;
+  int64 start_time = 7;
+  int64 end_time = 8;
+  double open = 9;
+  double high = 10;
+  double low = 11;
+  double close = 12;
+  double mean = 13;
+  double std = 14;
+  double median = 15;
+  double first_quartile = 16;
+  double third_quartile = 17;
+  double volume_base = 18;
+  double volume_quote = 19;
+  int64 count = 20;
+}

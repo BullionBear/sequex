@@ -13,12 +13,17 @@ PROTOC_GEN_GO = protoc-gen-go
 # Find all proto files
 PROTO_FILES := $(shell find $(PROTO_DIR) -name "*.proto")
 
+install:
+	make build
+	chmod +x bin/sqx-linux-amd64
+	cp bin/sqx-linux-amd64 /usr/local/bin/sqx
+
 build:
 	make clean
 	make proto
 	swag init --parseDependency --parseInternal -g cmd/master/main.go
-	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/master-linux-x86 cmd/master/main.go
-	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/sqx-linux-x86 cmd/sqx/main.go	
+	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/master-linux-amd64 cmd/master/main.go
+	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/sqx-linux-amd64 cmd/sqx/main.go
 
 test:
 	go test -v ./...
@@ -44,4 +49,4 @@ clean:
 	rm -rf $(GO_OUT_DIR)/protobuf
 	rm -rf docs/*
 
-.PHONY: build, clean, proto
+.PHONY: install, build, clean, proto

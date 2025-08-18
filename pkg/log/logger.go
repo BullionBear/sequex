@@ -11,6 +11,15 @@ import (
 	"time"
 )
 
+var defaultLogger = New()
+
+func DefaultLogger(opts ...Option) Logger {
+	for _, opt := range opts {
+		opt(defaultLogger.(*logger))
+	}
+	return defaultLogger
+}
+
 // Level represents the log level
 type Level int
 
@@ -378,12 +387,8 @@ func (l *logger) log(level Level, msg string, fields ...Field) {
 
 	// Combine fields
 	allFields := make([]Field, 0, len(l.fields)+len(fields))
-	for _, field := range l.fields {
-		allFields = append(allFields, field)
-	}
-	for _, field := range fields {
-		allFields = append(allFields, field)
-	}
+	allFields = append(allFields, l.fields...)
+	allFields = append(allFields, fields...)
 
 	entry := &LogEntry{
 		Timestamp: time.Now(),
@@ -465,14 +470,10 @@ func (l *logger) With(fields ...Field) Logger {
 	}
 
 	// Copy existing fields
-	for _, field := range l.fields {
-		newLogger.fields = append(newLogger.fields, field)
-	}
+	newLogger.fields = append(newLogger.fields, l.fields...)
 
 	// Add new fields
-	for _, field := range fields {
-		newLogger.fields = append(newLogger.fields, field)
-	}
+	newLogger.fields = append(newLogger.fields, fields...)
 
 	return newLogger
 }

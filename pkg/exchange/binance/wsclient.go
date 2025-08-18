@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 )
 
@@ -42,7 +43,8 @@ func (c *WSClient) GetRestClient() *Client {
 func (c *WSClient) SubscribeKline(symbol string, interval string, options KlineSubscriptionOptions) (func(), error) {
 	// Create stream path for kline subscription
 	// Format: /<symbol>@kline_<interval>
-	streamPath := fmt.Sprintf("/%s@kline_%s", symbol, interval)
+	// Binance requires lowercase symbols
+	streamPath := fmt.Sprintf("/%s@kline_%s", strings.ToLower(symbol), interval)
 	subscriptionID := fmt.Sprintf("kline_%s_%s", symbol, interval)
 
 	return c.subscribe(subscriptionID, streamPath, options)
@@ -52,7 +54,8 @@ func (c *WSClient) SubscribeKline(symbol string, interval string, options KlineS
 func (c *WSClient) SubscribeAggTrade(symbol string, options AggTradeSubscriptionOptions) (func(), error) {
 	// Create stream path for aggregate trade subscription
 	// Format: /<symbol>@aggTrade
-	streamPath := fmt.Sprintf("/%s@aggTrade", symbol)
+	// Binance requires lowercase symbols
+	streamPath := fmt.Sprintf("/%s@aggTrade", strings.ToLower(symbol))
 	subscriptionID := fmt.Sprintf("aggTrade_%s", symbol)
 
 	return c.subscribe(subscriptionID, streamPath, options)
@@ -62,7 +65,8 @@ func (c *WSClient) SubscribeAggTrade(symbol string, options AggTradeSubscription
 func (c *WSClient) SubscribeTrade(symbol string, options TradeSubscriptionOptions) (func(), error) {
 	// Create stream path for trade subscription
 	// Format: /<symbol>@trade
-	streamPath := fmt.Sprintf("/%s@trade", symbol)
+	// Binance requires lowercase symbols
+	streamPath := fmt.Sprintf("/%s@trade", strings.ToLower(symbol))
 	subscriptionID := fmt.Sprintf("trade_%s", symbol)
 
 	return c.subscribe(subscriptionID, streamPath, options)
@@ -77,12 +81,13 @@ func (c *WSClient) SubscribeDepth(symbol string, levels int, updateSpeed string,
 
 	// Create stream path for depth subscription
 	// Format: /<symbol>@depth<levels> or /<symbol>@depth<levels>@100ms
+	// Binance requires lowercase symbols
 	var streamPath, subscriptionID string
 	if updateSpeed == "100ms" {
-		streamPath = fmt.Sprintf("/%s@depth%d@100ms", symbol, levels)
+		streamPath = fmt.Sprintf("/%s@depth%d@100ms", strings.ToLower(symbol), levels)
 		subscriptionID = fmt.Sprintf("depth_%s_%d_100ms", symbol, levels)
 	} else {
-		streamPath = fmt.Sprintf("/%s@depth%d", symbol, levels)
+		streamPath = fmt.Sprintf("/%s@depth%d", strings.ToLower(symbol), levels)
 		subscriptionID = fmt.Sprintf("depth_%s_%d", symbol, levels)
 	}
 
@@ -93,12 +98,13 @@ func (c *WSClient) SubscribeDepth(symbol string, levels int, updateSpeed string,
 func (c *WSClient) SubscribeDepthUpdate(symbol string, updateSpeed string, options DepthUpdateSubscriptionOptions) (func(), error) {
 	// Create stream path for differential depth subscription
 	// Format: /<symbol>@depth or /<symbol>@depth@100ms
+	// Binance requires lowercase symbols
 	var streamPath, subscriptionID string
 	if updateSpeed == "100ms" {
-		streamPath = fmt.Sprintf("/%s@depth@100ms", symbol)
+		streamPath = fmt.Sprintf("/%s@depth@100ms", strings.ToLower(symbol))
 		subscriptionID = fmt.Sprintf("depthUpdate_%s_100ms", symbol)
 	} else {
-		streamPath = fmt.Sprintf("/%s@depth", symbol)
+		streamPath = fmt.Sprintf("/%s@depth", strings.ToLower(symbol))
 		subscriptionID = fmt.Sprintf("depthUpdate_%s", symbol)
 	}
 

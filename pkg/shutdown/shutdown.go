@@ -114,12 +114,10 @@ func (s *Shutdown) shutdown() {
 
 			select {
 			case <-done:
-				s.logger.Info("shutdown callback %s done", log.String("name", f.name))
+				s.logger.Infof("shutdown callback %s done", f.name)
 			case <-ctx.Done():
 				if f.timeout > 0 {
-					s.logger.Error("shutdown callback %s timeout after %v",
-						log.String("name", f.name),
-						log.Any("timeout", f.timeout))
+					s.logger.Errorf("shutdown callback %s timeout after %v", f.name, f.timeout)
 				}
 			}
 		}(f)

@@ -1,0 +1,10 @@
+name: binance.btc.usdt.timebar
+type: timebar
+emit: 
+  emit_bar: on.binance.btc.usdt.timebar
+rpc:
+  req_metadata: rpc.binance.btc.usdt.timebar.metadata
+  req_parameters: rpc.binance.btc.usdt.timebar.parameters
+  req_status: rpc.binance.btc.usdt.timebar.status
+params:
+  interval: 6000
