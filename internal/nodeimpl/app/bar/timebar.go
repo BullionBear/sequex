@@ -2,6 +2,7 @@ package bar
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 
 	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
@@ -44,8 +45,12 @@ func init() {
 
 func NewTimeBarNode(name string, eb *eventbus.EventBus, config *node.NodeConfig, logger log.Logger) (node.Node, error) {
 	baseNode := base.NewBaseNode(name, eb, config, logger)
+	interval, ok := config.Params["interval"].(int)
+	if !ok {
+		return nil, fmt.Errorf("interval is not an int")
+	}
 	cfg := TimeBarParams{
-		Interval: config.Params["interval"].(int64),
+		Interval: int64(interval),
 	}
 	return &TimeBarNode{
 		BaseNode:         baseNode,
