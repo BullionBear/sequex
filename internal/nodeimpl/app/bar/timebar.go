@@ -81,6 +81,7 @@ func (n *TimeBarNode) Shutdown() error {
 }
 
 func (n *TimeBarNode) onTrade(trade *app.Trade) {
+	n.Logger().Infof("Received trade %d", trade.Id)
 	if n.currentTimeframe == 0 {
 		n.currentTimeframe = trade.Timestamp / n.cfg.Interval
 		return
