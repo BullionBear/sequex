@@ -1,11 +1,11 @@
-name: binancetrade
+name: binance.btc.usdt.trade
 type: trade
 emit: 
-  emit_trade: on.binance.trade
+  emit_trade: on.binance.btc.usdt.trade
 rpc:
-  req_metadata: rpc.binancetrade.metadata
-  req_parameters: rpc.binancetrade.parameters
-  req_status: rpc.binancetrade.status
+  req_metadata: rpc.binance.btc.usdt.trade.metadata
+  req_parameters: rpc.binance.btc.usdt.trade.parameters
+  req_status: rpc.binance.btc.usdt.trade.status
 params:
   exchange: binance
   instrument: spot

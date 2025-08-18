@@ -180,11 +180,6 @@ func callService(serviceName, method string) error {
 	default:
 		return fmt.Errorf("unknown service: %s. Supported services: metadata, status, params", serviceName)
 	}
-
-	if rpcEndpoint == "" {
-		return fmt.Errorf("RPC endpoint not found for service: %s", serviceName)
-	}
-
 	// Create appropriate request based on service
 	var request proto.Message
 	var responseFactory func() proto.Message
