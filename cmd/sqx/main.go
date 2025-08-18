@@ -31,7 +31,7 @@ var (
 
 func main() {
 	// Initialize logger
-	logger = log.New(
+	logger = log.DefaultLogger(
 		log.WithLevel(log.LevelInfo),
 		log.WithOutput(os.Stdout),
 		log.WithEncoder(log.NewTextEncoder()),
@@ -141,7 +141,7 @@ func runServer() error {
 
 // callService calls a specific service on a remote node
 func callService(serviceName, method string) error {
-	logger = log.New(
+	logger = log.DefaultLogger(
 		log.WithLevel(log.LevelInfo),
 		log.WithOutput(os.Stderr),
 		log.WithEncoder(log.NewTextEncoder()),

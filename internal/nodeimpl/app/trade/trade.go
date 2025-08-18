@@ -2,10 +2,12 @@ package trade
 
 import (
 	"encoding/json"
-	"strconv"
+	"fmt"
+	"strings"
 
 	"github.com/BullionBear/sequex/internal/model/protobuf/app"
 	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
+	"github.com/BullionBear/sequex/internal/nodeimpl/app/share"
 	"github.com/BullionBear/sequex/internal/nodeimpl/base"
 	"github.com/BullionBear/sequex/pkg/eventbus"
 	"github.com/BullionBear/sequex/pkg/exchange/binance"
@@ -23,20 +25,51 @@ const (
 )
 
 type TradeParams struct {
-	Exchange   string `json:"exchange"`
-	Instrument string `json:"instrument"`
-	Symbol     string `json:"symbol"`
+	Exchange   share.Exchange   `json:"exchange"`
+	Instrument share.Instrument `json:"instrument"`
+	Symbol     share.Symbol     `json:"symbol"`
+}
+
+func (p *TradeParams) ToAppSymbol() *app.Symbol {
+	return &app.Symbol{
+		Base:  p.Symbol.Base,
+		Quote: p.Symbol.Quote,
+	}
+}
+
+func (p *TradeParams) ToInstrument() app.Instrument {
+	switch p.Instrument {
+	case share.InstrumentSpot:
+		return app.Instrument_INSTRUMENT_SPOT
+	case share.InstrumentPerp:
+		return app.Instrument_INSTRUMENT_PERP
+	}
+	return app.Instrument_INSTRUMENT_UNSPECIFIED
+}
+
+func (p *TradeParams) ToExchange() app.Exchange {
+	switch p.Exchange {
+	case share.ExchangeBinance:
+		return app.Exchange_EXCHANGE_BINANCE
+	case share.ExchangeBinancePerp:
+		return app.Exchange_EXCHANGE_BINANCE_PERP
+	}
+	return app.Exchange_EXCHANGE_UNSPECIFIED
 }
 
 type TradeNode struct {
 	*base.BaseNode
 	// Configurable parameters
-	cfg TradeParams
-
-	wsClient  *binance.WSClient
-	currentId int64
-	shutdownC chan struct{}
-	doneC     chan struct{}
+	cfg        TradeParams
+	restClient *binance.Client
+	wsClient   *binance.WSClient
+	// Variables
+	currentId    int64
+	nConnected   int64
+	nReconnected int64
+	nError       int64
+	shutdownC    chan struct{}
+	doneC        chan struct{}
 }
 
 func init() {
@@ -45,20 +78,51 @@ func init() {
 
 func NewTradeNode(name string, eb *eventbus.EventBus, config *node.NodeConfig, logger log.Logger) (node.Node, error) {
 	baseNode := base.NewBaseNode(name, eb, config, logger)
+	var exchange share.Exchange
+	switch config.Params["exchange"].(string) {
+	case "binance":
+		exchange = share.ExchangeBinance
+	case "binance_perp":
+		exchange = share.ExchangeBinancePerp
+	case "bybit":
+		exchange = share.ExchangeBybit
+	default:
+		return nil, fmt.Errorf("invalid exchange: %s", config.Params["exchange"].(string))
+	}
+	var instrument share.Instrument
+	switch config.Params["instrument"].(string) {
+	case "spot":
+		instrument = share.InstrumentSpot
+	case "perp":
+		instrument = share.InstrumentPerp
+	}
+	symbol := config.Params["symbol"].(string)
+	if len(strings.Split(symbol, "-")) != 2 {
+		return nil, fmt.Errorf("invalid symbol: %s", symbol)
+	}
+	base := strings.Split(symbol, "-")[0]
+	quote := strings.Split(symbol, "-")[1]
 
 	cfg := TradeParams{
-		Exchange:   config.Params["exchange"].(string),
-		Instrument: config.Params["instrument"].(string),
-		Symbol:     config.Params["symbol"].(string),
+		Exchange:   exchange,
+		Instrument: instrument,
+		Symbol:     share.Symbol{Base: base, Quote: quote},
 	}
 
+	wsClient := binance.NewWSClient(&binance.WSConfig{})
+	restClient := wsClient.GetRestClient()
+
 	return &TradeNode{
-		BaseNode:  baseNode,
-		cfg:       cfg,
-		wsClient:  binance.NewWSClient(&binance.WSConfig{}),
-		currentId: 0,
-		shutdownC: make(chan struct{}),
-		doneC:     make(chan struct{}),
+		BaseNode:     baseNode,
+		cfg:          cfg,
+		restClient:   restClient,
+		wsClient:     wsClient,
+		currentId:    0,
+		nConnected:   0,
+		nReconnected: 0,
+		nError:       0,
+		shutdownC:    make(chan struct{}),
+		doneC:        make(chan struct{}),
 	}, nil
 }
 
@@ -124,65 +188,26 @@ func (n *TradeNode) Shutdown() error {
 }
 
 func (n *TradeNode) emitTrade(shutdownC chan struct{}, doneC chan struct{}) {
-	subject, err := n.GetEmit(EmitTradeKey)
+	adapter, err := CreateAdapter(n.cfg.Exchange, n.cfg.Instrument)
 	if err != nil {
-		n.Logger().Error("Failed to get emit subject", log.Error(err))
+		n.Logger().Error("Failed to create adapter", log.Error(err))
 		return
 	}
-	unsubscribe, err := n.wsClient.SubscribeTrade(n.cfg.Symbol, binance.TradeSubscriptionOptions{
-		OnTrade: func(trade binance.WSTrade) {
-			baseAsset, err := binance.GetBaseAsset(trade.Symbol)
-			if err != nil {
-				n.Logger().Error("Failed to get base asset", log.Error(err))
-				return
-			}
-			quoteAsset, err := binance.GetQuoteAsset(trade.Symbol)
-			if err != nil {
-				n.Logger().Error("Failed to get quote asset", log.Error(err))
-				return
-			}
-			symbol := app.Symbol{
-				Base:  baseAsset,
-				Quote: quoteAsset,
-			}
-			price, err := strconv.ParseFloat(trade.Price, 64)
-			if err != nil {
-				n.Logger().Error("Failed to parse price", log.Error(err))
-				return
-			}
-			quantity, err := strconv.ParseFloat(trade.Quantity, 64)
-			if err != nil {
-				n.Logger().Error("Failed to parse quantity", log.Error(err))
-				return
-			}
-			takerSide := app.Side_SIDE_BUY
-			if trade.IsBuyerMaker {
-				takerSide = app.Side_SIDE_SELL
-			}
-			appTrade := &app.Trade{
-				Id:         trade.TradeId,
-				Exchange:   app.Exchange_EXCHANGE_BINANCE,
-				Instrument: app.Instrument_INSTRUMENT_SPOT,
-				Symbol:     &symbol,
-				Price:      price,
-				Side:       takerSide,
-				Quantity:   quantity,
-				Timestamp:  trade.TradeTime,
-			}
-			n.currentId++
-			n.EventBus().Emit(subject, appTrade)
-			n.Logger().Infof("Emitting trade %d", appTrade.Id)
-		},
+	unsubscribe, err := adapter.Subscribe(n.cfg.Symbol, TradeSubscriptionOptions{
+		OnTrade: n.onTrade,
 		OnError: func(err error) {
+			n.nError++
 			n.Logger().Error("Failed to subscribe to trade", log.Error(err))
 		},
 		OnDisconnect: func() {
 			n.Logger().Info("Disconnected from trade")
 		},
 		OnConnect: func() {
+			n.nConnected++
 			n.Logger().Info("Connected to trade")
 		},
 		OnReconnect: func() {
+			n.nReconnected++
 			n.Logger().Info("Reconnected to trade")
 		},
 	})
@@ -195,8 +220,37 @@ func (n *TradeNode) emitTrade(shutdownC chan struct{}, doneC chan struct{}) {
 	close(doneC)
 }
 
+func (n *TradeNode) onTrade(trade Trade) {
+	subject, err := n.GetEmit(EmitTradeKey)
+	if err != nil {
+		n.Logger().Error("Failed to get emit subject", log.Error(err))
+		return
+	}
+	side := app.Side_SIDE_BUY
+	if trade.TakerSide == share.SideSell {
+		side = app.Side_SIDE_SELL
+	}
+	appTrade := &app.Trade{
+		Id:         trade.ID,
+		Exchange:   n.cfg.ToExchange(),
+		Instrument: n.cfg.ToInstrument(),
+		Symbol:     n.cfg.ToAppSymbol(),
+		Price:      trade.Price,
+		Side:       side,
+		Quantity:   trade.Qty,
+		Timestamp:  trade.Time,
+	}
+	n.currentId = trade.ID
+	n.EventBus().Emit(subject, appTrade)
+	n.Logger().Infof("Emitting trade %d", appTrade.Id)
+}
+
 func (n *TradeNode) RequestParameters(req *pbCommon.ParametersRequest) *pbCommon.ParametersResponse {
-	jsonBytes, err := json.Marshal(n.cfg)
+	jsonBytes, err := json.Marshal(map[string]any{
+		"exchange":   n.cfg.Exchange,
+		"instrument": n.cfg.Instrument,
+		"symbol":     n.cfg.Symbol,
+	})
 	if err != nil {
 		n.Logger().Error("Failed to marshal parameters", log.Error(err))
 		return &pbCommon.ParametersResponse{
