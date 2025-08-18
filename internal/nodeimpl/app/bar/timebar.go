@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sort"
 
 	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
 	"github.com/BullionBear/sequex/pkg/log"
@@ -103,7 +104,8 @@ func (n *TimeBarNode) onTrade(trade *app.Trade) {
 	for _, trade := range n.tradeBuffer {
 		quoteBuffer = append(quoteBuffer, trade.Price*trade.Quantity)
 	}
-
+	sortedPriceBuffer := append([]float64(nil), priceBuffer...)
+	sort.Float64s(sortedPriceBuffer)
 	bar := app.Bar{
 		Symbol:        trade.Symbol,
 		Instrument:    trade.Instrument,
@@ -114,14 +116,14 @@ func (n *TimeBarNode) onTrade(trade *app.Trade) {
 		StartTime:     n.tradeBuffer[0].Timestamp,
 		EndTime:       trade.Timestamp,
 		Open:          priceBuffer[0],
-		High:          floats.Max(priceBuffer),
-		Low:           floats.Min(priceBuffer),
+		High:          sortedPriceBuffer[len(sortedPriceBuffer)-1],
+		Low:           sortedPriceBuffer[0],
 		Close:         priceBuffer[len(priceBuffer)-1],
 		Mean:          stat.Mean(priceBuffer, nil),
 		Std:           math.Sqrt(stat.Variance(priceBuffer, nil)),
-		Median:        stat.Quantile(0.5, stat.Empirical, priceBuffer, nil),
-		FirstQuartile: stat.Quantile(0.25, stat.Empirical, priceBuffer, nil),
-		ThirdQuartile: stat.Quantile(0.75, stat.Empirical, priceBuffer, nil),
+		Median:        stat.Quantile(0.5, stat.Empirical, sortedPriceBuffer, nil),
+		FirstQuartile: stat.Quantile(0.25, stat.Empirical, sortedPriceBuffer, nil),
+		ThirdQuartile: stat.Quantile(0.75, stat.Empirical, sortedPriceBuffer, nil),
 		VolumeBase:    floats.Sum(baseBuffer),
 		VolumeQuote:   floats.Sum(quoteBuffer),
 		Count:         int64(len(n.tradeBuffer)),
