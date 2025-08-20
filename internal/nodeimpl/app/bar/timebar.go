@@ -91,6 +91,10 @@ func (n *TimeBarNode) onTrade(trade *app.Trade) {
 		n.tradeBuffer = append(n.tradeBuffer, trade)
 		return
 	}
+	if len(n.tradeBuffer) == 0 {
+		n.Logger().Error("Trade buffer is empty, skipping bar")
+		return
+	}
 	n.currentTimeframe = trade.Timestamp / n.cfg.Interval
 	priceBuffer := make([]float64, len(n.tradeBuffer))
 	for _, trade := range n.tradeBuffer {
