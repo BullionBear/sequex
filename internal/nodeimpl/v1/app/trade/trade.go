@@ -7,8 +7,8 @@ import (
 
 	"github.com/BullionBear/sequex/internal/model/protobuf/app"
 	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
-	"github.com/BullionBear/sequex/internal/nodeimpl/app/share"
-	"github.com/BullionBear/sequex/internal/nodeimpl/base"
+	"github.com/BullionBear/sequex/internal/nodeimpl/v1/app/share"
+	"github.com/BullionBear/sequex/internal/nodeimpl/v1/base"
 	"github.com/BullionBear/sequex/pkg/eventbus"
 	"github.com/BullionBear/sequex/pkg/exchange/binance"
 	"github.com/BullionBear/sequex/pkg/log"

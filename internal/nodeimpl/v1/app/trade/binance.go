@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/BullionBear/sequex/internal/nodeimpl/app/share"
+	"github.com/BullionBear/sequex/internal/nodeimpl/v1/app/share"
 	"github.com/BullionBear/sequex/pkg/exchange/binance"
 )
 

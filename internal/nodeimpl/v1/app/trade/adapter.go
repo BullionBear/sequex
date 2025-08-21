@@ -3,7 +3,7 @@ package trade
 import (
 	"fmt"
 
-	"github.com/BullionBear/sequex/internal/nodeimpl/app/share"
+	"github.com/BullionBear/sequex/internal/nodeimpl/v1/app/share"
 )
 
 var adapterMap = map[share.Exchange]map[share.Instrument]SubscribeTradeAdapter{}

@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/BullionBear/sequex/internal/model/protobuf/app"
-	"github.com/BullionBear/sequex/internal/nodeimpl/base"
+	"github.com/BullionBear/sequex/internal/nodeimpl/v1/base"
 	"github.com/BullionBear/sequex/pkg/eventbus"
 	"github.com/BullionBear/sequex/pkg/node"
 	"gonum.org/v1/gonum/floats"

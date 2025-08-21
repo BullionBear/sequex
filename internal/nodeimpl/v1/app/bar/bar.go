@@ -1,6 +1,6 @@
 package bar
 
-import "github.com/BullionBear/sequex/internal/nodeimpl/app/share"
+import "github.com/BullionBear/sequex/internal/nodeimpl/v1/app/share"
 
 type Bar struct {
 	Symbol        share.Symbol

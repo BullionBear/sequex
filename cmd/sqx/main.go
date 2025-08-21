@@ -11,7 +11,7 @@ import (
 	"github.com/BullionBear/sequex/internal/config"
 	"github.com/nats-io/nats.go"
 
-	_ "github.com/BullionBear/sequex/internal/nodeimpl/init" // Import to register all nodes
+	_ "github.com/BullionBear/sequex/internal/nodeimpl/v1/init" // Import to register all nodes
 	"github.com/BullionBear/sequex/pkg/eventbus"
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"

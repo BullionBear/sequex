@@ -7,7 +7,7 @@ import (
 
 	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
 	pbExample "github.com/BullionBear/sequex/internal/model/protobuf/example"
-	"github.com/BullionBear/sequex/internal/nodeimpl/base"
+	"github.com/BullionBear/sequex/internal/nodeimpl/v1/base"
 	"github.com/BullionBear/sequex/pkg/eventbus"
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"
