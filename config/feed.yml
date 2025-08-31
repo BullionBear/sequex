@@ -1,0 +1,6 @@
+exchange: binance
+type: trade
+symbol: BTCUSDT
+instrument: SPOT
+nats:
+  url: nats://localhost:4222
