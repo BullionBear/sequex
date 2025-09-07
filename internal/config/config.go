@@ -3,22 +3,13 @@ package config
 import (
 	"fmt"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 )
 
-// ConnectionType represents the type of connection
-type ConnectionType string
-
-const (
-	ConnectionTypeNATS      ConnectionType = "nats"
-	ConnectionTypeJetStream ConnectionType = "jetstream"
-	ConnectionTypeTLS       ConnectionType = "tls"
-)
-
 // ConnectionConfig represents a parsed connection string configuration
 type ConnectionConfig struct {
-	Type     ConnectionType
 	Host     string
 	Port     int
 	Username string
@@ -28,15 +19,15 @@ type ConnectionConfig struct {
 
 // ParseConnectionString parses a connection string and returns a ConnectionConfig
 // Examples:
-//   - nats://127.0.0.1:4222?subject=test
-//   - jetstream://prod:4222?stream=cache&subject=binance.trades
-//   - nats://user:pass@localhost:4222?subject=test
+//   - nats://127.0.0.1:4222?jetstream=feed&subject=test
+//   - nats://user:pass@127.0.0.1:4022?jetstream=feed&subject=trade.btcusdt
+//   - @nats://user:pass@localhost:4222?jetstream=feed&subject=test (with @ prefix for auth)
 func ParseConnectionString(connStr string) (*ConnectionConfig, error) {
 	if connStr == "" {
 		return nil, fmt.Errorf("connection string cannot be empty")
 	}
 
-	// Handle the @ prefix if present
+	// Handle the @ prefix if present (indicates username/password authentication)
 	connStr = strings.TrimPrefix(connStr, "@")
 
 	// Parse the URL
@@ -45,17 +36,9 @@ func ParseConnectionString(connStr string) (*ConnectionConfig, error) {
 		return nil, fmt.Errorf("invalid connection string format: %w", err)
 	}
 
-	// Determine connection type
-	var connType ConnectionType
-	switch u.Scheme {
-	case "nats":
-		connType = ConnectionTypeNATS
-	case "jetstream":
-		connType = ConnectionTypeJetStream
-	case "tls":
-		connType = ConnectionTypeTLS
-	default:
-		return nil, fmt.Errorf("unsupported connection type: %s. Supported types: nats, jetstream, tls", u.Scheme)
+	// Validate that only nats:// scheme is supported
+	if u.Scheme != "nats" {
+		return nil, fmt.Errorf("unsupported connection scheme: %s. Only nats:// is supported", u.Scheme)
 	}
 
 	// Parse host and port
@@ -85,14 +68,20 @@ func ParseConnectionString(connStr string) (*ConnectionConfig, error) {
 		}
 	}
 
-	return &ConnectionConfig{
-		Type:     connType,
+	config := &ConnectionConfig{
 		Host:     host,
 		Port:     port,
 		Username: username,
 		Password: password,
 		Params:   params,
-	}, nil
+	}
+
+	// Validate the configuration
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }
 
 // GetParam returns a query parameter value, with an optional default
@@ -129,10 +118,7 @@ func (c *ConnectionConfig) GetBoolParam(key string, defaultValue bool) (bool, er
 
 // ToNATSURL converts the connection config back to a NATS-compatible URL
 func (c *ConnectionConfig) ToNATSURL() string {
-	scheme := string(c.Type)
-	if c.Type == ConnectionTypeJetStream {
-		scheme = "nats" // JetStream uses nats:// scheme
-	}
+	scheme := "nats"
 
 	// Build user info if credentials are present
 	var userInfo string
@@ -144,9 +130,16 @@ func (c *ConnectionConfig) ToNATSURL() string {
 		userInfo += "@"
 	}
 
-	// Build query string
+	// Build query string with sorted parameters for consistent output
+	var keys []string
+	for key := range c.Params {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
 	var queryParts []string
-	for key, value := range c.Params {
+	for _, key := range keys {
+		value := c.Params[key]
 		queryParts = append(queryParts, fmt.Sprintf("%s=%s", key, url.QueryEscape(value)))
 	}
 	queryString := ""
@@ -172,13 +165,22 @@ func (c *ConnectionConfig) Validate() error {
 		return fmt.Errorf("port must be between 1 and 65535, got %d", c.Port)
 	}
 
-	// Validate connection type specific requirements
-	switch c.Type {
-	case ConnectionTypeJetStream:
-		// JetStream typically requires a stream parameter
-		if _, hasStream := c.Params["stream"]; !hasStream {
-			return fmt.Errorf("jetstream connection requires 'stream' parameter")
-		}
+	// JetStream parameter is mandatory for all connections
+	jetstreamValue, hasJetstream := c.Params["jetstream"]
+	if !hasJetstream {
+		return fmt.Errorf("jetstream parameter is required")
+	}
+	if jetstreamValue == "" {
+		return fmt.Errorf("jetstream parameter cannot be empty")
+	}
+
+	// Subject parameter is mandatory for all connections
+	subjectValue, hasSubject := c.Params["subject"]
+	if !hasSubject {
+		return fmt.Errorf("subject parameter is required")
+	}
+	if subjectValue == "" {
+		return fmt.Errorf("subject parameter cannot be empty")
 	}
 
 	return nil

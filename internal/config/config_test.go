@@ -16,80 +16,62 @@ func TestParseConnectionString(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name:  "basic NATS connection",
-			input: "nats://127.0.0.1:4222",
+			name:  "basic NATS connection with jetstream and subject",
+			input: "nats://127.0.0.1:4222?jetstream=feed&subject=test",
 			expected: &ConnectionConfig{
-				Type:     ConnectionTypeNATS,
 				Host:     "127.0.0.1",
 				Port:     4222,
 				Username: "",
 				Password: "",
-				Params:   map[string]string{},
+				Params:   map[string]string{"jetstream": "feed", "subject": "test"},
 			},
 			expectError: false,
 		},
 		{
-			name:  "NATS with @ prefix",
-			input: "@nats://127.0.0.1:4222?subject=test",
+			name:  "NATS with @ prefix and jetstream",
+			input: "@nats://127.0.0.1:4222?jetstream=feed&subject=test",
 			expected: &ConnectionConfig{
-				Type:     ConnectionTypeNATS,
 				Host:     "127.0.0.1",
 				Port:     4222,
 				Username: "",
 				Password: "",
-				Params:   map[string]string{"subject": "test"},
+				Params:   map[string]string{"jetstream": "feed", "subject": "test"},
 			},
 			expectError: false,
 		},
 		{
-			name:  "JetStream connection",
-			input: "jetstream://prod:4222?stream=cache&subject=binance.trades",
+			name:  "NATS with JetStream",
+			input: "nats://user:pass@127.0.0.1:4022?jetstream=feed&subject=trade.btcusdt",
 			expected: &ConnectionConfig{
-				Type:     ConnectionTypeJetStream,
-				Host:     "prod",
-				Port:     4222,
-				Username: "",
-				Password: "",
-				Params:   map[string]string{"stream": "cache", "subject": "binance.trades"},
+				Host:     "127.0.0.1",
+				Port:     4022,
+				Username: "user",
+				Password: "pass",
+				Params:   map[string]string{"jetstream": "feed", "subject": "trade.btcusdt"},
 			},
 			expectError: false,
 		},
 		{
-			name:  "NATS with credentials",
-			input: "nats://user:pass@localhost:4222?subject=test",
+			name:  "NATS with credentials and jetstream",
+			input: "nats://user:pass@localhost:4222?jetstream=feed&subject=test",
 			expected: &ConnectionConfig{
-				Type:     ConnectionTypeNATS,
 				Host:     "localhost",
 				Port:     4222,
 				Username: "user",
 				Password: "pass",
-				Params:   map[string]string{"subject": "test"},
+				Params:   map[string]string{"jetstream": "feed", "subject": "test"},
 			},
 			expectError: false,
 		},
 		{
-			name:  "NATS with default port",
-			input: "nats://localhost",
+			name:  "NATS with default port and jetstream",
+			input: "nats://localhost?jetstream=feed&subject=test",
 			expected: &ConnectionConfig{
-				Type:     ConnectionTypeNATS,
 				Host:     "localhost",
 				Port:     4222,
 				Username: "",
 				Password: "",
-				Params:   map[string]string{},
-			},
-			expectError: false,
-		},
-		{
-			name:  "TLS connection",
-			input: "tls://secure.example.com:4222?subject=secure.test",
-			expected: &ConnectionConfig{
-				Type:     ConnectionTypeTLS,
-				Host:     "secure.example.com",
-				Port:     4222,
-				Username: "",
-				Password: "",
-				Params:   map[string]string{"subject": "secure.test"},
+				Params:   map[string]string{"jetstream": "feed", "subject": "test"},
 			},
 			expectError: false,
 		},
@@ -105,7 +87,21 @@ func TestParseConnectionString(t *testing.T) {
 			input:       "http://localhost:4222",
 			expected:    nil,
 			expectError: true,
-			errorMsg:    "unsupported connection type: http",
+			errorMsg:    "unsupported connection scheme: http",
+		},
+		{
+			name:        "jetstream scheme not supported",
+			input:       "jetstream://localhost:4222?stream=test",
+			expected:    nil,
+			expectError: true,
+			errorMsg:    "unsupported connection scheme: jetstream",
+		},
+		{
+			name:        "tls scheme not supported",
+			input:       "tls://localhost:4222?jetstream=feed",
+			expected:    nil,
+			expectError: true,
+			errorMsg:    "unsupported connection scheme: tls",
 		},
 		{
 			name:        "invalid URL format",
@@ -127,6 +123,34 @@ func TestParseConnectionString(t *testing.T) {
 			expected:    nil,
 			expectError: true,
 			errorMsg:    "host cannot be empty",
+		},
+		{
+			name:        "NATS without jetstream parameter",
+			input:       "nats://127.0.0.1:4222?subject=test",
+			expected:    nil,
+			expectError: true,
+			errorMsg:    "jetstream parameter is required",
+		},
+		{
+			name:        "NATS with empty jetstream parameter",
+			input:       "nats://127.0.0.1:4222?jetstream=&subject=test",
+			expected:    nil,
+			expectError: true,
+			errorMsg:    "jetstream parameter cannot be empty",
+		},
+		{
+			name:        "NATS without subject parameter",
+			input:       "nats://127.0.0.1:4222?jetstream=feed",
+			expected:    nil,
+			expectError: true,
+			errorMsg:    "subject parameter is required",
+		},
+		{
+			name:        "NATS with empty subject parameter",
+			input:       "nats://127.0.0.1:4222?jetstream=feed&subject=",
+			expected:    nil,
+			expectError: true,
+			errorMsg:    "subject parameter cannot be empty",
 		},
 	}
 
@@ -156,9 +180,6 @@ func TestParseConnectionString(t *testing.T) {
 			}
 
 			// Compare fields
-			if result.Type != tt.expected.Type {
-				t.Errorf("expected Type %v, got %v", tt.expected.Type, result.Type)
-			}
 			if result.Host != tt.expected.Host {
 				t.Errorf("expected Host %v, got %v", tt.expected.Host, result.Host)
 			}
@@ -302,45 +323,35 @@ func TestConnectionConfig_ToNATSURL(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "basic NATS",
+			name: "basic NATS with jetstream and subject",
 			config: &ConnectionConfig{
-				Type: ConnectionTypeNATS,
-				Host: "localhost",
-				Port: 4222,
+				Host:   "localhost",
+				Port:   4222,
+				Params: map[string]string{"jetstream": "feed", "subject": "test"},
 			},
-			expected: "nats://localhost:4222",
+			expected: "nats://localhost:4222?jetstream=feed&subject=test",
 		},
 		{
 			name: "NATS with credentials and params",
 			config: &ConnectionConfig{
-				Type:     ConnectionTypeNATS,
 				Host:     "localhost",
 				Port:     4222,
 				Username: "user",
 				Password: "pass",
-				Params:   map[string]string{"subject": "test"},
+				Params:   map[string]string{"jetstream": "feed", "subject": "test"},
 			},
-			expected: "nats://user:pass@localhost:4222?subject=test",
+			expected: "nats://user:pass@localhost:4222?jetstream=feed&subject=test",
 		},
 		{
-			name: "JetStream",
+			name: "NATS with JetStream",
 			config: &ConnectionConfig{
-				Type:   ConnectionTypeJetStream,
-				Host:   "prod",
-				Port:   4222,
-				Params: map[string]string{"stream": "cache", "subject": "binance.trades"},
+				Host:     "127.0.0.1",
+				Port:     4022,
+				Username: "user",
+				Password: "pass",
+				Params:   map[string]string{"jetstream": "feed", "subject": "trade.btcusdt"},
 			},
-			expected: "nats://prod:4222?stream=cache&subject=binance.trades",
-		},
-		{
-			name: "TLS",
-			config: &ConnectionConfig{
-				Type:   ConnectionTypeTLS,
-				Host:   "secure.example.com",
-				Port:   4222,
-				Params: map[string]string{"subject": "secure.test"},
-			},
-			expected: "tls://secure.example.com:4222?subject=secure.test",
+			expected: "nats://user:pass@127.0.0.1:4022?jetstream=feed&subject=trade.btcusdt",
 		},
 	}
 
@@ -363,30 +374,29 @@ func TestConnectionConfig_Validate(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name: "valid NATS config",
+			name: "valid NATS config with jetstream and subject",
 			config: &ConnectionConfig{
-				Type: ConnectionTypeNATS,
-				Host: "localhost",
-				Port: 4222,
+				Host:   "localhost",
+				Port:   4222,
+				Params: map[string]string{"jetstream": "feed", "subject": "test"},
 			},
 			expectError: false,
 		},
 		{
-			name: "valid JetStream config",
+			name: "valid NATS with JetStream config",
 			config: &ConnectionConfig{
-				Type:   ConnectionTypeJetStream,
 				Host:   "localhost",
 				Port:   4222,
-				Params: map[string]string{"stream": "test"},
+				Params: map[string]string{"jetstream": "feed", "subject": "test"},
 			},
 			expectError: false,
 		},
 		{
 			name: "empty host",
 			config: &ConnectionConfig{
-				Type: ConnectionTypeNATS,
-				Host: "",
-				Port: 4222,
+				Host:   "",
+				Port:   4222,
+				Params: map[string]string{"jetstream": "feed", "subject": "test"},
 			},
 			expectError: true,
 			errorMsg:    "host cannot be empty",
@@ -394,9 +404,9 @@ func TestConnectionConfig_Validate(t *testing.T) {
 		{
 			name: "invalid port - too low",
 			config: &ConnectionConfig{
-				Type: ConnectionTypeNATS,
-				Host: "localhost",
-				Port: 0,
+				Host:   "localhost",
+				Port:   0,
+				Params: map[string]string{"jetstream": "feed", "subject": "test"},
 			},
 			expectError: true,
 			errorMsg:    "port must be between 1 and 65535",
@@ -404,22 +414,32 @@ func TestConnectionConfig_Validate(t *testing.T) {
 		{
 			name: "invalid port - too high",
 			config: &ConnectionConfig{
-				Type: ConnectionTypeNATS,
-				Host: "localhost",
-				Port: 65536,
+				Host:   "localhost",
+				Port:   65536,
+				Params: map[string]string{"jetstream": "feed", "subject": "test"},
 			},
 			expectError: true,
 			errorMsg:    "port must be between 1 and 65535",
 		},
 		{
-			name: "JetStream without stream",
+			name: "NATS without jetstream parameter",
 			config: &ConnectionConfig{
-				Type: ConnectionTypeJetStream,
-				Host: "localhost",
-				Port: 4222,
+				Host:   "localhost",
+				Port:   4222,
+				Params: map[string]string{"subject": "test"},
 			},
 			expectError: true,
-			errorMsg:    "jetstream connection requires 'stream' parameter",
+			errorMsg:    "jetstream parameter is required",
+		},
+		{
+			name: "NATS with empty jetstream parameter",
+			config: &ConnectionConfig{
+				Host:   "localhost",
+				Port:   4222,
+				Params: map[string]string{"jetstream": "", "subject": "test"},
+			},
+			expectError: true,
+			errorMsg:    "jetstream parameter cannot be empty",
 		},
 	}
 
@@ -447,13 +467,12 @@ func TestConnectionConfig_Validate(t *testing.T) {
 
 func TestConnectionConfig_String(t *testing.T) {
 	config := &ConnectionConfig{
-		Type:   ConnectionTypeNATS,
 		Host:   "localhost",
 		Port:   4222,
-		Params: map[string]string{"subject": "test"},
+		Params: map[string]string{"jetstream": "feed", "subject": "test"},
 	}
 
-	expected := "nats://localhost:4222?subject=test"
+	expected := "nats://localhost:4222?jetstream=feed&subject=test"
 	result := config.String()
 
 	if result != expected {
@@ -463,34 +482,34 @@ func TestConnectionConfig_String(t *testing.T) {
 
 // ExampleParseConnectionString demonstrates how to parse various connection strings
 func ExampleParseConnectionString() {
-	// Example 1: Basic NATS connection
-	connStr1 := "nats://127.0.0.1:4222?subject=test"
+	// Example 1: Basic NATS connection with jetstream
+	connStr1 := "nats://127.0.0.1:4222?jetstream=feed&subject=test"
 	config1, err := ParseConnectionString(connStr1)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Type: %s, Host: %s, Port: %d, Subject: %s\n",
-		config1.Type, config1.Host, config1.Port, config1.GetParam("subject", ""))
+	fmt.Printf("Host: %s, Port: %d, JetStream: %s, Subject: %s\n",
+		config1.Host, config1.Port, config1.GetParam("jetstream", ""), config1.GetParam("subject", ""))
 
-	// Example 2: JetStream connection with @ prefix
-	connStr2 := "@jetstream://prod:4222?stream=cache&subject=binance.trades"
+	// Example 2: NATS with JetStream using new format
+	connStr2 := "nats://user:pass@127.0.0.1:4022?jetstream=feed&subject=trade.btcusdt"
 	config2, err := ParseConnectionString(connStr2)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Type: %s, Host: %s, Port: %d, Stream: %s, Subject: %s\n",
-		config2.Type, config2.Host, config2.Port,
-		config2.GetParam("stream", ""), config2.GetParam("subject", ""))
+	fmt.Printf("Host: %s, Port: %d, JetStream: %s, Subject: %s\n",
+		config2.Host, config2.Port,
+		config2.GetParam("jetstream", ""), config2.GetParam("subject", ""))
 
-	// Example 3: NATS with credentials
-	connStr3 := "nats://user:pass@localhost:4222?subject=test"
+	// Example 3: NATS with credentials and jetstream
+	connStr3 := "nats://user:pass@localhost:4222?jetstream=feed&subject=test"
 	config3, err := ParseConnectionString(connStr3)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Type: %s, Host: %s, Port: %d, Username: %s, Subject: %s\n",
-		config3.Type, config3.Host, config3.Port, config3.Username,
-		config3.GetParam("subject", ""))
+	fmt.Printf("Host: %s, Port: %d, Username: %s, JetStream: %s, Subject: %s\n",
+		config3.Host, config3.Port, config3.Username,
+		config3.GetParam("jetstream", ""), config3.GetParam("subject", ""))
 
 	// Example 4: Validate the configuration
 	if err := config3.Validate(); err != nil {
@@ -502,8 +521,8 @@ func ExampleParseConnectionString() {
 	fmt.Printf("NATS URL: %s\n", natsURL)
 
 	// Output:
-	// Type: nats, Host: 127.0.0.1, Port: 4222, Subject: test
-	// Type: jetstream, Host: prod, Port: 4222, Stream: cache, Subject: binance.trades
-	// Type: nats, Host: localhost, Port: 4222, Username: user, Subject: test
-	// NATS URL: nats://user:pass@localhost:4222?subject=test
+	// Host: 127.0.0.1, Port: 4222, JetStream: feed, Subject: test
+	// Host: 127.0.0.1, Port: 4022, JetStream: feed, Subject: trade.btcusdt
+	// Host: localhost, Port: 4222, Username: user, JetStream: feed, Subject: test
+	// NATS URL: nats://user:pass@localhost:4222?jetstream=feed&subject=test
 }
