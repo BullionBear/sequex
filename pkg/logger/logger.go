@@ -19,7 +19,7 @@ func init() {
 	// Human-friendly output for local development
 	outputWriter := zerolog.ConsoleWriter{
 		Out:        os.Stdout,
-		TimeFormat: "15:04:05.000000", // Microsecond precision
+		TimeFormat: "2006-01-02 15:04:05.000000", // Date and microsecond precision
 	}
 	zerolog.SetGlobalLevel(zerolog.DebugLevel) // More verbose in dev
 

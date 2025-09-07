@@ -7,20 +7,27 @@ import (
 	"strings"
 
 	"github.com/BullionBear/sequex/env"
+	"github.com/BullionBear/sequex/pkg/logger"
 )
 
 var (
 	exchange string
 	dataType string
 	natsURIs string
-	version  bool
 )
 
 // runFeed executes the main feed logic
 func runFeed() {
+	// Output version information
+	logger.Log.Info().
+		Str("version", env.Version).
+		Str("buildTime", env.BuildTime).
+		Str("commitHash", env.CommitHash).
+		Msg("Feed started")
+
 	// Validate inputs
 	if err := validateInputs(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		logger.Log.Error().Err(err).Msg("Validation failed")
 		os.Exit(1)
 	}
 
@@ -28,7 +35,7 @@ func runFeed() {
 	printConfiguration()
 
 	// TODO: Implement actual feed logic here
-	fmt.Println("Feed command executed successfully!")
+	logger.Log.Info().Msg("Feed command executed successfully!")
 }
 
 // validateInputs validates the command line arguments
@@ -66,11 +73,11 @@ func validateInputs() error {
 
 // printConfiguration prints the parsed configuration
 func printConfiguration() {
-	fmt.Println("=== Feed Configuration ===")
-	fmt.Printf("Exchange: %s\n", exchange)
-	fmt.Printf("Data Type: %s\n", dataType)
-	fmt.Printf("NATS URIs: %s\n", natsURIs)
-	fmt.Println("==========================")
+	logger.Log.Info().
+		Str("exchange", exchange).
+		Str("dataType", dataType).
+		Str("natsURIs", natsURIs).
+		Msg("Feed Configuration")
 }
 
 // contains checks if a slice contains a string
@@ -85,23 +92,19 @@ func contains(slice []string, item string) bool {
 
 func main() {
 	// Define flags
-	flag.BoolVar(&version, "version", false, "Show version information")
-	flag.BoolVar(&version, "v", false, "Show version information (shorthand)")
 
 	// Custom usage function
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `Feed is a scalable CLI tool for streaming market data from various exchanges
+		logger.Log.Info().Msg(`Feed is a scalable CLI tool for streaming market data from various exchanges
 to NATS message brokers. It supports multiple exchanges and data types.
 
 Usage:
-  feed <exchange> <data-type> <nats-uris> [flags]
+  feed <exchange> <data-type> <nats-uris>
 
 Examples:
   feed binance trades nats://localhost:4222
   feed binance klines nats://localhost:4222,nats://localhost:4223
   feed binance depth nats://localhost:4222
-
-Flags:
 `)
 		flag.PrintDefaults()
 	}
@@ -109,17 +112,10 @@ Flags:
 	// Parse flags
 	flag.Parse()
 
-	// Handle version flag
-	if version {
-		fmt.Printf("Version: %s\nBuild Time: %s\nCommit Hash: %s\n",
-			env.Version, env.BuildTime, env.CommitHash)
-		return
-	}
-
 	// Check if we have the required positional arguments
 	args := flag.Args()
 	if len(args) != 3 {
-		fmt.Fprintf(os.Stderr, "Error: exactly 3 arguments required: <exchange> <data-type> <nats-uris>\n\n")
+		logger.Log.Error().Msg("exactly 3 arguments required: <exchange> <data-type> <nats-uris>")
 		flag.Usage()
 		os.Exit(1)
 	}
