@@ -24,6 +24,7 @@ build:
 	swag init --parseDependency --parseInternal -g cmd/master/main.go
 	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/master-linux-amd64 cmd/master/main.go
 	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/sqx-linux-amd64 cmd/sqx/main.go
+	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/feed-linux-amd64 cmd/feed/main.go
 
 test:
 	go test -v ./...
