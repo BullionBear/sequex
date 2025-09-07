@@ -6,10 +6,10 @@ import (
 
 	_ "github.com/BullionBear/sequex/docs"
 	"github.com/BullionBear/sequex/env"
-	"github.com/BullionBear/sequex/pkg/log"
+	"github.com/BullionBear/sequex/pkg/logger"
 )
 
-var logger log.Logger
+var log = logger.Log
 
 func main() {
 	// Parse command line arguments

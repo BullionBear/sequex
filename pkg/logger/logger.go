@@ -12,7 +12,7 @@ var Log zerolog.Logger = zerolog.New(nil).Level(zerolog.Disabled)
 
 // InitLogger initializes the global logger with the desired configuration.
 // This function should be called once, from main().
-func InitLogger(isDevelopment bool) {
+func init() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMicro // Use microsecond precision
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)             // Set default global level
 
@@ -29,10 +29,4 @@ func InitLogger(isDevelopment bool) {
 		Timestamp().
 		Caller().
 		Logger()
-}
-
-// Get returns the global logger instance.
-// This is useful if you need to pass the logger to other libraries that don't use this package directly.
-func Get() *zerolog.Logger {
-	return &Log
 }

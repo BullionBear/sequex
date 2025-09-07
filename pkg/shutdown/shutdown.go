@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BullionBear/sequex/pkg/log"
+	"github.com/rs/zerolog"
 )
 
 // define a struct to manage shutdown
 type Shutdown struct {
-	logger    log.Logger
+	logger    zerolog.Logger
 	rootCtx   context.Context
 	cancel    func()
 	mutex     sync.Mutex
@@ -26,12 +26,12 @@ type callback struct {
 	timeout time.Duration // not used yet
 }
 
-func NewShutdown(logger log.Logger) *Shutdown {
+func NewShutdown(log zerolog.Logger) *Shutdown {
 	ctx, cancel := context.WithCancel(context.Background())
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt)
 	return &Shutdown{
-		logger:    logger,
+		logger:    log,
 		rootCtx:   ctx,
 		cancel:    cancel,
 		callbacks: make([]callback, 0),
@@ -67,20 +67,20 @@ func (s *Shutdown) WaitForShutdown(sigs ...os.Signal) {
 	}
 	<-s.sigCh
 	s.cancel()
-	s.logger.Info("shutdown signal received. wait for 1 second to begin shutdown...")
+	s.logger.Info().Msg("shutdown signal received. wait for 1 second to begin shutdown...")
 	time.Sleep(time.Second)
 	s.shutdown()
-	s.logger.Info("shutdown completed.")
+	s.logger.Info().Msg("shutdown completed.")
 }
 
 // ShutdownNow manually triggers the shutdown process.
 // This is useful for programmatic shutdown without waiting for system signals.
 func (s *Shutdown) ShutdownNow() {
 	s.cancel()
-	s.logger.Info("manual shutdown triggered. wait for 1 second to begin shutdown...")
+	s.logger.Info().Msg("manual shutdown triggered. wait for 1 second to begin shutdown...")
 	time.Sleep(time.Second)
 	s.shutdown()
-	s.logger.Info("shutdown completed.")
+	s.logger.Info().Msg("shutdown completed.")
 }
 
 func (s *Shutdown) shutdown() {
@@ -93,7 +93,7 @@ func (s *Shutdown) shutdown() {
 			defer func() {
 				wg.Done()
 			}()
-			s.logger.Info("begin shutdown callback", log.String("name", f.name))
+			s.logger.Info().Str("name", f.name).Msg("begin shutdown callback")
 
 			// Create context with timeout if specified
 			var ctx context.Context
@@ -114,10 +114,10 @@ func (s *Shutdown) shutdown() {
 
 			select {
 			case <-done:
-				s.logger.Infof("shutdown callback %s done", f.name)
+				s.logger.Info().Str("name", f.name).Msg("shutdown callback done")
 			case <-ctx.Done():
 				if f.timeout > 0 {
-					s.logger.Error("shutdown callback timeout", log.String("name", f.name), log.String("timeout", f.timeout.String()))
+					s.logger.Error().Str("name", f.name).Str("timeout", f.timeout.String()).Msg("shutdown callback timeout")
 				}
 			}
 		}(f)
