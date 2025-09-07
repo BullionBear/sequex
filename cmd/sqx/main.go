@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"syscall"
@@ -16,7 +17,6 @@ import (
 	"github.com/BullionBear/sequex/pkg/log"
 	"github.com/BullionBear/sequex/pkg/node"
 	"github.com/BullionBear/sequex/pkg/shutdown"
-	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/proto"
 
 	pbCommon "github.com/BullionBear/sequex/internal/model/protobuf/common"
@@ -27,9 +27,55 @@ var (
 	globalCfg  *config.GlobalConfig
 	err        error
 	configFile string
+	version    bool
 )
 
 func main() {
+	// Define flags
+	flag.StringVar(&configFile, "config", "", "Configuration file path")
+	flag.StringVar(&configFile, "c", "", "Configuration file path (shorthand)")
+	flag.BoolVar(&version, "version", false, "Show version information")
+	flag.BoolVar(&version, "v", false, "Show version information (shorthand)")
+
+	// Custom usage function
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, `Sequex Node is a distributed computing node that can run as a server
+or interact with other nodes as a client.
+
+Usage:
+  sqx <command> [flags]
+
+Commands:
+  serve    Start the node as a server
+  call     Call a specific method on a remote node
+
+Examples:
+  sqx serve -c config.yml     		# Start a server with config
+  sqx call metadata -c config.yml   # Call RNG service
+
+Flags:
+`)
+		flag.PrintDefaults()
+	}
+
+	// Parse flags
+	flag.Parse()
+
+	// Handle version flag
+	if version {
+		fmt.Printf("Version: %s\nBuild Time: %s\nCommit Hash: %s\n",
+			env.Version, env.BuildTime, env.CommitHash)
+		return
+	}
+
+	// Check if we have a command
+	args := flag.Args()
+	if len(args) == 0 {
+		fmt.Fprintf(os.Stderr, "Error: command required\n\n")
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	// Initialize logger
 	logger = log.DefaultLogger(
 		log.WithLevel(log.LevelInfo),
@@ -44,55 +90,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create root command
-	rootCmd := &cobra.Command{
-		Use:   "sqx",
-		Short: "Sequex Node - A distributed computing node",
-		Long: `Sequex Node is a distributed computing node that can run as a server
-or interact with other nodes as a client.
-
-Examples:
-  sqx serve -c config.yml     		# Start a server with config
-  sqx call metadata -c config.yml   # Call RNG service`,
-		Version: fmt.Sprintf("Version: %s\nBuild Time: %s\nCommit Hash: %s",
-			env.Version, env.BuildTime, env.CommitHash),
-	}
-
-	// Add global flags
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Configuration file path")
-
-	// Create serve command (server group)
-	serveCmd := &cobra.Command{
-		Use:   "serve",
-		Short: "Start the node as a server",
-		Long:  "Start the Sequex node as a server to handle incoming requests",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runServer()
-		},
-	}
-
-	// Create client commands
-	callCmd := &cobra.Command{
-		Use:   "call [method]",
-		Short: "Call a specific method",
-		Long:  "Call a specific method on a remote node",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			method, _ := cmd.Flags().GetString("method")
-			return callService(args[0], method)
-		},
-	}
-
-	// Add flags for client commands
-	callCmd.Flags().String("method", "Supported methods: metadata, status, params", "Method to call")
-
-	// Add commands to root
-	rootCmd.AddCommand(serveCmd)
-	rootCmd.AddCommand(callCmd)
-
-	// Execute the root command
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	// Handle commands
+	command := args[0]
+	switch command {
+	case "serve":
+		if err := runServer(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	case "call":
+		if len(args) < 2 {
+			fmt.Fprintf(os.Stderr, "Error: call command requires a service name\n")
+			fmt.Fprintf(os.Stderr, "Usage: sqx call <service> [method]\n")
+			fmt.Fprintf(os.Stderr, "Supported services: metadata, status, params\n")
+			os.Exit(1)
+		}
+		serviceName := args[1]
+		method := "Supported methods: metadata, status, params"
+		if len(args) > 2 {
+			method = args[2]
+		}
+		if err := callService(serviceName, method); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	default:
+		fmt.Fprintf(os.Stderr, "Error: unknown command '%s'\n\n", command)
+		flag.Usage()
 		os.Exit(1)
 	}
 }

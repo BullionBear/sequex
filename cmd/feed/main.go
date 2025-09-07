@@ -1,11 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -15,28 +14,8 @@ var (
 	verbose  bool
 )
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "feed <exchange> <data-type> <nats-uris>",
-	Short: "Feed market data from exchanges to NATS",
-	Long: `Feed is a scalable CLI tool for streaming market data from various exchanges
-to NATS message brokers. It supports multiple exchanges and data types.
-
-Examples:
-  feed binance trades nats://localhost:4222
-  feed binance klines nats://localhost:4222,nats://localhost:4223
-  feed binance depth nats://localhost:4222 --verbose`,
-	Args: cobra.ExactArgs(3),
-	Run:  runFeed,
-}
-
 // runFeed executes the main feed logic
-func runFeed(cmd *cobra.Command, args []string) {
-	// Parse arguments
-	exchange = args[0]
-	dataType = args[1]
-	natsURIs = args[2]
-
+func runFeed() {
 	// Validate inputs
 	if err := validateInputs(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -103,24 +82,45 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func init() {
-	// Add flags
-	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
-
-	// Add examples
-	rootCmd.Example = `  # Stream trades from Binance to local NATS
-  feed binance trades nats://localhost:4222
-
-  # Stream klines with multiple NATS servers
-  feed binance klines nats://localhost:4222,nats://localhost:4223
-
-  # Stream depth data with verbose output
-  feed binance depth nats://localhost:4222 --verbose`
-}
-
 func main() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	// Define flags
+	flag.BoolVar(&verbose, "verbose", false, "Enable verbose output")
+	flag.BoolVar(&verbose, "v", false, "Enable verbose output (shorthand)")
+
+	// Custom usage function
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, `Feed is a scalable CLI tool for streaming market data from various exchanges
+to NATS message brokers. It supports multiple exchanges and data types.
+
+Usage:
+  feed <exchange> <data-type> <nats-uris> [flags]
+
+Examples:
+  feed binance trades nats://localhost:4222
+  feed binance klines nats://localhost:4222,nats://localhost:4223
+  feed binance depth nats://localhost:4222 --verbose
+
+Flags:
+`)
+		flag.PrintDefaults()
+	}
+
+	// Parse flags
+	flag.Parse()
+
+	// Check if we have the required positional arguments
+	args := flag.Args()
+	if len(args) != 3 {
+		fmt.Fprintf(os.Stderr, "Error: exactly 3 arguments required: <exchange> <data-type> <nats-uris>\n\n")
+		flag.Usage()
 		os.Exit(1)
 	}
+
+	// Parse positional arguments
+	exchange = args[0]
+	dataType = args[1]
+	natsURIs = args[2]
+
+	// Run the main logic
+	runFeed()
 }
