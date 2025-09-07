@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/BullionBear/sequex/env"
 )
 
 var (
 	exchange string
 	dataType string
 	natsURIs string
-	verbose  bool
+	version  bool
 )
 
 // runFeed executes the main feed logic
@@ -68,7 +70,6 @@ func printConfiguration() {
 	fmt.Printf("Exchange: %s\n", exchange)
 	fmt.Printf("Data Type: %s\n", dataType)
 	fmt.Printf("NATS URIs: %s\n", natsURIs)
-	fmt.Printf("Verbose: %t\n", verbose)
 	fmt.Println("==========================")
 }
 
@@ -84,8 +85,8 @@ func contains(slice []string, item string) bool {
 
 func main() {
 	// Define flags
-	flag.BoolVar(&verbose, "verbose", false, "Enable verbose output")
-	flag.BoolVar(&verbose, "v", false, "Enable verbose output (shorthand)")
+	flag.BoolVar(&version, "version", false, "Show version information")
+	flag.BoolVar(&version, "v", false, "Show version information (shorthand)")
 
 	// Custom usage function
 	flag.Usage = func() {
@@ -98,7 +99,7 @@ Usage:
 Examples:
   feed binance trades nats://localhost:4222
   feed binance klines nats://localhost:4222,nats://localhost:4223
-  feed binance depth nats://localhost:4222 --verbose
+  feed binance depth nats://localhost:4222
 
 Flags:
 `)
@@ -107,6 +108,13 @@ Flags:
 
 	// Parse flags
 	flag.Parse()
+
+	// Handle version flag
+	if version {
+		fmt.Printf("Version: %s\nBuild Time: %s\nCommit Hash: %s\n",
+			env.Version, env.BuildTime, env.CommitHash)
+		return
+	}
 
 	// Check if we have the required positional arguments
 	args := flag.Args()

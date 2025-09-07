@@ -26,12 +26,12 @@ type callback struct {
 	timeout time.Duration // not used yet
 }
 
-func NewShutdown(log log.Logger) *Shutdown {
+func NewShutdown(logger log.Logger) *Shutdown {
 	ctx, cancel := context.WithCancel(context.Background())
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt)
 	return &Shutdown{
-		logger:    log,
+		logger:    logger,
 		rootCtx:   ctx,
 		cancel:    cancel,
 		callbacks: make([]callback, 0),
@@ -117,7 +117,7 @@ func (s *Shutdown) shutdown() {
 				s.logger.Infof("shutdown callback %s done", f.name)
 			case <-ctx.Done():
 				if f.timeout > 0 {
-					s.logger.Errorf("shutdown callback %s timeout after %v", f.name, f.timeout)
+					s.logger.Error("shutdown callback timeout", log.String("name", f.name), log.String("timeout", f.timeout.String()))
 				}
 			}
 		}(f)
