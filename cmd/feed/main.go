@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/BullionBear/sequex/env"
+	"github.com/BullionBear/sequex/internal/config"
 	"github.com/BullionBear/sequex/pkg/logger"
 )
 
@@ -54,18 +55,38 @@ func validateInputs() error {
 			dataType, strings.Join(validDataTypes, ", "))
 	}
 
-	// Validate NATS URIs
+	// Validate NATS URIs using the connection string parser
 	if natsURIs == "" {
 		return fmt.Errorf("NATS URIs cannot be empty")
 	}
 
-	// Check if URIs contain valid NATS protocol
+	// Parse and validate each URI
 	uris := strings.Split(natsURIs, ",")
 	for _, uri := range uris {
 		uri = strings.TrimSpace(uri)
-		if !strings.HasPrefix(uri, "nats://") && !strings.HasPrefix(uri, "tls://") {
-			return fmt.Errorf("invalid NATS URI '%s'. Must start with 'nats://' or 'tls://'", uri)
+		if uri == "" {
+			continue
 		}
+
+		connConfig, err := config.ParseConnectionString(uri)
+		if err != nil {
+			return fmt.Errorf("invalid connection string '%s': %w", uri, err)
+		}
+
+		// Validate the parsed configuration
+		if err := connConfig.Validate(); err != nil {
+			return fmt.Errorf("invalid connection configuration for '%s': %w", uri, err)
+		}
+
+		// Log parsed configuration details
+		logger.Log.Debug().
+			Str("uri", uri).
+			Str("type", string(connConfig.Type)).
+			Str("host", connConfig.Host).
+			Int("port", connConfig.Port).
+			Str("username", connConfig.Username).
+			Interface("params", connConfig.Params).
+			Msg("Parsed connection string")
 	}
 
 	return nil
