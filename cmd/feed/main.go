@@ -9,7 +9,7 @@ import (
 	"github.com/BullionBear/sequex/env"
 	"github.com/BullionBear/sequex/internal/config"
 	"github.com/BullionBear/sequex/pkg/logger"
-	"github.com/BullionBear/sequex/pkg/utils"
+	"github.com/nats-io/nats.go"
 )
 
 // runFeed executes the main feed logic
@@ -21,39 +21,50 @@ func runFeed(exchange string, dataType string, natsURIs string) {
 		Str("commitHash", env.CommitHash).
 		Msg("Feed started")
 
+	printConfiguration(exchange, dataType, natsURIs)
+
 	// Validate inputs
-	if err := validateInputs(exchange, dataType, natsURIs); err != nil {
+	connConfigs, err := parseNatsURIs(natsURIs)
+	if err != nil {
 		logger.Log.Error().Err(err).Msg("Validation failed")
 		os.Exit(1)
 	}
 
 	// Print configuration
-	printConfiguration(exchange, dataType, natsURIs)
+	natsConn, err := nats.Connect(connConfigs[0].ToNATSURL())
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to connect to NATS")
+		os.Exit(1)
+	}
+
+	defer natsConn.Close()
+	js, err := natsConn.JetStream()
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to create JetStream context")
+		os.Exit(1)
+	}
+
+	streamInfo, err := js.StreamInfo(connConfigs[0].GetParam("jetstream", ""))
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to get stream info")
+		os.Exit(1)
+	}
+
+	logger.Log.Info().Msg("Stream info:")
+	logger.Log.Info().Msg(streamInfo.Config.Name)
 
 	// TODO: Implement actual feed logic here
 	logger.Log.Info().Msg("Feed command executed successfully!")
 }
 
 // validateInputs validates the command line arguments
-func validateInputs(exchange string, dataType string, natsURIs string) error {
-	// Validate exchange
-	validExchanges := []string{"binance", "binanceperp", "okx", "bybit"}
-	if !utils.Contains(validExchanges, exchange) {
-		return fmt.Errorf("invalid exchange '%s'. Supported exchanges: %s",
-			exchange, strings.Join(validExchanges, ", "))
-	}
-
-	// Validate data type
-	validDataTypes := []string{"trades", "klines", "depth", "ticker", "book"}
-	if !utils.Contains(validDataTypes, dataType) {
-		return fmt.Errorf("invalid data type '%s'. Supported data types: %s",
-			dataType, strings.Join(validDataTypes, ", "))
-	}
-
+func parseNatsURIs(natsURIs string) ([]*config.ConnectionConfig, error) {
 	// Validate NATS URIs using the connection string parser
 	if natsURIs == "" {
-		return fmt.Errorf("NATS URIs cannot be empty")
+		return nil, fmt.Errorf("NATS URIs cannot be empty")
 	}
+
+	var connConfigs []*config.ConnectionConfig
 
 	// Parse and validate each URI
 	uris := strings.Split(natsURIs, ",")
@@ -65,12 +76,12 @@ func validateInputs(exchange string, dataType string, natsURIs string) error {
 
 		connConfig, err := config.ParseConnectionString(uri)
 		if err != nil {
-			return fmt.Errorf("invalid connection string '%s': %w", uri, err)
+			return nil, fmt.Errorf("invalid connection string '%s': %w", uri, err)
 		}
 
 		// Validate the parsed configuration
 		if err := connConfig.Validate(); err != nil {
-			return fmt.Errorf("invalid connection configuration for '%s': %w", uri, err)
+			return nil, fmt.Errorf("invalid connection configuration for '%s': %w", uri, err)
 		}
 
 		// Log parsed configuration details
@@ -81,9 +92,11 @@ func validateInputs(exchange string, dataType string, natsURIs string) error {
 			Str("username", connConfig.Username).
 			Interface("params", connConfig.Params).
 			Msg("Parsed connection string")
+
+		connConfigs = append(connConfigs, connConfig)
 	}
 
-	return nil
+	return connConfigs, nil
 }
 
 // printConfiguration prints the parsed configuration
