@@ -11,7 +11,8 @@ import (
 
 func init() {
 	binanceTradeAdapter := NewBinanceTradeAdapter()
-	adapter.RegisterAdapter(sqx.ExchangeBinance.String(), sqx.InstrumentTypeSpot.String(), binanceTradeAdapter)
+	logger.Log.Info().Msg("Registering Binance trade adapter")
+	adapter.RegisterAdapter(sqx.ExchangeBinance, sqx.DataTypeTrade, binanceTradeAdapter)
 }
 
 type BinanceTradeAdapter struct {
@@ -24,7 +25,7 @@ func NewBinanceTradeAdapter() *BinanceTradeAdapter {
 	}
 }
 
-func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, callback adapter.Callback) (func(), error) {
+func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, instrumentType sqx.InstrumentType, callback adapter.Callback) (func(), error) {
 	binanceSymbol := fmt.Sprintf("%s%s", symbol.Base, symbol.Quote)
 	return a.wsClient.SubscribeTrade(binanceSymbol, binance.TradeSubscriptionOptions{
 		OnTrade: func(trade binance.WSTrade) {

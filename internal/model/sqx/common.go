@@ -67,6 +67,17 @@ func NewSymbol(base, quote string) Symbol {
 	}
 }
 
+func NewSymbolFromStr(symbol string) (Symbol, error) {
+	parts := strings.Split(symbol, "-")
+	if len(parts) < 2 {
+		return Symbol{}, fmt.Errorf("invalid symbol: %s", symbol)
+	}
+	return Symbol{
+		Base:  strings.ToUpper(parts[0]),
+		Quote: strings.ToUpper(parts[1]),
+	}, nil
+}
+
 func (s Symbol) String() string {
 	return fmt.Sprintf("%s-%s", s.Base, s.Quote)
 }
@@ -116,4 +127,29 @@ func NewTimeInForce(timeInForce string) TimeInForce {
 
 func (t TimeInForce) String() string {
 	return []string{"UNKNOWN", "GTC", "IOC", "FOK"}[t]
+}
+
+type DataType int
+
+const (
+	DataTypeUnknown DataType = iota
+	DataTypeTrade
+	DataTypeDepth
+	DataTypeOrder
+)
+
+func NewDataType(dataType string) DataType {
+	switch strings.ToUpper(dataType) {
+	case "TRADE":
+		return DataTypeTrade
+	case "DEPTH":
+		return DataTypeDepth
+	case "ORDER":
+		return DataTypeOrder
+	}
+	return DataTypeUnknown
+}
+
+func (d DataType) String() string {
+	return []string{"UNKNOWN", "TRADE", "DEPTH", "ORDER"}[d]
 }
