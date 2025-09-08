@@ -5,16 +5,20 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/BullionBear/sequex/env"
+	"github.com/BullionBear/sequex/internal/adapter"
 	"github.com/BullionBear/sequex/internal/config"
-	"github.com/BullionBear/sequex/internal/pubsub"
+	"github.com/BullionBear/sequex/internal/model/sqx"
 	"github.com/BullionBear/sequex/pkg/logger"
+	"github.com/BullionBear/sequex/pkg/shutdown"
 	"github.com/nats-io/nats.go"
 )
 
 // runFeed executes the main feed logic
-func runFeed(exchange string, dataType string, natsURIs string) {
+func runFeed(exchange string, instrument string, symbol string, dataType string, natsURIs string) {
 	// Output version information
 	logger.Log.Info().
 		Str("version", env.Version).
@@ -22,7 +26,36 @@ func runFeed(exchange string, dataType string, natsURIs string) {
 		Str("commitHash", env.CommitHash).
 		Msg("Feed started")
 
-	printConfiguration(exchange, dataType, natsURIs)
+	printConfiguration(exchange, instrument, symbol, dataType, natsURIs)
+	sqxExchange := sqx.NewExchange(exchange)
+	if sqxExchange == sqx.ExchangeUnknown {
+		logger.Log.Error().Msg("Invalid exchange")
+		os.Exit(1)
+	}
+
+	sqxInstrumentType := sqx.NewInstrumentType(instrument)
+	if sqxInstrumentType == sqx.InstrumentTypeUnknown {
+		logger.Log.Error().Msg("Invalid instrument")
+		os.Exit(1)
+	}
+
+	sqxSymbol, err := sqx.NewSymbolFromStr(symbol)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to create symbol")
+		os.Exit(1)
+	}
+
+	sqxDataType := sqx.NewDataType(dataType)
+	if sqxDataType == sqx.DataTypeUnknown {
+		logger.Log.Error().Msg("Invalid data type")
+		os.Exit(1)
+	}
+
+	adapter, err := adapter.CreateAdapter(sqxExchange, sqxDataType)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to create adapter")
+		os.Exit(1)
+	}
 
 	// Validate inputs
 	connConfigs, err := parseNatsURIs(natsURIs)
@@ -53,15 +86,25 @@ func runFeed(exchange string, dataType string, natsURIs string) {
 
 	logger.Log.Info().Msg("Stream info:")
 	logger.Log.Info().Msg(streamInfo.Config.Name)
+	/*
+		publisher, err := pubsub.NewPublisher(natsConn, streamInfo.Config.Name, connConfigs[0].GetParam("subject", ""))
+		if err != nil {
+			logger.Log.Error().Err(err).Msg("Failed to create publisher")
+			os.Exit(1)
+		}
+		publisher.Publish([]byte("Hello, world!"))
+	*/
+	unsubscribe, err := adapter.Subscribe(sqxSymbol, sqxInstrumentType, func(data []byte) error {
 
-	publisher, err := pubsub.NewPublisher(natsConn, streamInfo.Config.Name, connConfigs[0].GetParam("subject", ""))
+		return nil
+	})
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to create publisher")
+		logger.Log.Error().Err(err).Msg("Failed to subscribe to adapter")
 		os.Exit(1)
 	}
-	publisher.Publish([]byte("Hello, world!"))
-
-	// TODO: Implement actual feed logic here
+	shutdown := shutdown.NewShutdown(logger.Log)
+	shutdown.HookShutdownCallback("unsubscribe", unsubscribe, 10*time.Second)
+	shutdown.WaitForShutdown(syscall.SIGINT, syscall.SIGTERM)
 	logger.Log.Info().Msg("Feed command executed successfully!")
 }
 
@@ -108,9 +151,11 @@ func parseNatsURIs(natsURIs string) ([]*config.ConnectionConfig, error) {
 }
 
 // printConfiguration prints the parsed configuration
-func printConfiguration(exchange string, dataType string, natsURIs string) {
+func printConfiguration(exchange string, instrument string, symbol string, dataType string, natsURIs string) {
 	logger.Log.Info().
 		Str("exchange", exchange).
+		Str("instrument", instrument).
+		Str("symbol", symbol).
 		Str("dataType", dataType).
 		Str("natsURIs", natsURIs).
 		Msg("Feed Configuration")
@@ -125,11 +170,11 @@ func main() {
 to NATS message brokers. It supports multiple exchanges and data types.
 
 Usage:
-  feed <exchange> <data-type> <nats-uris>
+  feed <exchange> <instrument> <symbol> <data-type> <nats-uris>
 
 Examples:
-  feed binance trade 'nats://localhost:4222?stream=feed&subject=test'
-  feed binance depth 'nats://localhost:4223?stream=feed&subject=test,nats://localhost:4224?stream=feed&subject=test'
+  feed binance spot BTCUSDT trade 'nats://localhost:4222?stream=feed&subject=test'
+  feed binance futures ETHUSDT depth 'nats://localhost:4223?stream=feed&subject=test,nats://localhost:4224?stream=feed&subject=test'
 `)
 		flag.PrintDefaults()
 	}
@@ -139,17 +184,19 @@ Examples:
 
 	// Check if we have the required positional arguments
 	args := flag.Args()
-	if len(args) != 3 {
-		logger.Log.Error().Msg("exactly 3 arguments required: <exchange> <data-type> <nats-uris>")
+	if len(args) != 5 {
+		logger.Log.Error().Msg("exactly 5 arguments required: <exchange> <instrument> <symbol> <data-type> <nats-uris>")
 		flag.Usage()
 		os.Exit(1)
 	}
 
 	// Parse positional arguments
 	exchange := args[0]
-	dataType := args[1]
-	natsURIs := args[2]
+	instrument := args[1]
+	symbol := args[2]
+	dataType := args[3]
+	natsURIs := args[4]
 
 	// Run the main logic
-	runFeed(exchange, dataType, natsURIs)
+	runFeed(exchange, instrument, symbol, dataType, natsURIs)
 }
