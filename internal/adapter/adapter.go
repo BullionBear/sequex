@@ -1,7 +1,6 @@
 package adapter
 
 import (
-	"context"
 	"fmt"
 )
 
@@ -9,10 +8,10 @@ var (
 	AdapterMap = make(map[string]map[string]Adapter)
 )
 
-type Callback func(ctx context.Context, data []byte) error
+type Callback func(data []byte) error
 
 type Adapter interface {
-	Subscribe(ctx context.Context, callback Callback) (func(), error)
+	Subscribe(callback Callback) (func(), error)
 }
 
 func CreateAdapter(exchange string, dataType string) (Adapter, error) {
