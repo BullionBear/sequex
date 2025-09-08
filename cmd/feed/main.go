@@ -107,9 +107,8 @@ Usage:
   feed <exchange> <data-type> <nats-uris>
 
 Examples:
-  feed binance trades nats://localhost:4222
-  feed binance klines nats://localhost:4222,nats://localhost:4223
-  feed binance depth nats://localhost:4222
+  feed binance trades 'nats://localhost:4222?jetstream=feed&subject=test'
+  feed binance klines 'nats://localhost:4223?jetstream=feed&subject=test,nats://localhost:4224?jetstream=feed&subject=test'
 `)
 		flag.PrintDefaults()
 	}
