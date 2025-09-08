@@ -165,13 +165,13 @@ func (c *ConnectionConfig) Validate() error {
 		return fmt.Errorf("port must be between 1 and 65535, got %d", c.Port)
 	}
 
-	// JetStream parameter is mandatory for all connections
-	jetstreamValue, hasJetstream := c.Params["jetstream"]
-	if !hasJetstream {
-		return fmt.Errorf("jetstream parameter is required")
+	// Stream parameter is mandatory for all connections
+	streamValue, hasStream := c.Params["stream"]
+	if !hasStream {
+		return fmt.Errorf("stream parameter is required")
 	}
-	if jetstreamValue == "" {
-		return fmt.Errorf("jetstream parameter cannot be empty")
+	if streamValue == "" {
+		return fmt.Errorf("stream parameter cannot be empty")
 	}
 
 	// Subject parameter is mandatory for all connections
