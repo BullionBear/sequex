@@ -9,6 +9,7 @@ import (
 	"github.com/BullionBear/sequex/env"
 	"github.com/BullionBear/sequex/internal/config"
 	"github.com/BullionBear/sequex/pkg/logger"
+	"github.com/BullionBear/sequex/pkg/utils"
 )
 
 // runFeed executes the main feed logic
@@ -37,14 +38,14 @@ func runFeed(exchange string, dataType string, natsURIs string) {
 func validateInputs(exchange string, dataType string, natsURIs string) error {
 	// Validate exchange
 	validExchanges := []string{"binance", "binanceperp", "okx", "bybit"}
-	if !contains(validExchanges, exchange) {
+	if !utils.Contains(validExchanges, exchange) {
 		return fmt.Errorf("invalid exchange '%s'. Supported exchanges: %s",
 			exchange, strings.Join(validExchanges, ", "))
 	}
 
 	// Validate data type
 	validDataTypes := []string{"trades", "klines", "depth", "ticker", "book"}
-	if !contains(validDataTypes, dataType) {
+	if !utils.Contains(validDataTypes, dataType) {
 		return fmt.Errorf("invalid data type '%s'. Supported data types: %s",
 			dataType, strings.Join(validDataTypes, ", "))
 	}
@@ -92,16 +93,6 @@ func printConfiguration(exchange string, dataType string, natsURIs string) {
 		Str("dataType", dataType).
 		Str("natsURIs", natsURIs).
 		Msg("Feed Configuration")
-}
-
-// contains checks if a slice contains a string
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
 }
 
 func main() {
