@@ -128,8 +128,8 @@ Usage:
   feed <exchange> <data-type> <nats-uris>
 
 Examples:
-  feed binance trades 'nats://localhost:4222?stream=feed&subject=test'
-  feed binance klines 'nats://localhost:4223?stream=feed&subject=test,nats://localhost:4224?stream=feed&subject=test'
+  feed binance trade 'nats://localhost:4222?stream=feed&subject=test'
+  feed binance depth 'nats://localhost:4223?stream=feed&subject=test,nats://localhost:4224?stream=feed&subject=test'
 `)
 		flag.PrintDefaults()
 	}
