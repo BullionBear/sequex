@@ -1,0 +1,31 @@
+services:
+  nats:
+    image: nats:2.10-alpine
+    container_name: nats-jetstream
+    ports:
+      - "4222:4222"   # NATS client port
+      - "8222:8222"   # HTTP monitoring port
+      - "6222:6222"   # Routing port
+    command: 
+      - "--jetstream"
+      - "--store_dir=/data"
+      - "--http_port=8222"
+      - "--port=4222"
+    volumes:
+      - nats-data:/data
+    networks:
+      - nats-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  nats-data:
+    driver: local
+
+networks:
+  nats-network:
+    driver: bridge

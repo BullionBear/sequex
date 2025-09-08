@@ -7,17 +7,14 @@ import (
 	"strings"
 
 	"github.com/BullionBear/sequex/env"
+	"github.com/BullionBear/sequex/internal/config"
+	"github.com/BullionBear/sequex/internal/pubsub"
 	"github.com/BullionBear/sequex/pkg/logger"
-)
-
-var (
-	exchange string
-	dataType string
-	natsURIs string
+	"github.com/nats-io/nats.go"
 )
 
 // runFeed executes the main feed logic
-func runFeed() {
+func runFeed(exchange string, dataType string, natsURIs string) {
 	// Output version information
 	logger.Log.Info().
 		Str("version", env.Version).
@@ -25,69 +22,98 @@ func runFeed() {
 		Str("commitHash", env.CommitHash).
 		Msg("Feed started")
 
+	printConfiguration(exchange, dataType, natsURIs)
+
 	// Validate inputs
-	if err := validateInputs(); err != nil {
+	connConfigs, err := parseNatsURIs(natsURIs)
+	if err != nil {
 		logger.Log.Error().Err(err).Msg("Validation failed")
 		os.Exit(1)
 	}
 
 	// Print configuration
-	printConfiguration()
+	natsConn, err := nats.Connect(connConfigs[0].ToNATSURL())
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to connect to NATS")
+		os.Exit(1)
+	}
+
+	defer natsConn.Close()
+	js, err := natsConn.JetStream()
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to create JetStream context")
+		os.Exit(1)
+	}
+
+	streamInfo, err := js.StreamInfo(connConfigs[0].GetParam("stream", ""))
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to get stream info")
+		os.Exit(1)
+	}
+
+	logger.Log.Info().Msg("Stream info:")
+	logger.Log.Info().Msg(streamInfo.Config.Name)
+
+	publisher, err := pubsub.NewPublisher(natsConn, streamInfo.Config.Name, connConfigs[0].GetParam("subject", ""))
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to create publisher")
+		os.Exit(1)
+	}
+	publisher.Publish([]byte("Hello, world!"))
 
 	// TODO: Implement actual feed logic here
 	logger.Log.Info().Msg("Feed command executed successfully!")
 }
 
 // validateInputs validates the command line arguments
-func validateInputs() error {
-	// Validate exchange
-	validExchanges := []string{"binance", "binanceperp", "okx", "bybit"}
-	if !contains(validExchanges, exchange) {
-		return fmt.Errorf("invalid exchange '%s'. Supported exchanges: %s",
-			exchange, strings.Join(validExchanges, ", "))
-	}
-
-	// Validate data type
-	validDataTypes := []string{"trades", "klines", "depth", "ticker", "book"}
-	if !contains(validDataTypes, dataType) {
-		return fmt.Errorf("invalid data type '%s'. Supported data types: %s",
-			dataType, strings.Join(validDataTypes, ", "))
-	}
-
-	// Validate NATS URIs
+func parseNatsURIs(natsURIs string) ([]*config.ConnectionConfig, error) {
+	// Validate NATS URIs using the connection string parser
 	if natsURIs == "" {
-		return fmt.Errorf("NATS URIs cannot be empty")
+		return nil, fmt.Errorf("NATS URIs cannot be empty")
 	}
 
-	// Check if URIs contain valid NATS protocol
+	var connConfigs []*config.ConnectionConfig
+
+	// Parse and validate each URI
 	uris := strings.Split(natsURIs, ",")
 	for _, uri := range uris {
 		uri = strings.TrimSpace(uri)
-		if !strings.HasPrefix(uri, "nats://") && !strings.HasPrefix(uri, "tls://") {
-			return fmt.Errorf("invalid NATS URI '%s'. Must start with 'nats://' or 'tls://'", uri)
+		if uri == "" {
+			continue
 		}
+
+		connConfig, err := config.ParseConnectionString(uri)
+		if err != nil {
+			return nil, fmt.Errorf("invalid connection string '%s': %w", uri, err)
+		}
+
+		// Validate the parsed configuration
+		if err := connConfig.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid connection configuration for '%s': %w", uri, err)
+		}
+
+		// Log parsed configuration details
+		logger.Log.Debug().
+			Str("uri", uri).
+			Str("host", connConfig.Host).
+			Int("port", connConfig.Port).
+			Str("username", connConfig.Username).
+			Interface("params", connConfig.Params).
+			Msg("Parsed connection string")
+
+		connConfigs = append(connConfigs, connConfig)
 	}
 
-	return nil
+	return connConfigs, nil
 }
 
 // printConfiguration prints the parsed configuration
-func printConfiguration() {
+func printConfiguration(exchange string, dataType string, natsURIs string) {
 	logger.Log.Info().
 		Str("exchange", exchange).
 		Str("dataType", dataType).
 		Str("natsURIs", natsURIs).
 		Msg("Feed Configuration")
-}
-
-// contains checks if a slice contains a string
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
 }
 
 func main() {
@@ -102,9 +128,8 @@ Usage:
   feed <exchange> <data-type> <nats-uris>
 
 Examples:
-  feed binance trades nats://localhost:4222
-  feed binance klines nats://localhost:4222,nats://localhost:4223
-  feed binance depth nats://localhost:4222
+  feed binance trades 'nats://localhost:4222?stream=feed&subject=test'
+  feed binance klines 'nats://localhost:4223?stream=feed&subject=test,nats://localhost:4224?stream=feed&subject=test'
 `)
 		flag.PrintDefaults()
 	}
@@ -121,10 +146,10 @@ Examples:
 	}
 
 	// Parse positional arguments
-	exchange = args[0]
-	dataType = args[1]
-	natsURIs = args[2]
+	exchange := args[0]
+	dataType := args[1]
+	natsURIs := args[2]
 
 	// Run the main logic
-	runFeed()
+	runFeed(exchange, dataType, natsURIs)
 }
