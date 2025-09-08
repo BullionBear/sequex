@@ -11,14 +11,8 @@ import (
 	"github.com/BullionBear/sequex/pkg/logger"
 )
 
-var (
-	exchange string
-	dataType string
-	natsURIs string
-)
-
 // runFeed executes the main feed logic
-func runFeed() {
+func runFeed(exchange string, dataType string, natsURIs string) {
 	// Output version information
 	logger.Log.Info().
 		Str("version", env.Version).
@@ -27,20 +21,20 @@ func runFeed() {
 		Msg("Feed started")
 
 	// Validate inputs
-	if err := validateInputs(); err != nil {
+	if err := validateInputs(exchange, dataType, natsURIs); err != nil {
 		logger.Log.Error().Err(err).Msg("Validation failed")
 		os.Exit(1)
 	}
 
 	// Print configuration
-	printConfiguration()
+	printConfiguration(exchange, dataType, natsURIs)
 
 	// TODO: Implement actual feed logic here
 	logger.Log.Info().Msg("Feed command executed successfully!")
 }
 
 // validateInputs validates the command line arguments
-func validateInputs() error {
+func validateInputs(exchange string, dataType string, natsURIs string) error {
 	// Validate exchange
 	validExchanges := []string{"binance", "binanceperp", "okx", "bybit"}
 	if !contains(validExchanges, exchange) {
@@ -81,7 +75,6 @@ func validateInputs() error {
 		// Log parsed configuration details
 		logger.Log.Debug().
 			Str("uri", uri).
-			Str("type", string(connConfig.Type)).
 			Str("host", connConfig.Host).
 			Int("port", connConfig.Port).
 			Str("username", connConfig.Username).
@@ -93,7 +86,7 @@ func validateInputs() error {
 }
 
 // printConfiguration prints the parsed configuration
-func printConfiguration() {
+func printConfiguration(exchange string, dataType string, natsURIs string) {
 	logger.Log.Info().
 		Str("exchange", exchange).
 		Str("dataType", dataType).
@@ -142,10 +135,10 @@ Examples:
 	}
 
 	// Parse positional arguments
-	exchange = args[0]
-	dataType = args[1]
-	natsURIs = args[2]
+	exchange := args[0]
+	dataType := args[1]
+	natsURIs := args[2]
 
 	// Run the main logic
-	runFeed()
+	runFeed(exchange, dataType, natsURIs)
 }
