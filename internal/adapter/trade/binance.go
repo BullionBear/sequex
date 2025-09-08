@@ -10,7 +10,8 @@ import (
 )
 
 func init() {
-	adapter.RegisterAdapter(sqx.ExchangeBinance, sqx.InstrumentTypeSpot, NewBinanceTradeAdapter())
+	binanceTradeAdapter := NewBinanceTradeAdapter()
+	adapter.RegisterAdapter(sqx.ExchangeBinance.String(), sqx.InstrumentTypeSpot.String(), binanceTradeAdapter)
 }
 
 type BinanceTradeAdapter struct {

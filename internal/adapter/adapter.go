@@ -2,6 +2,8 @@ package adapter
 
 import (
 	"fmt"
+
+	"github.com/BullionBear/sequex/internal/model/sqx"
 )
 
 var (
@@ -11,7 +13,7 @@ var (
 type Callback func(data []byte) error
 
 type Adapter interface {
-	Subscribe(callback Callback) (func(), error)
+	Subscribe(symbol sqx.Symbol, callback Callback) (func(), error)
 }
 
 func CreateAdapter(exchange string, dataType string) (Adapter, error) {
