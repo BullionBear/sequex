@@ -8,6 +8,7 @@ import (
 
 	"github.com/BullionBear/sequex/env"
 	"github.com/BullionBear/sequex/internal/config"
+	"github.com/BullionBear/sequex/internal/pubsub"
 	"github.com/BullionBear/sequex/pkg/logger"
 	"github.com/nats-io/nats.go"
 )
@@ -52,6 +53,13 @@ func runFeed(exchange string, dataType string, natsURIs string) {
 
 	logger.Log.Info().Msg("Stream info:")
 	logger.Log.Info().Msg(streamInfo.Config.Name)
+
+	publisher, err := pubsub.NewPublisher(natsConn, streamInfo.Config.Name, connConfigs[0].GetParam("subject", ""))
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to create publisher")
+		os.Exit(1)
+	}
+	publisher.Publish([]byte("Hello, world!"))
 
 	// TODO: Implement actual feed logic here
 	logger.Log.Info().Msg("Feed command executed successfully!")
