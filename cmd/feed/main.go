@@ -10,6 +10,7 @@ import (
 
 	"github.com/BullionBear/sequex/env"
 	"github.com/BullionBear/sequex/internal/adapter"
+	_ "github.com/BullionBear/sequex/internal/adapter/init"
 	"github.com/BullionBear/sequex/internal/config"
 	"github.com/BullionBear/sequex/internal/model/sqx"
 	"github.com/BullionBear/sequex/pkg/logger"
