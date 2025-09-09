@@ -13,7 +13,7 @@ import (
 func init() {
 	binanceTradeAdapter := NewBinanceTradeAdapter()
 	logger.Log.Info().Msg("Registering Binance trade adapter")
-	adapter.RegisterAdapter(sqx.ExchangeBinance, sqx.DataTypeTrade, binanceTradeAdapter)
+	adapter.RegisterTradeAdapter(sqx.ExchangeBinance, sqx.DataTypeTrade, binanceTradeAdapter)
 }
 
 type BinanceTradeAdapter struct {
@@ -26,7 +26,7 @@ func NewBinanceTradeAdapter() *BinanceTradeAdapter {
 	}
 }
 
-func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, instrumentType sqx.InstrumentType, callback adapter.Callback) (func(), error) {
+func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, instrumentType sqx.InstrumentType, callback adapter.TradeCallback) (func(), error) {
 	binanceSymbol := fmt.Sprintf("%s%s", symbol.Base, symbol.Quote)
 	return a.wsClient.SubscribeTrade(binanceSymbol, binance.TradeSubscriptionOptions{
 		OnTrade: func(wsTrade binance.WSTrade) {
@@ -55,12 +55,8 @@ func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, instrumentType sqx.In
 				Quantity:       quantity,
 				Timestamp:      wsTrade.TradeTime,
 			}
-			data, err := trade.Marshal()
-			if err != nil {
-				logger.Log.Error().Err(err).Msgf("Failed to serialize trade: %+v", trade)
-				return
-			}
-			callback(data)
+
+			callback(trade)
 		},
 	})
 }

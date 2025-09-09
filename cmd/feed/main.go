@@ -52,13 +52,8 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 		os.Exit(1)
 	}
 
-	adapter, err := adapter.CreateAdapter(sqxExchange, sqxDataType)
-	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to create adapter")
-		os.Exit(1)
-	}
+	shutdown := shutdown.NewShutdown(logger.Log)
 
-	// Validate inputs
 	connConfigs, err := parseNatsURIs(natsURIs)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("Validation failed")
@@ -71,16 +66,35 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 		os.Exit(1)
 	}
 	defer pubManager.Close()
-	unsubscribe, err := adapter.Subscribe(sqxSymbol, sqxInstrumentType, func(data []byte) error {
 
-		return nil
-	})
-	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to subscribe to adapter")
+	switch sqxDataType {
+	case sqx.DataTypeTrade:
+		adapter, err := adapter.CreateTradeAdapter(sqxExchange, sqxDataType)
+		if err != nil {
+			logger.Log.Error().Err(err).Msg("Failed to create adapter")
+			os.Exit(1)
+		}
+		unsubscribe, err := adapter.Subscribe(sqxSymbol, sqxInstrumentType, func(trade sqx.Trade) error {
+			data, err := trade.Marshal()
+			if err != nil {
+				logger.Log.Error().Err(err).Msg("Failed to marshal trade")
+				return err
+			}
+			return pubManager.Publish(data, map[string]string{
+				"Nats-Msg-Id": trade.IdStr(),
+			})
+		})
+		shutdown.HookShutdownCallback("unsubscribe", unsubscribe, 10*time.Second)
+		if err != nil {
+			logger.Log.Error().Err(err).Msg("Failed to subscribe to adapter")
+			os.Exit(1)
+		}
+
+	case sqx.DataTypeDepth:
+		logger.Log.Error().Msg("Depth data type not supported")
 		os.Exit(1)
 	}
-	shutdown := shutdown.NewShutdown(logger.Log)
-	shutdown.HookShutdownCallback("unsubscribe", unsubscribe, 10*time.Second)
+
 	shutdown.WaitForShutdown(syscall.SIGINT, syscall.SIGTERM)
 	logger.Log.Info().Msg("Feed command executed successfully!")
 }
