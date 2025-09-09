@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        v3.12.4
-// source: protobuf/app/shared.proto
+// source: protobuf/shared.proto
 
-package app
+package protobuf
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -66,11 +66,11 @@ func (x Instrument) String() string {
 }
 
 func (Instrument) Descriptor() protoreflect.EnumDescriptor {
-	return file_protobuf_app_shared_proto_enumTypes[0].Descriptor()
+	return file_protobuf_shared_proto_enumTypes[0].Descriptor()
 }
 
 func (Instrument) Type() protoreflect.EnumType {
-	return &file_protobuf_app_shared_proto_enumTypes[0]
+	return &file_protobuf_shared_proto_enumTypes[0]
 }
 
 func (x Instrument) Number() protoreflect.EnumNumber {
@@ -79,7 +79,7 @@ func (x Instrument) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Instrument.Descriptor instead.
 func (Instrument) EnumDescriptor() ([]byte, []int) {
-	return file_protobuf_app_shared_proto_rawDescGZIP(), []int{0}
+	return file_protobuf_shared_proto_rawDescGZIP(), []int{0}
 }
 
 type Exchange int32
@@ -118,11 +118,11 @@ func (x Exchange) String() string {
 }
 
 func (Exchange) Descriptor() protoreflect.EnumDescriptor {
-	return file_protobuf_app_shared_proto_enumTypes[1].Descriptor()
+	return file_protobuf_shared_proto_enumTypes[1].Descriptor()
 }
 
 func (Exchange) Type() protoreflect.EnumType {
-	return &file_protobuf_app_shared_proto_enumTypes[1]
+	return &file_protobuf_shared_proto_enumTypes[1]
 }
 
 func (x Exchange) Number() protoreflect.EnumNumber {
@@ -131,7 +131,7 @@ func (x Exchange) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Exchange.Descriptor instead.
 func (Exchange) EnumDescriptor() ([]byte, []int) {
-	return file_protobuf_app_shared_proto_rawDescGZIP(), []int{1}
+	return file_protobuf_shared_proto_rawDescGZIP(), []int{1}
 }
 
 type Side int32
@@ -167,11 +167,11 @@ func (x Side) String() string {
 }
 
 func (Side) Descriptor() protoreflect.EnumDescriptor {
-	return file_protobuf_app_shared_proto_enumTypes[2].Descriptor()
+	return file_protobuf_shared_proto_enumTypes[2].Descriptor()
 }
 
 func (Side) Type() protoreflect.EnumType {
-	return &file_protobuf_app_shared_proto_enumTypes[2]
+	return &file_protobuf_shared_proto_enumTypes[2]
 }
 
 func (x Side) Number() protoreflect.EnumNumber {
@@ -180,7 +180,7 @@ func (x Side) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Side.Descriptor instead.
 func (Side) EnumDescriptor() ([]byte, []int) {
-	return file_protobuf_app_shared_proto_rawDescGZIP(), []int{2}
+	return file_protobuf_shared_proto_rawDescGZIP(), []int{2}
 }
 
 type TimeInForce int32
@@ -219,11 +219,11 @@ func (x TimeInForce) String() string {
 }
 
 func (TimeInForce) Descriptor() protoreflect.EnumDescriptor {
-	return file_protobuf_app_shared_proto_enumTypes[3].Descriptor()
+	return file_protobuf_shared_proto_enumTypes[3].Descriptor()
 }
 
 func (TimeInForce) Type() protoreflect.EnumType {
-	return &file_protobuf_app_shared_proto_enumTypes[3]
+	return &file_protobuf_shared_proto_enumTypes[3]
 }
 
 func (x TimeInForce) Number() protoreflect.EnumNumber {
@@ -232,7 +232,7 @@ func (x TimeInForce) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TimeInForce.Descriptor instead.
 func (TimeInForce) EnumDescriptor() ([]byte, []int) {
-	return file_protobuf_app_shared_proto_rawDescGZIP(), []int{3}
+	return file_protobuf_shared_proto_rawDescGZIP(), []int{3}
 }
 
 type OrderType int32
@@ -271,11 +271,11 @@ func (x OrderType) String() string {
 }
 
 func (OrderType) Descriptor() protoreflect.EnumDescriptor {
-	return file_protobuf_app_shared_proto_enumTypes[4].Descriptor()
+	return file_protobuf_shared_proto_enumTypes[4].Descriptor()
 }
 
 func (OrderType) Type() protoreflect.EnumType {
-	return &file_protobuf_app_shared_proto_enumTypes[4]
+	return &file_protobuf_shared_proto_enumTypes[4]
 }
 
 func (x OrderType) Number() protoreflect.EnumNumber {
@@ -284,7 +284,7 @@ func (x OrderType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use OrderType.Descriptor instead.
 func (OrderType) EnumDescriptor() ([]byte, []int) {
-	return file_protobuf_app_shared_proto_rawDescGZIP(), []int{4}
+	return file_protobuf_shared_proto_rawDescGZIP(), []int{4}
 }
 
 type Symbol struct {
@@ -297,7 +297,7 @@ type Symbol struct {
 
 func (x *Symbol) Reset() {
 	*x = Symbol{}
-	mi := &file_protobuf_app_shared_proto_msgTypes[0]
+	mi := &file_protobuf_shared_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -309,7 +309,7 @@ func (x *Symbol) String() string {
 func (*Symbol) ProtoMessage() {}
 
 func (x *Symbol) ProtoReflect() protoreflect.Message {
-	mi := &file_protobuf_app_shared_proto_msgTypes[0]
+	mi := &file_protobuf_shared_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -322,7 +322,7 @@ func (x *Symbol) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Symbol.ProtoReflect.Descriptor instead.
 func (*Symbol) Descriptor() ([]byte, []int) {
-	return file_protobuf_app_shared_proto_rawDescGZIP(), []int{0}
+	return file_protobuf_shared_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Symbol) GetBase() string {
@@ -339,11 +339,11 @@ func (x *Symbol) GetQuote() string {
 	return ""
 }
 
-var File_protobuf_app_shared_proto protoreflect.FileDescriptor
+var File_protobuf_shared_proto protoreflect.FileDescriptor
 
-const file_protobuf_app_shared_proto_rawDesc = "" +
+const file_protobuf_shared_proto_rawDesc = "" +
 	"\n" +
-	"\x19protobuf/app/shared.proto\x12\x03app\"2\n" +
+	"\x15protobuf/shared.proto\x12\x03app\"2\n" +
 	"\x06Symbol\x12\x12\n" +
 	"\x04base\x18\x01 \x01(\tR\x04base\x12\x14\n" +
 	"\x05quote\x18\x02 \x01(\tR\x05quote*\xb0\x01\n" +
@@ -374,23 +374,23 @@ const file_protobuf_app_shared_proto_rawDesc = "" +
 	"\x16ORDER_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10ORDER_TYPE_LIMIT\x10\x01\x12\x15\n" +
 	"\x11ORDER_TYPE_MARKET\x10\x02\x12\x1a\n" +
-	"\x16ORDER_TYPE_STOP_MARKET\x10\x03B;Z9github.com/BullionBear/sequex/internal/model/protobuf/appb\x06proto3"
+	"\x16ORDER_TYPE_STOP_MARKET\x10\x03B7Z5github.com/BullionBear/sequex/internal/model/protobufb\x06proto3"
 
 var (
-	file_protobuf_app_shared_proto_rawDescOnce sync.Once
-	file_protobuf_app_shared_proto_rawDescData []byte
+	file_protobuf_shared_proto_rawDescOnce sync.Once
+	file_protobuf_shared_proto_rawDescData []byte
 )
 
-func file_protobuf_app_shared_proto_rawDescGZIP() []byte {
-	file_protobuf_app_shared_proto_rawDescOnce.Do(func() {
-		file_protobuf_app_shared_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_protobuf_app_shared_proto_rawDesc), len(file_protobuf_app_shared_proto_rawDesc)))
+func file_protobuf_shared_proto_rawDescGZIP() []byte {
+	file_protobuf_shared_proto_rawDescOnce.Do(func() {
+		file_protobuf_shared_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_protobuf_shared_proto_rawDesc), len(file_protobuf_shared_proto_rawDesc)))
 	})
-	return file_protobuf_app_shared_proto_rawDescData
+	return file_protobuf_shared_proto_rawDescData
 }
 
-var file_protobuf_app_shared_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_protobuf_app_shared_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_protobuf_app_shared_proto_goTypes = []any{
+var file_protobuf_shared_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_protobuf_shared_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_protobuf_shared_proto_goTypes = []any{
 	(Instrument)(0),  // 0: app.Instrument
 	(Exchange)(0),    // 1: app.Exchange
 	(Side)(0),        // 2: app.Side
@@ -398,7 +398,7 @@ var file_protobuf_app_shared_proto_goTypes = []any{
 	(OrderType)(0),   // 4: app.OrderType
 	(*Symbol)(nil),   // 5: app.Symbol
 }
-var file_protobuf_app_shared_proto_depIdxs = []int32{
+var file_protobuf_shared_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -406,27 +406,27 @@ var file_protobuf_app_shared_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_protobuf_app_shared_proto_init() }
-func file_protobuf_app_shared_proto_init() {
-	if File_protobuf_app_shared_proto != nil {
+func init() { file_protobuf_shared_proto_init() }
+func file_protobuf_shared_proto_init() {
+	if File_protobuf_shared_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_protobuf_app_shared_proto_rawDesc), len(file_protobuf_app_shared_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_protobuf_shared_proto_rawDesc), len(file_protobuf_shared_proto_rawDesc)),
 			NumEnums:      5,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_protobuf_app_shared_proto_goTypes,
-		DependencyIndexes: file_protobuf_app_shared_proto_depIdxs,
-		EnumInfos:         file_protobuf_app_shared_proto_enumTypes,
-		MessageInfos:      file_protobuf_app_shared_proto_msgTypes,
+		GoTypes:           file_protobuf_shared_proto_goTypes,
+		DependencyIndexes: file_protobuf_shared_proto_depIdxs,
+		EnumInfos:         file_protobuf_shared_proto_enumTypes,
+		MessageInfos:      file_protobuf_shared_proto_msgTypes,
 	}.Build()
-	File_protobuf_app_shared_proto = out.File
-	file_protobuf_app_shared_proto_goTypes = nil
-	file_protobuf_app_shared_proto_depIdxs = nil
+	File_protobuf_shared_proto = out.File
+	file_protobuf_shared_proto_goTypes = nil
+	file_protobuf_shared_proto_depIdxs = nil
 }
