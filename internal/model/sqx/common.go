@@ -3,6 +3,8 @@ package sqx
 import (
 	"fmt"
 	"strings"
+
+	"github.com/BullionBear/sequex/internal/model/protobuf"
 )
 
 type Exchange int
@@ -13,6 +15,10 @@ const (
 	ExchangeBinancePerp
 	ExchangeBybit
 )
+
+func (e Exchange) ToProtobuf() protobuf.Exchange {
+	return protobuf.Exchange(e)
+}
 
 func (e Exchange) String() string {
 	return []string{"UNKNOWN", "BINANCE", "BINANCE_PERP", "BYBIT"}[e]
@@ -35,29 +41,49 @@ type InstrumentType int
 const (
 	InstrumentTypeUnknown InstrumentType = iota
 	InstrumentTypeSpot
+	InstrumentTypeMargin
 	InstrumentTypePerp
 	InstrumentTypeInverse
+	InstrumentTypeFutures
+	InstrumentTypeOption
 )
+
+func (i InstrumentType) ToProtobuf() protobuf.Instrument {
+	return protobuf.Instrument(i)
+}
 
 func NewInstrumentType(instrumentType string) InstrumentType {
 	switch strings.ToUpper(instrumentType) {
 	case "SPOT":
 		return InstrumentTypeSpot
+	case "MARGIN":
+		return InstrumentTypeMargin
 	case "PERP":
 		return InstrumentTypePerp
 	case "INVERSE":
 		return InstrumentTypeInverse
+	case "FUTURES":
+		return InstrumentTypeFutures
+	case "OPTION":
+		return InstrumentTypeOption
 	}
 	return InstrumentTypeUnknown
 }
 
 func (i InstrumentType) String() string {
-	return []string{"UNKNOWN", "SPOT", "PERP", "INVERSE"}[i]
+	return []string{"UNKNOWN", "SPOT", "MARGIN", "PERP", "INVERSE", "FUTURES", "OPTION"}[i]
 }
 
 type Symbol struct {
 	Base  string
 	Quote string
+}
+
+func (s Symbol) ToProtobuf() protobuf.Symbol {
+	return protobuf.Symbol{
+		Base:  s.Base,
+		Quote: s.Quote,
+	}
 }
 
 func NewSymbol(base, quote string) Symbol {
@@ -100,6 +126,10 @@ func NewSide(side string) Side {
 	return SideUnknown
 }
 
+func (s Side) ToProtobuf() protobuf.Side {
+	return protobuf.Side(s)
+}
+
 func (s Side) String() string {
 	return []string{"UNKNOWN", "BUY", "SELL"}[s]
 }
@@ -112,6 +142,10 @@ const (
 	TimeInForceIOC
 	TimeInForceFOK
 )
+
+func (t TimeInForce) ToProtobuf() protobuf.TimeInForce {
+	return protobuf.TimeInForce(t)
+}
 
 func NewTimeInForce(timeInForce string) TimeInForce {
 	switch strings.ToUpper(timeInForce) {
