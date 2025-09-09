@@ -53,22 +53,21 @@ func (t *Trade) FromProtobuf(trade *protobuf.Trade) error {
 	return nil
 }
 
-func (t *Trade) Serialize() ([]byte, error) {
+func (t *Trade) Marshal() ([]byte, error) {
 	return proto.Marshal(t.ToProtobuf())
 }
 
-func Deserialize(data []byte) (*Trade, error) {
+func Unmarshal(data []byte, trade *Trade) error {
 	pbTrade := &protobuf.Trade{}
 	err := proto.Unmarshal(data, pbTrade)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	trade := &Trade{}
 	err = trade.FromProtobuf(pbTrade)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return trade, nil
+	return nil
 }
 
 func (t *Trade) IdStr() string {

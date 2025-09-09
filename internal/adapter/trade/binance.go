@@ -55,7 +55,7 @@ func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, instrumentType sqx.In
 				Quantity:       quantity,
 				Timestamp:      wsTrade.TradeTime,
 			}
-			data, err := trade.Serialize()
+			data, err := trade.Marshal()
 			if err != nil {
 				logger.Log.Error().Err(err).Msgf("Failed to serialize trade: %+v", trade)
 				return
