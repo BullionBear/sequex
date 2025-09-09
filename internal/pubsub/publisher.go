@@ -17,7 +17,16 @@ func NewPublisher(nats *nats.Conn, jetstream string, subject string) (*Publisher
 	return &Publisher{nats: nats, js: &js, streamName: jetstream, subject: subject}, nil
 }
 
-func (p *Publisher) Publish(data []byte) error {
-	_, err := (*p.js).Publish(p.subject, data)
+func (p *Publisher) Publish(data []byte, headers map[string]string) error {
+	header := nats.Header{}
+	for k, v := range headers {
+		header[k] = []string{v}
+	}
+
+	_, err := (*p.js).PublishMsg(&nats.Msg{
+		Subject: p.subject,
+		Data:    data,
+		Header:  header,
+	})
 	return err
 }

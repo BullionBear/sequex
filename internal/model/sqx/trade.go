@@ -1,6 +1,9 @@
 package sqx
 
-import "github.com/BullionBear/sequex/internal/model/protobuf"
+import (
+	"github.com/BullionBear/sequex/internal/model/protobuf"
+	"google.golang.org/protobuf/proto"
+)
 
 type Trade struct {
 	Id             int64
@@ -25,4 +28,8 @@ func (t *Trade) ToProtobuf() *protobuf.Trade {
 		Quantity:   t.Quantity,
 		Timestamp:  t.Timestamp,
 	}
+}
+
+func (t *Trade) Serialize() ([]byte, error) {
+	return proto.Marshal(t.ToProtobuf())
 }
