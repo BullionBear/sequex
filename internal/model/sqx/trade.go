@@ -32,8 +32,43 @@ func (t *Trade) ToProtobuf() *protobuf.Trade {
 	}
 }
 
+func (t *Trade) FromProtobuf(trade *protobuf.Trade) error {
+	t.Id = trade.Id
+	t.Symbol = NewSymbol(trade.Symbol.Base, trade.Symbol.Quote)
+	t.Exchange = NewExchange(trade.Exchange.String())
+	if t.Exchange == ExchangeUnknown {
+		return fmt.Errorf("unknown exchange: %s", trade.Exchange.String())
+	}
+	t.InstrumentType = NewInstrumentType(trade.Instrument.String())
+	if t.InstrumentType == InstrumentTypeUnknown {
+		return fmt.Errorf("unknown instrument type: %s", trade.Instrument.String())
+	}
+	t.TakerSide = NewSide(trade.Side.String())
+	if t.TakerSide == SideUnknown {
+		return fmt.Errorf("unknown taker side: %s", trade.Side.String())
+	}
+	t.Price = trade.Price
+	t.Quantity = trade.Quantity
+	t.Timestamp = trade.Timestamp
+	return nil
+}
+
 func (t *Trade) Serialize() ([]byte, error) {
 	return proto.Marshal(t.ToProtobuf())
+}
+
+func Deserialize(data []byte) (*Trade, error) {
+	pbTrade := &protobuf.Trade{}
+	err := proto.Unmarshal(data, pbTrade)
+	if err != nil {
+		return nil, err
+	}
+	trade := &Trade{}
+	err = trade.FromProtobuf(pbTrade)
+	if err != nil {
+		return nil, err
+	}
+	return trade, nil
 }
 
 func (t *Trade) IdStr() string {
