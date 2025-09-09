@@ -30,3 +30,7 @@ func (p *Publisher) Publish(data []byte, headers map[string]string) error {
 	})
 	return err
 }
+
+func (p *Publisher) Close() {
+	p.nats.Close()
+}

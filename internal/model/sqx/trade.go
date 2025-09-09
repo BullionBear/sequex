@@ -1,6 +1,8 @@
 package sqx
 
 import (
+	"fmt"
+
 	"github.com/BullionBear/sequex/internal/model/protobuf"
 	"google.golang.org/protobuf/proto"
 )
@@ -32,4 +34,8 @@ func (t *Trade) ToProtobuf() *protobuf.Trade {
 
 func (t *Trade) Serialize() ([]byte, error) {
 	return proto.Marshal(t.ToProtobuf())
+}
+
+func (t *Trade) IdStr() string {
+	return fmt.Sprintf("%s-%s-%s-%d", t.Exchange.String(), t.InstrumentType.String(), t.Symbol.String(), t.Id)
 }

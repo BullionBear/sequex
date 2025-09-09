@@ -13,9 +13,9 @@ import (
 	_ "github.com/BullionBear/sequex/internal/adapter/init"
 	"github.com/BullionBear/sequex/internal/config"
 	"github.com/BullionBear/sequex/internal/model/sqx"
+	"github.com/BullionBear/sequex/internal/pubsub"
 	"github.com/BullionBear/sequex/pkg/logger"
 	"github.com/BullionBear/sequex/pkg/shutdown"
-	"github.com/nats-io/nats.go"
 )
 
 // runFeed executes the main feed logic
@@ -65,38 +65,12 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 		os.Exit(1)
 	}
 
-	// Print configuration
-	natsConn, err := nats.Connect(connConfigs[0].ToNATSURL())
+	pubManager, err := pubsub.NewPubManager(connConfigs)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to connect to NATS")
+		logger.Log.Error().Err(err).Msg("Failed to create pub manager")
 		os.Exit(1)
 	}
-
-	defer natsConn.Close()
-	/*
-		js, err := natsConn.JetStream()
-		if err != nil {
-			logger.Log.Error().Err(err).Msg("Failed to create JetStream context")
-			os.Exit(1)
-		}
-
-			streamInfo, err := js.StreamInfo(connConfigs[0].GetParam("stream", ""))
-			if err != nil {
-				logger.Log.Error().Err(err).Msg("Failed to get stream info")
-				os.Exit(1)
-			}
-
-			logger.Log.Info().Msg("Stream info:")
-			logger.Log.Info().Msg(streamInfo.Config.Name)
-	*/
-	/*
-		publisher, err := pubsub.NewPublisher(natsConn, streamInfo.Config.Name, connConfigs[0].GetParam("subject", ""))
-		if err != nil {
-			logger.Log.Error().Err(err).Msg("Failed to create publisher")
-			os.Exit(1)
-		}
-		publisher.Publish([]byte("Hello, world!"))
-	*/
+	defer pubManager.Close()
 	unsubscribe, err := adapter.Subscribe(sqxSymbol, sqxInstrumentType, func(data []byte) error {
 
 		return nil
