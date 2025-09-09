@@ -73,20 +73,22 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 	}
 
 	defer natsConn.Close()
-	js, err := natsConn.JetStream()
-	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to create JetStream context")
-		os.Exit(1)
-	}
+	/*
+		js, err := natsConn.JetStream()
+		if err != nil {
+			logger.Log.Error().Err(err).Msg("Failed to create JetStream context")
+			os.Exit(1)
+		}
 
-	streamInfo, err := js.StreamInfo(connConfigs[0].GetParam("stream", ""))
-	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to get stream info")
-		os.Exit(1)
-	}
+			streamInfo, err := js.StreamInfo(connConfigs[0].GetParam("stream", ""))
+			if err != nil {
+				logger.Log.Error().Err(err).Msg("Failed to get stream info")
+				os.Exit(1)
+			}
 
-	logger.Log.Info().Msg("Stream info:")
-	logger.Log.Info().Msg(streamInfo.Config.Name)
+			logger.Log.Info().Msg("Stream info:")
+			logger.Log.Info().Msg(streamInfo.Config.Name)
+	*/
 	/*
 		publisher, err := pubsub.NewPublisher(natsConn, streamInfo.Config.Name, connConfigs[0].GetParam("subject", ""))
 		if err != nil {
