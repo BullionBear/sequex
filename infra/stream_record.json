@@ -1,0 +1,27 @@
+{
+    "name": "RECORD",
+    "subjects": [
+      "record.trade.>",
+      "record.depth.>"
+    ],
+    "description": "Record data stream",
+    "storage": "file",
+    "num_replicas": 1,
+    "sources": [
+        {
+            "name": "MARKET"
+        }
+    ],
+    "max_age": 3600000000000,
+    "max_bytes": 1073741824,
+    "max_msgs": -1,
+    "max_msg_size": -1,
+    "max_consumers": -1,
+    "no_ack": false,
+    "discard": "old",
+    "retention": "limits",
+    "deny_delete": false,
+    "sealed": false,
+    "allow_rollup_hdrs": false,
+    "allow_direct": false
+  }
