@@ -27,6 +27,9 @@ func NewBinanceTradeAdapter() *BinanceTradeAdapter {
 }
 
 func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, instrumentType sqx.InstrumentType, callback adapter.TradeCallback) (func(), error) {
+	if instrumentType != sqx.InstrumentTypeSpot {
+		return nil, fmt.Errorf("instrument type not supported: %s", instrumentType)
+	}
 	binanceSymbol := fmt.Sprintf("%s%s", symbol.Base, symbol.Quote)
 	return a.wsClient.SubscribeTrade(binanceSymbol, binance.TradeSubscriptionOptions{
 		OnTrade: func(wsTrade binance.WSTrade) {
