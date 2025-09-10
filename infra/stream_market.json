@@ -13,7 +13,7 @@
     "max_msgs": -1,
     "max_msg_size": -1,
     "max_consumers": -1,
-    "no_ack": true,
+    "no_ack": false,
     "discard": "old",
     "retention": "limits",
     "deny_delete": false,
