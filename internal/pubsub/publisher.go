@@ -23,7 +23,7 @@ func (p *Publisher) Publish(data []byte, headers map[string]string) error {
 		header[k] = []string{v}
 	}
 
-	_, err := (*p.js).PublishMsg(&nats.Msg{
+	_, err := (*p.js).PublishMsgAsync(&nats.Msg{
 		Subject: p.subject,
 		Data:    data,
 		Header:  header,
