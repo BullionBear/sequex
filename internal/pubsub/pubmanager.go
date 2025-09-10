@@ -1,6 +1,8 @@
 package pubsub
 
 import (
+	"time"
+
 	"github.com/BullionBear/sequex/internal/config"
 	"github.com/BullionBear/sequex/pkg/logger"
 	"github.com/nats-io/nats.go"
@@ -13,7 +15,16 @@ type PubManager struct {
 func NewPubManager(connConfigs []*config.ConnectionConfig) (*PubManager, error) {
 	publishers := make([]*Publisher, 0)
 	for _, connConfig := range connConfigs {
-		natsConn, err := nats.Connect(connConfig.ToNATSURL())
+		// Configure NATS connection with proper timeouts for JetStream
+		opts := []nats.Option{
+			nats.Timeout(1 * time.Second),       // Connection timeout
+			nats.ReconnectWait(2 * time.Second), // Reconnect wait time
+			nats.MaxReconnects(-1),              // Unlimited reconnects
+			nats.PingInterval(20 * time.Second), // Ping interval
+			nats.MaxPingsOutstanding(3),         // Max outstanding pings
+		}
+
+		natsConn, err := nats.Connect(connConfig.ToNATSURL(), opts...)
 		if err != nil {
 			logger.Log.Error().Err(err).Msg("Failed to connect to NATS")
 			return nil, err

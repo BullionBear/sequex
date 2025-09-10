@@ -75,16 +75,14 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 			os.Exit(1)
 		}
 		unsubscribe, err := adapter.Subscribe(sqxSymbol, sqxInstrumentType, func(trade sqx.Trade) error {
-			_, err := trade.Marshal()
+			data, err := trade.Marshal()
 			if err != nil {
 				logger.Log.Error().Err(err).Msg("Failed to marshal trade")
 				return err
 			}
-			logger.Log.Info().Msgf("Publishing trade: %s", trade.IdStr())
-			/*return pubManager.Publish(data, map[string]string{
+			return pubManager.Publish(data, map[string]string{
 				"Nats-Msg-Id": trade.IdStr(),
-			})*/
-			return nil
+			})
 		})
 		shutdown.HookShutdownCallback("unsubscribe", unsubscribe, 10*time.Second)
 		if err != nil {

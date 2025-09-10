@@ -70,7 +70,10 @@ func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, instrumentType sqx.In
 				Timestamp:      wsTrade.TradeTime,
 			}
 
-			callback(trade)
+			if err := callback(trade); err != nil {
+				logger.Log.Error().Err(err).Msgf("Failed to publish trade: %s", trade.IdStr())
+				return
+			}
 		},
 	})
 }
