@@ -3,6 +3,7 @@ package trade
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/BullionBear/sequex/internal/adapter"
 	"github.com/BullionBear/sequex/internal/model/sqx"
@@ -48,9 +49,26 @@ func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, instrumentType sqx.In
 				logger.Log.Error().Err(err).Msgf("Failed to parse quantity: %s", wsTrade.Quantity)
 				return
 			}
+			// Parse the symbol to extract base and quote currencies
+			// For BTCUSDT, we need to extract BTC and USDT
+			// Common quote currencies: USDT, USDC, BUSD, BTC, ETH, BNB
+			quoteCurrencies := []string{"USDT", "USDC", "BUSD", "BTC", "ETH", "BNB"}
+			var base, quote string
+			for _, qc := range quoteCurrencies {
+				if strings.HasSuffix(wsTrade.Symbol, qc) {
+					base = strings.TrimSuffix(wsTrade.Symbol, qc)
+					quote = qc
+					break
+				}
+			}
+			if base == "" || quote == "" {
+				logger.Log.Error().Msgf("Failed to parse symbol: %s", wsTrade.Symbol)
+				return
+			}
+
 			trade := sqx.Trade{
 				Id:             wsTrade.TradeId,
-				Symbol:         sqx.NewSymbol(wsTrade.Symbol, wsTrade.Symbol),
+				Symbol:         sqx.NewSymbol(base, quote),
 				Exchange:       sqx.ExchangeBinance,
 				InstrumentType: sqx.InstrumentTypeSpot,
 				TakerSide:      takerSide,
