@@ -13,7 +13,7 @@ import (
 func init() {
 	binanceTradeAdapter := NewBinanceTradeAdapter()
 	logger.Log.Info().Msg("Registering Binance trade adapter")
-	adapter.RegisterTradeAdapter(sqx.ExchangeBinance, sqx.DataTypeTrade, binanceTradeAdapter)
+	adapter.RegisterTradeAdapter(sqx.ExchangeBinance, binanceTradeAdapter)
 }
 
 type BinanceTradeAdapter struct {

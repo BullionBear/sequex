@@ -69,7 +69,7 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 
 	switch sqxDataType {
 	case sqx.DataTypeTrade:
-		adapter, err := adapter.CreateTradeAdapter(sqxExchange, sqxDataType)
+		adapter, err := adapter.CreateTradeAdapter(sqxExchange)
 		if err != nil {
 			logger.Log.Error().Err(err).Msg("Failed to create adapter")
 			os.Exit(1)
