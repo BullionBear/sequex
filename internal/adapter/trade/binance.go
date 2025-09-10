@@ -2,6 +2,7 @@ package trade
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/BullionBear/sequex/internal/adapter"
 	"github.com/BullionBear/sequex/internal/model/sqx"
@@ -12,7 +13,7 @@ import (
 func init() {
 	binanceTradeAdapter := NewBinanceTradeAdapter()
 	logger.Log.Info().Msg("Registering Binance trade adapter")
-	adapter.RegisterAdapter(sqx.ExchangeBinance, sqx.DataTypeTrade, binanceTradeAdapter)
+	adapter.RegisterTradeAdapter(sqx.ExchangeBinance, binanceTradeAdapter)
 }
 
 type BinanceTradeAdapter struct {
@@ -25,11 +26,40 @@ func NewBinanceTradeAdapter() *BinanceTradeAdapter {
 	}
 }
 
-func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, instrumentType sqx.InstrumentType, callback adapter.Callback) (func(), error) {
+func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, instrumentType sqx.InstrumentType, callback adapter.TradeCallback) (func(), error) {
+	if instrumentType != sqx.InstrumentTypeSpot {
+		return nil, fmt.Errorf("instrument type not supported: %s", instrumentType)
+	}
 	binanceSymbol := fmt.Sprintf("%s%s", symbol.Base, symbol.Quote)
 	return a.wsClient.SubscribeTrade(binanceSymbol, binance.TradeSubscriptionOptions{
-		OnTrade: func(trade binance.WSTrade) {
-			logger.Log.Info().Msgf("Received trade: %+v", trade)
+		OnTrade: func(wsTrade binance.WSTrade) {
+			logger.Log.Info().Msgf("Received trade: %+v", wsTrade)
+			takerSide := sqx.SideBuy
+			if wsTrade.IsBuyerMaker {
+				takerSide = sqx.SideSell
+			}
+			price, err := strconv.ParseFloat(wsTrade.Price, 64)
+			if err != nil {
+				logger.Log.Error().Err(err).Msgf("Failed to parse price: %s", wsTrade.Price)
+				return
+			}
+			quantity, err := strconv.ParseFloat(wsTrade.Quantity, 64)
+			if err != nil {
+				logger.Log.Error().Err(err).Msgf("Failed to parse quantity: %s", wsTrade.Quantity)
+				return
+			}
+			trade := sqx.Trade{
+				Id:             wsTrade.TradeId,
+				Symbol:         sqx.NewSymbol(wsTrade.Symbol, wsTrade.Symbol),
+				Exchange:       sqx.ExchangeBinance,
+				InstrumentType: sqx.InstrumentTypeSpot,
+				TakerSide:      takerSide,
+				Price:          price,
+				Quantity:       quantity,
+				Timestamp:      wsTrade.TradeTime,
+			}
+
+			callback(trade)
 		},
 	})
 }

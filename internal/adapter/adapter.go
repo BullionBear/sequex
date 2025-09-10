@@ -7,28 +7,29 @@ import (
 )
 
 var (
-	AdapterMap = make(map[sqx.Exchange]map[sqx.DataType]Adapter)
+	TradeAdapterMap = make(map[sqx.Exchange]TradeAdapter)
 )
 
-type Callback func(data []byte) error
+type TradeCallback func(trade sqx.Trade) error
 
-type Adapter interface {
-	Subscribe(symbol sqx.Symbol, instrumentType sqx.InstrumentType, callback Callback) (func(), error)
+// type DepthCallback func(depth sqx.Depth) error
+
+type TradeAdapter interface {
+	Subscribe(symbol sqx.Symbol, instrumentType sqx.InstrumentType, callback TradeCallback) (func(), error)
 }
 
-func CreateAdapter(exchange sqx.Exchange, dataType sqx.DataType) (Adapter, error) {
-	if _, ok := AdapterMap[exchange]; !ok {
+func CreateTradeAdapter(exchange sqx.Exchange) (TradeAdapter, error) {
+	if _, ok := TradeAdapterMap[exchange]; !ok {
 		return nil, fmt.Errorf("adapter not found for exchange: %s", exchange)
 	}
-	if _, ok := AdapterMap[exchange][dataType]; !ok {
-		return nil, fmt.Errorf("adapter not found for exchange: %s and data type: %s", exchange, dataType)
+	if _, ok := TradeAdapterMap[exchange]; !ok {
+		return nil, fmt.Errorf("adapter not found for exchange: %s", exchange)
 	}
-	return AdapterMap[exchange][dataType], nil
+	return TradeAdapterMap[exchange], nil
 }
 
-func RegisterAdapter(exchange sqx.Exchange, dataType sqx.DataType, adapter Adapter) {
-	if _, ok := AdapterMap[exchange]; !ok {
-		AdapterMap[exchange] = make(map[sqx.DataType]Adapter)
+func RegisterTradeAdapter(exchange sqx.Exchange, adapter TradeAdapter) {
+	if _, ok := TradeAdapterMap[exchange]; !ok {
+		TradeAdapterMap[exchange] = adapter
 	}
-	AdapterMap[exchange][dataType] = adapter
 }

@@ -13,9 +13,9 @@ import (
 	_ "github.com/BullionBear/sequex/internal/adapter/init"
 	"github.com/BullionBear/sequex/internal/config"
 	"github.com/BullionBear/sequex/internal/model/sqx"
+	"github.com/BullionBear/sequex/internal/pubsub"
 	"github.com/BullionBear/sequex/pkg/logger"
 	"github.com/BullionBear/sequex/pkg/shutdown"
-	"github.com/nats-io/nats.go"
 )
 
 // runFeed executes the main feed logic
@@ -52,61 +52,49 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 		os.Exit(1)
 	}
 
-	adapter, err := adapter.CreateAdapter(sqxExchange, sqxDataType)
-	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to create adapter")
-		os.Exit(1)
-	}
+	shutdown := shutdown.NewShutdown(logger.Log)
 
-	// Validate inputs
 	connConfigs, err := parseNatsURIs(natsURIs)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("Validation failed")
 		os.Exit(1)
 	}
 
-	// Print configuration
-	natsConn, err := nats.Connect(connConfigs[0].ToNATSURL())
+	pubManager, err := pubsub.NewPubManager(connConfigs)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to connect to NATS")
+		logger.Log.Error().Err(err).Msg("Failed to create pub manager")
 		os.Exit(1)
 	}
+	defer pubManager.Close()
 
-	defer natsConn.Close()
-	/*
-		js, err := natsConn.JetStream()
+	switch sqxDataType {
+	case sqx.DataTypeTrade:
+		adapter, err := adapter.CreateTradeAdapter(sqxExchange)
 		if err != nil {
-			logger.Log.Error().Err(err).Msg("Failed to create JetStream context")
+			logger.Log.Error().Err(err).Msg("Failed to create adapter")
 			os.Exit(1)
 		}
-
-			streamInfo, err := js.StreamInfo(connConfigs[0].GetParam("stream", ""))
+		unsubscribe, err := adapter.Subscribe(sqxSymbol, sqxInstrumentType, func(trade sqx.Trade) error {
+			data, err := trade.Marshal()
 			if err != nil {
-				logger.Log.Error().Err(err).Msg("Failed to get stream info")
-				os.Exit(1)
+				logger.Log.Error().Err(err).Msg("Failed to marshal trade")
+				return err
 			}
-
-			logger.Log.Info().Msg("Stream info:")
-			logger.Log.Info().Msg(streamInfo.Config.Name)
-	*/
-	/*
-		publisher, err := pubsub.NewPublisher(natsConn, streamInfo.Config.Name, connConfigs[0].GetParam("subject", ""))
+			return pubManager.Publish(data, map[string]string{
+				"Nats-Msg-Id": trade.IdStr(),
+			})
+		})
+		shutdown.HookShutdownCallback("unsubscribe", unsubscribe, 10*time.Second)
 		if err != nil {
-			logger.Log.Error().Err(err).Msg("Failed to create publisher")
+			logger.Log.Error().Err(err).Msg("Failed to subscribe to adapter")
 			os.Exit(1)
 		}
-		publisher.Publish([]byte("Hello, world!"))
-	*/
-	unsubscribe, err := adapter.Subscribe(sqxSymbol, sqxInstrumentType, func(data []byte) error {
 
-		return nil
-	})
-	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to subscribe to adapter")
+	case sqx.DataTypeDepth:
+		logger.Log.Error().Msg("Depth data type not supported")
 		os.Exit(1)
 	}
-	shutdown := shutdown.NewShutdown(logger.Log)
-	shutdown.HookShutdownCallback("unsubscribe", unsubscribe, 10*time.Second)
+
 	shutdown.WaitForShutdown(syscall.SIGINT, syscall.SIGTERM)
 	logger.Log.Info().Msg("Feed command executed successfully!")
 }
