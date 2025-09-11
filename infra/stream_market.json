@@ -7,7 +7,7 @@
     "description": "Market data stream",
     "storage": "memory",
     "num_replicas": 1,
-    "max_age": 5000000000,
+    "max_age": 50000000000,
     "duplicate_window": 5000000000,
     "max_bytes": 1073741824,
     "max_msgs": -1,

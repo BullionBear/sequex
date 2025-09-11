@@ -13,9 +13,9 @@ import (
 	_ "github.com/BullionBear/sequex/internal/adapter/init"
 	"github.com/BullionBear/sequex/internal/config"
 	"github.com/BullionBear/sequex/internal/model/sqx"
-	"github.com/BullionBear/sequex/internal/pubsub"
 	"github.com/BullionBear/sequex/pkg/logger"
 	"github.com/BullionBear/sequex/pkg/shutdown"
+	"github.com/nats-io/nats.go"
 )
 
 // runFeed executes the main feed logic
@@ -59,14 +59,24 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 		logger.Log.Error().Err(err).Msg("Validation failed")
 		os.Exit(1)
 	}
-
-	pubManager, err := pubsub.NewPubManager(connConfigs)
+	natsConn, err := nats.Connect(connConfigs[0].ToNATSURL())
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to create pub manager")
+		logger.Log.Error().Err(err).Msg("Failed to connect to NATS")
 		os.Exit(1)
 	}
-	defer pubManager.Close()
-
+	defer natsConn.Close()
+	js, err := natsConn.JetStream()
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to create JetStream context")
+		os.Exit(1)
+	}
+	streamInfo, err := js.StreamInfo(connConfigs[0].GetParam("stream", ""))
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to get stream info")
+		os.Exit(1)
+	}
+	logger.Log.Info().Msgf("Stream info: %+v", streamInfo)
+	subject := connConfigs[0].GetParam("subject", "")
 	switch sqxDataType {
 	case sqx.DataTypeTrade:
 		adapter, err := adapter.CreateTradeAdapter(sqxExchange)
@@ -80,9 +90,16 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 				logger.Log.Error().Err(err).Msg("Failed to marshal trade")
 				return err
 			}
-			return pubManager.Publish(data, map[string]string{
-				"Nats-Msg-Id": trade.IdStr(),
+			header := nats.Header{
+				"Nats-Msg-Id": []string{trade.IdStr()},
+			}
+
+			_, err = js.PublishMsg(&nats.Msg{
+				Subject: subject,
+				Data:    data,
+				Header:  header,
 			})
+			return err
 		})
 		shutdown.HookShutdownCallback("unsubscribe", unsubscribe, 10*time.Second)
 		if err != nil {
