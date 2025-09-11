@@ -1,10 +1,9 @@
 {
-    "name": "MARKET",
+    "name": "TRADE",
     "subjects": [
-      "market.trade.>",
-      "market.depth.>"
+      "trade.>"
     ],
-    "description": "Market data stream",
+    "description": "Trade data stream",
     "storage": "memory",
     "num_replicas": 1,
     "max_age": 50000000000,
