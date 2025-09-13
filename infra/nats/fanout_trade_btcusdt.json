@@ -1,8 +1,8 @@
 {
     "stream_name": "TRADE",
-    "name": "TRADE_PUBSUB",
+    "name": "TRADE_FANOUT_BTCUSDT",
     "description": "Pub-sub consumer for trade data broadcasting",
-    "durable_name": "TRADE_PUBSUB",
+    "durable_name": "TRADE_FANOUT_BTCUSDT",
     "deliver_policy": "all",
     "ack_policy": "none",
     "ack_wait": 0,
