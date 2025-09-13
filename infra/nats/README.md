@@ -130,9 +130,6 @@ nats consumer add TRADE --config consumer_trade_work_queue.json
 ```bash
 # List consumers for TRADE stream
 nats consumer list TRADE
-
-# List consumers for RECORD stream
-nats consumer list RECORD
 ```
 
 ### Consumer Information
