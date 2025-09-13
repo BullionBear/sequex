@@ -139,6 +139,16 @@ nats consumer info TRADE TRADE_CONSUMER
 nats consumer info RECORD RECORD_CONSUMER
 ```
 
+### Delete Consumer
+```bash
+# Delete consumer from TRADE stream
+nats consumer rm TRADE TRADE_PUBSUB
+
+# Delete consumer from TRADE stream
+nats consumer rm TRADE TRADE_WORK_QUEUE
+```
+
+
 ## Data Flow
 
 ```

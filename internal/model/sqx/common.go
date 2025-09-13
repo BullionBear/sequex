@@ -36,6 +36,10 @@ func NewExchange(exchange string) Exchange {
 	return ExchangeUnknown
 }
 
+func NewExchangeFromProtobuf(pbExchange protobuf.Exchange) Exchange {
+	return Exchange(pbExchange)
+}
+
 type InstrumentType int
 
 const (
@@ -50,6 +54,10 @@ const (
 
 func (i InstrumentType) ToProtobuf() protobuf.Instrument {
 	return protobuf.Instrument(i)
+}
+
+func NewInstrumentTypeFromProtobuf(pbInstrument protobuf.Instrument) InstrumentType {
+	return InstrumentType(pbInstrument)
 }
 
 func NewInstrumentType(instrumentType string) InstrumentType {
@@ -128,6 +136,10 @@ func NewSide(side string) Side {
 
 func (s Side) ToProtobuf() protobuf.Side {
 	return protobuf.Side(s)
+}
+
+func NewSideFromProtobuf(pbSide protobuf.Side) Side {
+	return Side(pbSide)
 }
 
 func (s Side) String() string {
