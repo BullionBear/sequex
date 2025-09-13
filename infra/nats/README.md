@@ -42,6 +42,9 @@ docker compose up -d
 
 Or start NATS server directly:
 ```bash
+curl -L https://github.com/nats-io/nats-server/releases/download/v2.11.9/nats-server-v2.11.9-linux-amd64.tar.gz -o nats-server-v2.11.9-linux-amd64.tar.gz
+tar -xzf nats-server-v2.11.9-linux-amd64.tar.gz /bin/nats-server
+mv nats-server-v2.11.9-linux-amd64/nats-server 
 nats-server -js
 ```
 
