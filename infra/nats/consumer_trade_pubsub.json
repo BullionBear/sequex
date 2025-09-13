@@ -1,0 +1,20 @@
+{
+    "stream_name": "TRADE",
+    "name": "TRADE_PUBSUB",
+    "description": "Pub-sub consumer for trade data broadcasting",
+    "durable_name": "TRADE_PUBSUB",
+    "deliver_policy": "all",
+    "ack_policy": "none",
+    "ack_wait": 0,
+    "max_deliver": 1,
+    "filter_subject": "trade.>",
+    "replay_policy": "instant",
+    "sample_freq": "",
+    "rate_limit_bps": 0,
+    "max_ack_pending": 0,
+    "idle_heartbeat": 0,
+    "flow_control": false,
+    "deliver_subject": "",
+    "deliver_group": ""
+  }
+  
