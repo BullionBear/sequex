@@ -56,7 +56,7 @@ nats-server -js
 
 ```bash
 # Create TRADE stream
-nats stream add --config=stream_TRADE.json
+nats stream add --config=stream_trade.json
 ```
 
 
@@ -120,16 +120,10 @@ nats stream report TRADE
 
 ```bash
 # Create consumer for TRADE stream
-nats consumer add TRADE TRADE_CONSUMER \
-  --deliver=all \
-  --ack=explicit \
-  --replay=instant
+nats consumer add TRADE --config consumer_trade_pubsub.json
 
 # Create consumer for RECORD stream
-nats consumer add RECORD RECORD_CONSUMER \
-  --deliver=all \
-  --ack=explicit \
-  --replay=instant
+nats consumer add TRADE --config consumer_trade_work_queue.json
 ```
 
 ### List Consumers
