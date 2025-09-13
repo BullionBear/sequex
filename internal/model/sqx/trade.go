@@ -71,5 +71,6 @@ func Unmarshal(data []byte, trade *Trade) error {
 }
 
 func (t *Trade) IdStr() string {
+
 	return fmt.Sprintf("%s-%s-%s-%d", t.Exchange.String(), t.InstrumentType.String(), t.Symbol.String(), t.Id)
 }

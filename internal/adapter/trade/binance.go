@@ -48,9 +48,20 @@ func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, instrumentType sqx.In
 				logger.Log.Error().Err(err).Msgf("Failed to parse quantity: %s", wsTrade.Quantity)
 				return
 			}
+			base, err := binance.GetBaseAsset(wsTrade.Symbol)
+			if err != nil {
+				logger.Log.Error().Err(err).Msgf("Failed to get base asset: %s", wsTrade.Symbol)
+				return
+			}
+			quote, err := binance.GetQuoteAsset(wsTrade.Symbol)
+			if err != nil {
+				logger.Log.Error().Err(err).Msgf("Failed to get quote asset: %s", wsTrade.Symbol)
+				return
+			}
+
 			trade := sqx.Trade{
 				Id:             wsTrade.TradeId,
-				Symbol:         sqx.NewSymbol(wsTrade.Symbol, wsTrade.Symbol),
+				Symbol:         sqx.NewSymbol(base, quote),
 				Exchange:       sqx.ExchangeBinance,
 				InstrumentType: sqx.InstrumentTypeSpot,
 				TakerSide:      takerSide,
@@ -59,7 +70,10 @@ func (a *BinanceTradeAdapter) Subscribe(symbol sqx.Symbol, instrumentType sqx.In
 				Timestamp:      wsTrade.TradeTime,
 			}
 
-			callback(trade)
+			if err := callback(trade); err != nil {
+				logger.Log.Error().Err(err).Msgf("Failed to publish trade: %s", trade.IdStr())
+				return
+			}
 		},
 	})
 }
