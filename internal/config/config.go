@@ -19,9 +19,9 @@ type ConnectionConfig struct {
 
 // ParseConnectionString parses a connection string and returns a ConnectionConfig
 // Examples:
-//   - nats://127.0.0.1:4222?jetstream=feed&subject=test
-//   - nats://user:pass@127.0.0.1:4022?jetstream=feed&subject=trade.btcusdt
-//   - @nats://user:pass@localhost:4222?jetstream=feed&subject=test (with @ prefix for auth)
+//   - nats://127.0.0.1:4222?stream=feed&subject=test
+//   - nats://user:pass@127.0.0.1:4022?stream=feed&subject=trade.btcusdt
+//   - @nats://user:pass@localhost:4222?stream=feed&subject=test (with @ prefix for auth)
 func ParseConnectionString(connStr string) (*ConnectionConfig, error) {
 	if connStr == "" {
 		return nil, fmt.Errorf("connection string cannot be empty")
