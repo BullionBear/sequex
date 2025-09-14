@@ -130,6 +130,8 @@ func printConfiguration(cfg *config.Config) {
 
 func main() {
 	// Define flags
+	var configFile string
+	flag.StringVar(&configFile, "c", "", "Configuration file path (required)")
 
 	// Custom usage function
 	flag.Usage = func() {
@@ -148,16 +150,12 @@ Examples:
 	// Parse flags
 	flag.Parse()
 
-	// Check if we have the required positional arguments
-	args := flag.Args()
-	if len(args) != 1 {
-		logger.Log.Error().Msg("exactly 1 argument required: <config-file>")
+	// Check if the required config file flag is provided
+	if configFile == "" {
+		logger.Log.Error().Msg("config file path is required")
 		flag.Usage()
 		os.Exit(1)
 	}
-
-	// Parse positional arguments
-	configFile := args[0]
 
 	// Run the main logic
 	runFeed(configFile)

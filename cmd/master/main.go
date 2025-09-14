@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	_ "github.com/BullionBear/sequex/docs"
 	"github.com/BullionBear/sequex/env"
@@ -14,12 +15,22 @@ var log = logger.Log
 func main() {
 	// Parse command line arguments
 	var configFile string
-	flag.StringVar(&configFile, "c", "config/master/app.yml", "Configuration file path")
+	flag.StringVar(&configFile, "c", "", "Configuration file path (required)")
 	flag.Parse()
+
+	// Check if the required config file flag is provided
+	if configFile == "" {
+		fmt.Println("Error: config file path is required")
+		fmt.Println("Usage: master -c <config-file>")
+		fmt.Println("Example: master -c config/master/app.yml")
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
 
 	fmt.Println("Starting services with BuildTime:", env.BuildTime)
 	fmt.Println("Starting services with Version:", env.Version)
 	fmt.Println("Starting services with CommitHash:", env.CommitHash)
+	fmt.Printf("Using config file: %s\n", configFile)
 	/*
 	   // Load configuration
 	   cfg, err := config.LoadConfig[config.MasterConfig](configFile)
