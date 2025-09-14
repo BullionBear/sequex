@@ -7,20 +7,20 @@ This directory contains the configuration files and documentation for managing N
 The system uses two main JetStream streams:
 
 - **TRADE Stream**: Used for strategy execution and caching TRADE data
-- **RECORD Stream**: Used for recording and persistence of trading data
+- **DEPTH Stream**: Used for strategy execution and caching DEPTH data
 
 ## Stream Configurations
 
-### TRADE Stream (`stream_TRADE.json`)
+### TRADE Stream (`stream_trade.json`)
 - **Purpose**: Real-time TRADE data for strategy execution and caching
-- **Subjects**: `TRADE.trade.>`, `TRADE.depth.>`
+- **Subjects**: `trade.>`, `depth.>`
 - **Storage**: Memory (for fast access)
 - **Retention**: 5 seconds (short-term for real-time processing)
 - **Acknowledgment**: Disabled (`no_ack: true`) for performance
 
 ### RECORD Stream (`stream_record.json`)
 - **Purpose**: Long-term storage and recording of trading data
-- **Subjects**: `record.trade.>`, `record.depth.>`
+- **Subjects**: `trade.>`, `depth.>`
 - **Storage**: File (for persistence)
 - **Retention**: 1 hour (longer-term for analysis)
 - **Acknowledgment**: Enabled for data integrity
@@ -90,7 +90,7 @@ nats subscribe --stream=TRADE --new
 nats subscribe --stream=TRADE --all
 
 # Monitor with specific subject pattern
-nats subscribe TRADE.trade.> --stream=TRADE --new
+nats subscribe trade.> --stream=TRADE --new
 
 # Monitor with timestamps and rate graph
 nats subscribe --stream=TRADE --new --timestamp --graph
@@ -102,7 +102,7 @@ nats subscribe --stream=TRADE --new --timestamp --graph
 nats stream view TRADE
 
 # View messages with specific subject pattern
-nats stream view TRADE --filter="TRADE.trade.>"
+nats stream view TRADE --filter="trade.>"
 ```
 
 #### Stream Statistics
@@ -120,10 +120,13 @@ nats stream report TRADE
 
 ```bash
 # Create consumer for TRADE stream
-nats consumer add TRADE --config consumer_trade_pubsub.json
+nats consumer add TRADE --config fanout_trade_btcusdt.json
+
+# Create consumer for CACHE stream
+nats consumer add TRADE --config cache_trade_btcusdt.json
 
 # Create consumer for RECORD stream
-nats consumer add TRADE --config consumer_trade_work_queue.json
+nats consumer add TRADE --config recorder_trade_btcusdt.json
 ```
 
 ### List Consumers
@@ -138,6 +141,16 @@ nats consumer list TRADE
 nats consumer info TRADE TRADE_CONSUMER
 nats consumer info RECORD RECORD_CONSUMER
 ```
+
+### Delete Consumer
+```bash
+# Delete consumer from TRADE stream
+nats consumer rm TRADE TRADE_PUBSUB
+
+# Delete consumer from TRADE stream
+nats consumer rm TRADE TRADE_WORK_QUEUE
+```
+
 
 ## Data Flow
 

@@ -35,15 +35,15 @@ func (t *Trade) ToProtobuf() *protobuf.Trade {
 func (t *Trade) FromProtobuf(trade *protobuf.Trade) error {
 	t.Id = trade.Id
 	t.Symbol = NewSymbol(trade.Symbol.Base, trade.Symbol.Quote)
-	t.Exchange = NewExchange(trade.Exchange.String())
+	t.Exchange = NewExchangeFromProtobuf(trade.Exchange)
 	if t.Exchange == ExchangeUnknown {
 		return fmt.Errorf("unknown exchange: %s", trade.Exchange.String())
 	}
-	t.InstrumentType = NewInstrumentType(trade.Instrument.String())
+	t.InstrumentType = NewInstrumentTypeFromProtobuf(trade.Instrument)
 	if t.InstrumentType == InstrumentTypeUnknown {
 		return fmt.Errorf("unknown instrument type: %s", trade.Instrument.String())
 	}
-	t.TakerSide = NewSide(trade.Side.String())
+	t.TakerSide = NewSideFromProtobuf(trade.Side)
 	if t.TakerSide == SideUnknown {
 		return fmt.Errorf("unknown taker side: %s", trade.Side.String())
 	}
