@@ -7,14 +7,14 @@
     "ack_policy": "none",
     "ack_wait": 0,
     "max_deliver": 1,
-    "filter_subject": "trade.btcusdt",
+    "filter_subject": "trade.binance.spot.btcusdt",
     "replay_policy": "instant",
     "sample_freq": "",
     "rate_limit_bps": 0,
     "max_ack_pending": 0,
     "idle_heartbeat": 0,
     "flow_control": false,
-    "deliver_subject": "fanout.btcusdt",
+    "deliver_subject": "fanout.binance.spot.btcusdt",
     "deliver_group": ""
   }
   

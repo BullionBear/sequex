@@ -1,0 +1,11 @@
+{
+    "exchange": "binance",
+    "instrument": "spot",
+    "symbol": "BTC-USDT",
+    "type": "trade",
+    "nats": {
+        "uris": "nats://localhost:4222,nats://localhost:4223,nats://localhost:4224",
+        "stream": "TRADE",
+        "subject": "trade.binance.spot.btcusdt"
+    }
+}

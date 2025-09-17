@@ -2,9 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
-	"strings"
 	"syscall"
 	"time"
 
@@ -19,7 +17,7 @@ import (
 )
 
 // runFeed executes the main feed logic
-func runFeed(exchange string, instrument string, symbol string, dataType string, natsURIs string) {
+func runFeed(configFile string) {
 	// Output version information
 	logger.Log.Info().
 		Str("version", env.Version).
@@ -27,26 +25,32 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 		Str("commitHash", env.CommitHash).
 		Msg("Feed started")
 
-	printConfiguration(exchange, instrument, symbol, dataType, natsURIs)
-	sqxExchange := sqx.NewExchange(exchange)
+	cfg, err := config.LoadConfig(configFile)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to load config")
+		os.Exit(1)
+	}
+
+	printConfiguration(cfg)
+	sqxExchange := sqx.NewExchange(cfg.Exchange)
 	if sqxExchange == sqx.ExchangeUnknown {
 		logger.Log.Error().Msg("Invalid exchange")
 		os.Exit(1)
 	}
 
-	sqxInstrumentType := sqx.NewInstrumentType(instrument)
+	sqxInstrumentType := sqx.NewInstrumentType(cfg.Instrument)
 	if sqxInstrumentType == sqx.InstrumentTypeUnknown {
 		logger.Log.Error().Msg("Invalid instrument")
 		os.Exit(1)
 	}
 
-	sqxSymbol, err := sqx.NewSymbolFromStr(symbol)
+	sqxSymbol, err := sqx.NewSymbolFromStr(cfg.Symbol)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("Failed to create symbol")
 		os.Exit(1)
 	}
 
-	sqxDataType := sqx.NewDataType(dataType)
+	sqxDataType := sqx.NewDataType(cfg.Type)
 	if sqxDataType == sqx.DataTypeUnknown {
 		logger.Log.Error().Msg("Invalid data type")
 		os.Exit(1)
@@ -54,12 +58,7 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 
 	shutdown := shutdown.NewShutdown(logger.Log)
 
-	connConfigs, err := parseNatsURIs(natsURIs)
-	if err != nil {
-		logger.Log.Error().Err(err).Msg("Validation failed")
-		os.Exit(1)
-	}
-	natsConn, err := nats.Connect(connConfigs[0].ToNATSURL())
+	natsConn, err := nats.Connect(cfg.NATS.URIs)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("Failed to connect to NATS")
 		os.Exit(1)
@@ -70,13 +69,13 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 		logger.Log.Error().Err(err).Msg("Failed to create JetStream context")
 		os.Exit(1)
 	}
-	streamInfo, err := js.StreamInfo(connConfigs[0].GetParam("stream", ""))
+	streamInfo, err := js.StreamInfo(cfg.NATS.Stream)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("Failed to get stream info")
 		os.Exit(1)
 	}
 	logger.Log.Info().Msgf("Stream info: %+v", streamInfo)
-	subject := connConfigs[0].GetParam("subject", "")
+	subject := cfg.NATS.Subject
 	switch sqxDataType {
 	case sqx.DataTypeTrade:
 		adapter, err := adapter.CreateTradeAdapter(sqxExchange)
@@ -116,61 +115,23 @@ func runFeed(exchange string, instrument string, symbol string, dataType string,
 	logger.Log.Info().Msg("Feed command executed successfully!")
 }
 
-// validateInputs validates the command line arguments
-func parseNatsURIs(natsURIs string) ([]*config.ConnectionConfig, error) {
-	// Validate NATS URIs using the connection string parser
-	if natsURIs == "" {
-		return nil, fmt.Errorf("NATS URIs cannot be empty")
-	}
-
-	var connConfigs []*config.ConnectionConfig
-
-	// Parse and validate each URI
-	uris := strings.Split(natsURIs, ",")
-	for _, uri := range uris {
-		uri = strings.TrimSpace(uri)
-		if uri == "" {
-			continue
-		}
-
-		connConfig, err := config.ParseConnectionString(uri)
-		if err != nil {
-			return nil, fmt.Errorf("invalid connection string '%s': %w", uri, err)
-		}
-
-		// Validate the parsed configuration
-		if err := connConfig.Validate(); err != nil {
-			return nil, fmt.Errorf("invalid connection configuration for '%s': %w", uri, err)
-		}
-
-		// Log parsed configuration details
-		logger.Log.Debug().
-			Str("uri", uri).
-			Str("host", connConfig.Host).
-			Int("port", connConfig.Port).
-			Str("username", connConfig.Username).
-			Interface("params", connConfig.Params).
-			Msg("Parsed connection string")
-
-		connConfigs = append(connConfigs, connConfig)
-	}
-
-	return connConfigs, nil
-}
-
 // printConfiguration prints the parsed configuration
-func printConfiguration(exchange string, instrument string, symbol string, dataType string, natsURIs string) {
+func printConfiguration(cfg *config.Config) {
 	logger.Log.Info().
-		Str("exchange", exchange).
-		Str("instrument", instrument).
-		Str("symbol", symbol).
-		Str("dataType", dataType).
-		Str("natsURIs", natsURIs).
+		Str("exchange", cfg.Exchange).
+		Str("instrument", cfg.Instrument).
+		Str("symbol", cfg.Symbol).
+		Str("dataType", cfg.Type).
+		Str("natsURIs", cfg.NATS.URIs).
+		Str("stream", cfg.NATS.Stream).
+		Str("subject", cfg.NATS.Subject).
 		Msg("Feed Configuration")
 }
 
 func main() {
 	// Define flags
+	var configFile string
+	flag.StringVar(&configFile, "c", "", "Configuration file path (required)")
 
 	// Custom usage function
 	flag.Usage = func() {
@@ -178,11 +139,10 @@ func main() {
 to NATS message brokers. It supports multiple exchanges and data types.
 
 Usage:
-  feed <exchange> <instrument> <symbol> <data-type> <nats-uris>
+  feed -c <config-file>
 
 Examples:
-  feed binance spot BTCUSDT trade 'nats://localhost:4222?stream=feed&subject=test'
-  feed binance futures ETHUSDT depth 'nats://localhost:4223?stream=feed&subject=test,nats://localhost:4224?stream=feed&subject=test'
+  feed -c config/trade-binance-spot-btcusdt.json
 `)
 		flag.PrintDefaults()
 	}
@@ -190,21 +150,13 @@ Examples:
 	// Parse flags
 	flag.Parse()
 
-	// Check if we have the required positional arguments
-	args := flag.Args()
-	if len(args) != 5 {
-		logger.Log.Error().Msg("exactly 5 arguments required: <exchange> <instrument> <symbol> <data-type> <nats-uris>")
+	// Check if the required config file flag is provided
+	if configFile == "" {
+		logger.Log.Error().Msg("config file path is required")
 		flag.Usage()
 		os.Exit(1)
 	}
 
-	// Parse positional arguments
-	exchange := args[0]
-	instrument := args[1]
-	symbol := args[2]
-	dataType := args[3]
-	natsURIs := args[4]
-
 	// Run the main logic
-	runFeed(exchange, instrument, symbol, dataType, natsURIs)
+	runFeed(configFile)
 }
