@@ -65,43 +65,32 @@ func replayTradeMessages(filename string) (successCount, totalProcessed int, err
 		}
 
 		// Process accumulated data
-		for len(accumulated) >= 80 { // Minimum message size
-			found := false
+		for len(accumulated) >= 10 { // Minimum viable message size
+			messageData, consumed, found := parseNextMessage(accumulated)
+			if !found {
+				// Skip one byte and try again
+				accumulated = accumulated[1:]
+				continue
+			}
 
-			// Try common message sizes (based on protobuf analysis)
-			for _, size := range getMessageSizes() {
-				if len(accumulated) < size {
-					continue
-				}
+			trade := &protobuf.Trade{}
+			if err := proto.Unmarshal(messageData, trade); err == nil {
+				totalProcessed++
 
-				candidate := accumulated[:size]
-				trade := &protobuf.Trade{}
+				// Validate trade message
+				if isValidTradeMessage(trade) {
+					successCount++
 
-				if err := proto.Unmarshal(candidate, trade); err == nil {
-					totalProcessed++
-
-					// Validate trade message
-					if isValidTradeMessage(trade) {
-						successCount++
-
-						// Display message if within limit
-						if *showLimit == 0 || successCount <= *showLimit {
-							displayTradeMessage(successCount, trade)
-						} else if successCount == *showLimit+1 {
-							fmt.Printf("... (limiting output to first %d messages)\n\n", *showLimit)
-						}
-
-						accumulated = accumulated[size:]
-						found = true
-						break
+					// Display message if within limit
+					if *showLimit == 0 || successCount <= *showLimit {
+						displayTradeMessage(successCount, trade)
+					} else if successCount == *showLimit+1 {
+						fmt.Printf("... (limiting output to first %d messages)\n\n", *showLimit)
 					}
 				}
 			}
 
-			if !found {
-				// Skip one byte and try again
-				accumulated = accumulated[1:]
-			}
+			accumulated = accumulated[consumed:]
 		}
 
 		if readErr == io.EOF {
@@ -115,9 +104,125 @@ func replayTradeMessages(filename string) (successCount, totalProcessed int, err
 	return successCount, totalProcessed, nil
 }
 
-// getMessageSizes returns the common message sizes observed in the protobuf data
-func getMessageSizes() []int {
-	return []int{45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60}
+// parseNextMessage parses the next complete protobuf message from the data
+func parseNextMessage(data []byte) (messageData []byte, consumed int, found bool) {
+	if len(data) < 10 {
+		return nil, 0, false
+	}
+
+	// Parse protobuf wire format to find message boundaries
+	offset := 0
+	fieldsSeen := make(map[int]bool)
+
+	for offset < len(data) && offset < 200 { // Reasonable upper bound
+		if offset+1 >= len(data) {
+			break
+		}
+
+		// Read field header (field number + wire type)
+		fieldHeader := data[offset]
+		fieldNum := int(fieldHeader >> 3)
+		wireType := int(fieldHeader & 0x7)
+		offset++
+
+		// Skip invalid field numbers (protobuf fields start at 1)
+		if fieldNum == 0 || fieldNum > 20 {
+			break
+		}
+
+		// Skip the field data based on wire type
+		fieldLength, ok := skipFieldData(data[offset:], wireType)
+		if !ok {
+			break
+		}
+		offset += fieldLength
+		fieldsSeen[fieldNum] = true
+
+		// Check if we have a complete Trade message
+		// Trade has fields: 1=id, 2=exchange, 3=instrument, 4=symbol, 5=side, 7=price, 8=quantity, 9=timestamp
+		if hasAllExpectedFields(fieldsSeen) {
+			// We've seen all expected fields, try to parse
+			candidate := data[:offset]
+			trade := &protobuf.Trade{}
+			if err := proto.Unmarshal(candidate, trade); err == nil && isValidTradeMessage(trade) {
+				return candidate, offset, true
+			}
+		}
+	}
+
+	return nil, 0, false
+}
+
+// skipFieldData skips over field data based on wire type
+func skipFieldData(data []byte, wireType int) (int, bool) {
+	switch wireType {
+	case 0: // Varint
+		return skipVarint(data)
+	case 1: // 64-bit fixed
+		if len(data) < 8 {
+			return 0, false
+		}
+		return 8, true
+	case 2: // Length-delimited (strings, bytes, embedded messages)
+		return skipLengthDelimited(data)
+	case 5: // 32-bit fixed
+		if len(data) < 4 {
+			return 0, false
+		}
+		return 4, true
+	default:
+		return 0, false // Unknown wire type
+	}
+}
+
+// skipVarint skips over a varint-encoded value
+func skipVarint(data []byte) (int, bool) {
+	for i := 0; i < len(data) && i < 10; i++ { // Max 10 bytes for varint
+		if data[i]&0x80 == 0 {
+			return i + 1, true
+		}
+	}
+	return 0, false
+}
+
+// skipLengthDelimited skips over a length-delimited field
+func skipLengthDelimited(data []byte) (int, bool) {
+	// Decode the length varint
+	length := uint64(0)
+	lengthBytes := 0
+
+	for i := 0; i < len(data) && i < 10; i++ {
+		length |= uint64(data[i]&0x7F) << (7 * i)
+		lengthBytes++
+		if data[i]&0x80 == 0 {
+			break
+		}
+	}
+
+	if lengthBytes == 0 {
+		return 0, false
+	}
+
+	// Skip the length prefix + the data
+	totalLength := lengthBytes + int(length)
+	if len(data) < totalLength {
+		return 0, false
+	}
+	return totalLength, true
+}
+
+// hasAllExpectedFields checks if we've seen all the expected fields for a complete Trade message
+func hasAllExpectedFields(fieldsSeen map[int]bool) bool {
+	// All expected Trade fields: 1=id, 2=exchange, 3=instrument, 4=symbol, 5=side, 7=price, 8=quantity, 9=timestamp
+	expectedFields := []int{1, 2, 3, 4, 5, 7, 8, 9}
+
+	for _, field := range expectedFields {
+		if !fieldsSeen[field] {
+			return false
+		}
+	}
+
+	return true
 }
 
 // isValidTradeMessage validates that a Trade message contains reasonable data
