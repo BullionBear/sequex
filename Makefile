@@ -26,6 +26,8 @@ build:
 	env GOOS=darwin GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/master-darwin-amd64 cmd/master/main.go
 	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/feed-linux-amd64 cmd/feed/main.go
 	env GOOS=darwin GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/feed-darwin-amd64 cmd/feed/main.go
+	env GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/marshal-linux-amd64 cmd/marshal/main.go
+	env GOOS=darwin GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o ./bin/marshal-darwin-amd64 cmd/marshal/main.go
 
 test:
 	go test -v ./...
