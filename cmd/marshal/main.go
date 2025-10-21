@@ -17,10 +17,12 @@ func main() {
 	// Validate flags - exactly one of -d or -s must be specified
 	if *debugFlag && *negativeFlag {
 		fmt.Fprintf(os.Stderr, "Error: cannot use both -d and -s flags together\n")
+		flag.Usage()
 		os.Exit(1)
 	}
 	if !*debugFlag && !*negativeFlag {
 		fmt.Fprintf(os.Stderr, "Error: must specify either -d or -s flag\n")
+		flag.Usage()
 		os.Exit(1)
 	}
 
@@ -40,6 +42,21 @@ func main() {
 		defer file.Close()
 		reader = file
 	} else {
+		// Check if stdin has data available (not a terminal)
+		stat, err := os.Stdin.Stat()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error checking stdin: %v\n", err)
+			flag.Usage()
+			os.Exit(1)
+		}
+
+		// If stdin is a terminal (no piped data), show error
+		if (stat.Mode() & os.ModeCharDevice) != 0 {
+			fmt.Fprintf(os.Stderr, "Error: no input provided. Please specify a file or pipe data to stdin\n")
+			flag.Usage()
+			os.Exit(1)
+		}
+
 		// Read from stdin (piped input)
 		reader = os.Stdin
 		filename = "stdin"
