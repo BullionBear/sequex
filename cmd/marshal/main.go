@@ -33,14 +33,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Get input file
+	// Get input file (optional - if not provided, read from stdin)
 	args := flag.Args()
-	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "Error: input file required\n")
-		flag.Usage()
-		os.Exit(1)
+	var inputFile string
+	if len(args) > 0 {
+		inputFile = args[0]
 	}
-	inputFile := args[0]
 
 	// Validate output file for serialize mode
 	if *serializeFlag && *outputFile == "" {
@@ -65,11 +63,19 @@ func main() {
 
 // deserializeMode reads a .raw protobuf file and outputs JSON
 func deserializeMode(inputFile, outputFile string) error {
-	file, err := os.Open(inputFile)
-	if err != nil {
-		return fmt.Errorf("failed to open input file %s: %w", inputFile, err)
+	var file *os.File
+	var err error
+
+	if inputFile == "" {
+		// Read from stdin
+		file = os.Stdin
+	} else {
+		file, err = os.Open(inputFile)
+		if err != nil {
+			return fmt.Errorf("failed to open input file %s: %w", inputFile, err)
+		}
+		defer file.Close()
 	}
-	defer file.Close()
 
 	// Setup output writer
 	var writer io.Writer = os.Stdout
@@ -136,11 +142,19 @@ func deserializeMode(inputFile, outputFile string) error {
 
 // serializeMode reads JSON input and writes protobuf .raw file
 func serializeMode(inputFile, outputFile string) error {
-	inputReader, err := os.Open(inputFile)
-	if err != nil {
-		return fmt.Errorf("failed to open input file %s: %w", inputFile, err)
+	var inputReader *os.File
+	var err error
+
+	if inputFile == "" {
+		// Read from stdin
+		inputReader = os.Stdin
+	} else {
+		inputReader, err = os.Open(inputFile)
+		if err != nil {
+			return fmt.Errorf("failed to open input file %s: %w", inputFile, err)
+		}
+		defer inputReader.Close()
 	}
-	defer inputReader.Close()
 
 	outputWriter, err := os.Create(outputFile)
 	if err != nil {
