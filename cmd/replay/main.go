@@ -1,15 +1,16 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/BullionBear/sequex/internal/model/protobuf"
+	"github.com/BullionBear/sequex/internal/model/sqx"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -275,27 +276,18 @@ func isValidTradeMessage(trade *protobuf.Trade) bool {
 
 // displayTradeMessage prints a formatted trade message
 func displayTradeMessage(messageNum int, trade *protobuf.Trade) {
+	sqxTrade := &sqx.Trade{}
+	if err := sqxTrade.FromProtobuf(trade); err != nil {
+		fmt.Printf("Failed to deserialize trade message: %v\n", err)
+		return
+	}
 	fmt.Printf("Trade %d:\n", messageNum)
-	fmt.Printf("  ID: %d\n", trade.Id)
-	fmt.Printf("  Exchange: %s (%d)\n", trade.Exchange.String(), int(trade.Exchange))
-	fmt.Printf("  Instrument: %s (%d)\n", trade.Instrument.String(), int(trade.Instrument))
-
-	if trade.Symbol != nil {
-		fmt.Printf("  Symbol: %s/%s\n", trade.Symbol.Base, trade.Symbol.Quote)
-	} else {
-		fmt.Printf("  Symbol: <nil>\n")
+	data, err := json.MarshalIndent(sqxTrade, "", "  ")
+	if err != nil {
+		fmt.Printf("Failed to serialize trade message to JSON: %v\n", err)
+		return
 	}
-
-	fmt.Printf("  Side: %s (%d)\n", trade.Side.String(), int(trade.Side))
-	fmt.Printf("  Price: %.8f\n", trade.Price)
-	fmt.Printf("  Quantity: %.8f\n", trade.Quantity)
-
-	if trade.Timestamp > 0 {
-		t := time.Unix(trade.Timestamp/1000, (trade.Timestamp%1000)*1000000)
-		fmt.Printf("  Timestamp: %d (%s)\n", trade.Timestamp, t.Format("2006-01-02 15:04:05.000"))
-	} else {
-		fmt.Printf("  Timestamp: %d\n", trade.Timestamp)
-	}
+	fmt.Printf("%s\n", string(data))
 
 	fmt.Printf("\n")
 }

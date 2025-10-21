@@ -83,8 +83,8 @@ func (i InstrumentType) String() string {
 }
 
 type Symbol struct {
-	Base  string
-	Quote string
+	Base  string `json:"base"`
+	Quote string `json:"quote"`
 }
 
 func (s Symbol) ToProtobuf() protobuf.Symbol {

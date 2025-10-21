@@ -8,14 +8,14 @@ import (
 )
 
 type Trade struct {
-	Id             int64
-	Symbol         Symbol
-	Exchange       Exchange
-	InstrumentType InstrumentType
-	TakerSide      Side
-	Price          float64
-	Quantity       float64
-	Timestamp      int64
+	Id             int64          `json:"id"`
+	Symbol         Symbol         `json:"symbol"`
+	Exchange       Exchange       `json:"exchange"`
+	InstrumentType InstrumentType `json:"instrument"`
+	TakerSide      Side           `json:"side"`
+	Price          float64        `json:"price"`
+	Quantity       float64        `json:"quantity"`
+	Timestamp      int64          `json:"timestamp"`
 }
 
 func (t *Trade) ToProtobuf() *protobuf.Trade {
