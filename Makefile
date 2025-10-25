@@ -60,9 +60,8 @@ install:
 	chmod +x bin/marshal-linux-$${ARCH}; \
 	mkdir -p $$HOME/.sqx/bin; \
 	cp bin/marshal-linux-$${ARCH} $$HOME/.sqx/bin/marshal; \
-	echo "Installed marshal binary"
-	echo "Add $$HOME/.sqx/bin to your PATH"
-	echo "export PATH=$$HOME/.sqx/bin:$$PATH"
+	echo "Installed marshal binary to $$HOME/.sqx/bin/marshal"
+
 
 clean:
 	rm -rf bin/*
