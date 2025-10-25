@@ -92,6 +92,7 @@ func deserializeMode(inputFile, outputFile string) error {
 	var accumulated []byte
 	messageCount := 0
 
+	eofReached := false
 	for {
 		n, readErr := file.Read(buffer)
 
@@ -99,14 +100,18 @@ func deserializeMode(inputFile, outputFile string) error {
 			accumulated = append(accumulated, buffer[:n]...)
 		}
 
-		if readErr == io.EOF && len(accumulated) == 0 {
-			break
+		if readErr == io.EOF {
+			eofReached = true
 		}
 
-		// Process accumulated data
+		// Process accumulated data continuously
 		for len(accumulated) >= 10 { // Minimum viable message size
 			messageData, consumed, found := parseNextMessage(accumulated)
 			if !found {
+				// If we haven't seen EOF yet, wait for more data
+				if !eofReached {
+					break
+				}
 				// Skip one byte and try again
 				accumulated = accumulated[1:]
 				continue
@@ -128,10 +133,12 @@ func deserializeMode(inputFile, outputFile string) error {
 			accumulated = accumulated[consumed:]
 		}
 
-		if readErr == io.EOF {
+		// Check for EOF and exit if no more data
+		if eofReached {
 			break
 		}
-		if readErr != nil {
+
+		if readErr != nil && readErr != io.EOF {
 			return fmt.Errorf("error reading file: %w", readErr)
 		}
 	}

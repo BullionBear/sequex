@@ -47,6 +47,23 @@ proto:
 	done
 	@echo "Protobuf generation completed!"
 
+install:
+	make build
+	@if [ "$$(uname -m)" = "x86_64" ]; then \
+		ARCH="amd64"; \
+	elif [ "$$(uname -m)" = "aarch64" ]; then \
+		ARCH="arm64"; \
+	else \
+		echo "Unsupported architecture: $$(uname -m)"; \
+		exit 1; \
+	fi; \
+	chmod +x bin/marshal-linux-$${ARCH}; \
+	mkdir -p $$HOME/.sqx/bin; \
+	cp bin/marshal-linux-$${ARCH} $$HOME/.sqx/bin/marshal; \
+	echo "Installed marshal binary"
+	echo "Add $$HOME/.sqx/bin to your PATH"
+	echo "export PATH=$$HOME/.sqx/bin:$$PATH"
+
 clean:
 	rm -rf bin/*
 	rm -rf logs/*
