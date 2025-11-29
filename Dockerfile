@@ -33,22 +33,17 @@ RUN addgroup -g 1001 -S appgroup && \
 WORKDIR /app
 
 # Copy binaries from builder stage
-COPY --from=builder /app/bin/master-linux-amd64 /app/master
-COPY --from=builder /app/bin/sqx-linux-amd64 /app/sqx
 COPY --from=builder /app/bin/feed-linux-amd64 /app/feed
 
 # Copy configuration files
 COPY --from=builder /app/config/ /app/config/
 
 # Make binaries executable and change ownership
-RUN chmod +x /app/master /app/sqx /app/feed && \
+RUN chmod +x /app/feed && \
     chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser
 
-# Expose ports
-EXPOSE 8080 8081 8082
-
 # Default command
-CMD ["./sqx"]
+CMD ["./feed"]
