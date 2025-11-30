@@ -1,6 +1,118 @@
+basePath: /api/v1
+definitions:
+  cmd_pms.CreatePortfolioRequest:
+    properties:
+      description:
+        example: Primary trading portfolio
+        type: string
+      name:
+        example: Main Portfolio
+        type: string
+    required:
+    - name
+    type: object
+  cmd_pms.CreatePositionRequest:
+    properties:
+      entry_price:
+        example: 45000.5
+        type: number
+      portfolio_id:
+        example: portfolio-001
+        type: string
+      quantity:
+        example: 0.5
+        type: number
+      side:
+        example: LONG
+        type: string
+      symbol:
+        example: BTCUSDT
+        type: string
+    required:
+    - entry_price
+    - portfolio_id
+    - quantity
+    - side
+    - symbol
+    type: object
+  cmd_pms.ErrorResponse:
+    properties:
+      error:
+        example: resource not found
+        type: string
+    type: object
+  cmd_pms.HealthResponse:
+    properties:
+      status:
+        example: ok
+        type: string
+      timestamp:
+        example: 1699999999
+        type: integer
+    type: object
+  cmd_pms.Portfolio:
+    properties:
+      created_at:
+        type: string
+      description:
+        example: Primary trading portfolio
+        type: string
+      id:
+        example: portfolio-001
+        type: string
+      name:
+        example: Main Portfolio
+        type: string
+      updated_at:
+        type: string
+    type: object
+  cmd_pms.Position:
+    properties:
+      current_pnl:
+        example: 1250
+        type: number
+      entry_price:
+        example: 45000.5
+        type: number
+      id:
+        example: position-001
+        type: string
+      portfolio_id:
+        example: portfolio-001
+        type: string
+      quantity:
+        example: 0.5
+        type: number
+      side:
+        example: LONG
+        type: string
+      symbol:
+        example: BTCUSDT
+        type: string
+    type: object
+host: localhost:8080
 info:
   contact: {}
+  description: Portfolio Management System API for managing trading positions and
+    portfolios.
+  title: PMS API
+  version: "1.0"
 paths:
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Check if the service is healthy
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/cmd_pms.HealthResponse'
+      summary: Health check
+      tags:
+      - health
   /node/{name}:
     get:
       consumes:
@@ -42,4 +154,262 @@ paths:
               type: string
             type: array
       summary: List all nodes
+  /portfolio:
+    post:
+      consumes:
+      - application/json
+      description: Create a new portfolio
+      parameters:
+      - description: Portfolio creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/cmd_pms.CreatePortfolioRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/cmd_pms.Portfolio'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/cmd_pms.ErrorResponse'
+      summary: Create a portfolio
+      tags:
+      - portfolios
+  /portfolio/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a portfolio by ID
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/cmd_pms.ErrorResponse'
+      summary: Delete a portfolio
+      tags:
+      - portfolios
+    get:
+      consumes:
+      - application/json
+      description: Get a portfolio by ID
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/cmd_pms.Portfolio'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/cmd_pms.ErrorResponse'
+      summary: Get a portfolio
+      tags:
+      - portfolios
+    put:
+      consumes:
+      - application/json
+      description: Update an existing portfolio
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Portfolio update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/cmd_pms.CreatePortfolioRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/cmd_pms.Portfolio'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/cmd_pms.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/cmd_pms.ErrorResponse'
+      summary: Update a portfolio
+      tags:
+      - portfolios
+  /portfolio/{id}/positions:
+    get:
+      consumes:
+      - application/json
+      description: Get all positions in a specific portfolio
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/cmd_pms.Position'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/cmd_pms.ErrorResponse'
+      summary: List positions in a portfolio
+      tags:
+      - positions
+  /portfolios:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all portfolios
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/cmd_pms.Portfolio'
+            type: array
+      summary: List all portfolios
+      tags:
+      - portfolios
+  /position:
+    post:
+      consumes:
+      - application/json
+      description: Create a new position
+      parameters:
+      - description: Position creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/cmd_pms.CreatePositionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/cmd_pms.Position'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/cmd_pms.ErrorResponse'
+      summary: Create a position
+      tags:
+      - positions
+  /position/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a position by ID
+      parameters:
+      - description: Position ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/cmd_pms.ErrorResponse'
+      summary: Delete a position
+      tags:
+      - positions
+    get:
+      consumes:
+      - application/json
+      description: Get a position by ID
+      parameters:
+      - description: Position ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/cmd_pms.Position'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/cmd_pms.ErrorResponse'
+      summary: Get a position
+      tags:
+      - positions
+    put:
+      consumes:
+      - application/json
+      description: Update an existing position
+      parameters:
+      - description: Position ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Position update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/cmd_pms.CreatePositionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/cmd_pms.Position'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/cmd_pms.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/cmd_pms.ErrorResponse'
+      summary: Update a position
+      tags:
+      - positions
 swagger: "2.0"

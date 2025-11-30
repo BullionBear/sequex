@@ -1,9 +1,37 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+        "description": "Portfolio Management System API for managing trading positions and portfolios.",
+        "title": "PMS API",
+        "contact": {},
+        "version": "1.0"
     },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
     "paths": {
+        "/health": {
+            "get": {
+                "description": "Check if the service is healthy",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.HealthResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/node/register": {
             "post": {
                 "description": "Register a node",
@@ -64,6 +92,525 @@
                             }
                         }
                     }
+                }
+            }
+        },
+        "/portfolio": {
+            "post": {
+                "description": "Create a new portfolio",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Create a portfolio",
+                "parameters": [
+                    {
+                        "description": "Portfolio creation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.CreatePortfolioRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.Portfolio"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolio/{id}": {
+            "get": {
+                "description": "Get a portfolio by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Get a portfolio",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Portfolio ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.Portfolio"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing portfolio",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Update a portfolio",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Portfolio ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Portfolio update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.CreatePortfolioRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.Portfolio"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a portfolio by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Delete a portfolio",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Portfolio ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolio/{id}/positions": {
+            "get": {
+                "description": "Get all positions in a specific portfolio",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "positions"
+                ],
+                "summary": "List positions in a portfolio",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Portfolio ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/cmd_pms.Position"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios": {
+            "get": {
+                "description": "Get a list of all portfolios",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "List all portfolios",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/cmd_pms.Portfolio"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/position": {
+            "post": {
+                "description": "Create a new position",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "positions"
+                ],
+                "summary": "Create a position",
+                "parameters": [
+                    {
+                        "description": "Position creation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.CreatePositionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.Position"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/position/{id}": {
+            "get": {
+                "description": "Get a position by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "positions"
+                ],
+                "summary": "Get a position",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Position ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.Position"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing position",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "positions"
+                ],
+                "summary": "Update a position",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Position ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Position update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.CreatePositionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.Position"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a position by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "positions"
+                ],
+                "summary": "Delete a position",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Position ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_pms.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "cmd_pms.CreatePortfolioRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "Primary trading portfolio"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Main Portfolio"
+                }
+            }
+        },
+        "cmd_pms.CreatePositionRequest": {
+            "type": "object",
+            "required": [
+                "entry_price",
+                "portfolio_id",
+                "quantity",
+                "side",
+                "symbol"
+            ],
+            "properties": {
+                "entry_price": {
+                    "type": "number",
+                    "example": 45000.5
+                },
+                "portfolio_id": {
+                    "type": "string",
+                    "example": "portfolio-001"
+                },
+                "quantity": {
+                    "type": "number",
+                    "example": 0.5
+                },
+                "side": {
+                    "type": "string",
+                    "example": "LONG"
+                },
+                "symbol": {
+                    "type": "string",
+                    "example": "BTCUSDT"
+                }
+            }
+        },
+        "cmd_pms.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "resource not found"
+                }
+            }
+        },
+        "cmd_pms.HealthResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "ok"
+                },
+                "timestamp": {
+                    "type": "integer",
+                    "example": 1699999999
+                }
+            }
+        },
+        "cmd_pms.Portfolio": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Primary trading portfolio"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "portfolio-001"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Main Portfolio"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "cmd_pms.Position": {
+            "type": "object",
+            "properties": {
+                "current_pnl": {
+                    "type": "number",
+                    "example": 1250
+                },
+                "entry_price": {
+                    "type": "number",
+                    "example": 45000.5
+                },
+                "id": {
+                    "type": "string",
+                    "example": "position-001"
+                },
+                "portfolio_id": {
+                    "type": "string",
+                    "example": "portfolio-001"
+                },
+                "quantity": {
+                    "type": "number",
+                    "example": 0.5
+                },
+                "side": {
+                    "type": "string",
+                    "example": "LONG"
+                },
+                "symbol": {
+                    "type": "string",
+                    "example": "BTCUSDT"
                 }
             }
         }
