@@ -19,15 +19,15 @@ COPY . .
 # Build the application
 RUN make build
 
-# Stage 2: Runtime stage using alpine
-FROM alpine:latest AS runtime
+# Stage 2: Runtime stage using Debian slim (glibc compatible)
+FROM debian:bookworm-slim AS runtime
 
 # Install ca-certificates
-RUN apk --no-cache add ca-certificates
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+RUN groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -s /bin/false appuser
 
 # Set working directory
 WORKDIR /app
