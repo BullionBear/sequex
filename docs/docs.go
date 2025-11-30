@@ -38,69 +38,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/node/register": {
-            "post": {
-                "description": "Register a node",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "summary": "Register a node",
-                "responses": {
-                    "200": {
-                        "description": "Node",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/node/{name}": {
-            "get": {
-                "description": "Get a node",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "summary": "Get a node",
-                "responses": {
-                    "200": {
-                        "description": "Node",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/nodes": {
-            "get": {
-                "description": "List all nodes",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "summary": "List all nodes",
-                "responses": {
-                    "200": {
-                        "description": "List of nodes",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/portfolio": {
             "post": {
                 "description": "Create a new portfolio",
@@ -129,7 +66,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/cmd_pms.Portfolio"
+                            "$ref": "#/definitions/github_com_BullionBear_sequex_internal_pms.Portfolio"
                         }
                     },
                     "400": {
@@ -167,7 +104,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/cmd_pms.Portfolio"
+                            "$ref": "#/definitions/github_com_BullionBear_sequex_internal_pms.Portfolio"
                         }
                     },
                     "404": {
@@ -212,7 +149,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/cmd_pms.Portfolio"
+                            "$ref": "#/definitions/github_com_BullionBear_sequex_internal_pms.Portfolio"
                         }
                     },
                     "400": {
@@ -291,7 +228,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/cmd_pms.Position"
+                                "$ref": "#/definitions/github_com_BullionBear_sequex_internal_pms.Position"
                             }
                         }
                     },
@@ -323,7 +260,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/cmd_pms.Portfolio"
+                                "$ref": "#/definitions/github_com_BullionBear_sequex_internal_pms.Portfolio"
                             }
                         }
                     }
@@ -358,7 +295,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/cmd_pms.Position"
+                            "$ref": "#/definitions/github_com_BullionBear_sequex_internal_pms.Position"
                         }
                     },
                     "400": {
@@ -396,7 +333,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/cmd_pms.Position"
+                            "$ref": "#/definitions/github_com_BullionBear_sequex_internal_pms.Position"
                         }
                     },
                     "404": {
@@ -441,7 +378,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/cmd_pms.Position"
+                            "$ref": "#/definitions/github_com_BullionBear_sequex_internal_pms.Position"
                         }
                     },
                     "400": {
@@ -487,6 +424,26 @@ const docTemplate = `{
                         "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/cmd_pms.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/symbol": {
+            "post": {
+                "description": "Create a new symbol",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Create a symbol",
+                "responses": {
+                    "200": {
+                        "description": "Symbol",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -564,59 +521,59 @@ const docTemplate = `{
                 }
             }
         },
-        "cmd_pms.Portfolio": {
+        "github_com_BullionBear_sequex_internal_pms.Portfolio": {
             "type": "object",
             "properties": {
                 "created_at": {
                     "type": "string"
                 },
                 "description": {
-                    "type": "string",
-                    "example": "Primary trading portfolio"
+                    "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "portfolio-001"
+                    "type": "string"
                 },
                 "name": {
-                    "type": "string",
-                    "example": "Main Portfolio"
+                    "type": "string"
+                },
+                "positions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_BullionBear_sequex_internal_pms.Position"
+                    }
                 },
                 "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "cmd_pms.Position": {
+        "github_com_BullionBear_sequex_internal_pms.Position": {
             "type": "object",
             "properties": {
-                "current_pnl": {
-                    "type": "number",
-                    "example": 1250
+                "created_at": {
+                    "type": "string"
                 },
                 "entry_price": {
-                    "type": "number",
-                    "example": 45000.5
+                    "type": "number"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "position-001"
+                    "type": "string"
                 },
                 "portfolio_id": {
-                    "type": "string",
-                    "example": "portfolio-001"
+                    "type": "string"
                 },
                 "quantity": {
-                    "type": "number",
-                    "example": 0.5
+                    "type": "number"
                 },
                 "side": {
-                    "type": "string",
-                    "example": "LONG"
+                    "description": "LONG or SHORT",
+                    "type": "string"
                 },
                 "symbol": {
-                    "type": "string",
-                    "example": "BTCUSDT"
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         }

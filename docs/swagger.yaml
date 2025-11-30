@@ -50,44 +50,41 @@ definitions:
         example: 1699999999
         type: integer
     type: object
-  cmd_pms.Portfolio:
+  github_com_BullionBear_sequex_internal_pms.Portfolio:
     properties:
       created_at:
         type: string
       description:
-        example: Primary trading portfolio
         type: string
       id:
-        example: portfolio-001
         type: string
       name:
-        example: Main Portfolio
         type: string
+      positions:
+        items:
+          $ref: '#/definitions/github_com_BullionBear_sequex_internal_pms.Position'
+        type: array
       updated_at:
         type: string
     type: object
-  cmd_pms.Position:
+  github_com_BullionBear_sequex_internal_pms.Position:
     properties:
-      current_pnl:
-        example: 1250
-        type: number
+      created_at:
+        type: string
       entry_price:
-        example: 45000.5
         type: number
       id:
-        example: position-001
         type: string
       portfolio_id:
-        example: portfolio-001
         type: string
       quantity:
-        example: 0.5
         type: number
       side:
-        example: LONG
+        description: LONG or SHORT
         type: string
       symbol:
-        example: BTCUSDT
+        type: string
+      updated_at:
         type: string
     type: object
 host: localhost:8080
@@ -113,47 +110,6 @@ paths:
       summary: Health check
       tags:
       - health
-  /node/{name}:
-    get:
-      consumes:
-      - application/json
-      description: Get a node
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Node
-          schema:
-            type: string
-      summary: Get a node
-  /node/register:
-    post:
-      consumes:
-      - application/json
-      description: Register a node
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Node
-          schema:
-            type: string
-      summary: Register a node
-  /nodes:
-    get:
-      consumes:
-      - application/json
-      description: List all nodes
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of nodes
-          schema:
-            items:
-              type: string
-            type: array
-      summary: List all nodes
   /portfolio:
     post:
       consumes:
@@ -172,7 +128,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/cmd_pms.Portfolio'
+            $ref: '#/definitions/github_com_BullionBear_sequex_internal_pms.Portfolio'
         "400":
           description: Bad Request
           schema:
@@ -219,7 +175,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/cmd_pms.Portfolio'
+            $ref: '#/definitions/github_com_BullionBear_sequex_internal_pms.Portfolio'
         "404":
           description: Not Found
           schema:
@@ -249,7 +205,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/cmd_pms.Portfolio'
+            $ref: '#/definitions/github_com_BullionBear_sequex_internal_pms.Portfolio'
         "400":
           description: Bad Request
           schema:
@@ -279,7 +235,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/cmd_pms.Position'
+              $ref: '#/definitions/github_com_BullionBear_sequex_internal_pms.Position'
             type: array
         "404":
           description: Not Found
@@ -300,7 +256,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/cmd_pms.Portfolio'
+              $ref: '#/definitions/github_com_BullionBear_sequex_internal_pms.Portfolio'
             type: array
       summary: List all portfolios
       tags:
@@ -323,7 +279,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/cmd_pms.Position'
+            $ref: '#/definitions/github_com_BullionBear_sequex_internal_pms.Position'
         "400":
           description: Bad Request
           schema:
@@ -370,7 +326,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/cmd_pms.Position'
+            $ref: '#/definitions/github_com_BullionBear_sequex_internal_pms.Position'
         "404":
           description: Not Found
           schema:
@@ -400,7 +356,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/cmd_pms.Position'
+            $ref: '#/definitions/github_com_BullionBear_sequex_internal_pms.Position'
         "400":
           description: Bad Request
           schema:
@@ -412,4 +368,17 @@ paths:
       summary: Update a position
       tags:
       - positions
+  /symbol:
+    post:
+      consumes:
+      - application/json
+      description: Create a new symbol
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Symbol
+          schema:
+            type: string
+      summary: Create a symbol
 swagger: "2.0"

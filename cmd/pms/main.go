@@ -64,8 +64,7 @@ Examples:
 	// API v1 routes
 	v1 := router.Group("/api/v1")
 	{
-		api.NewNode(v1)
-		registerPMSRoutes(v1)
+		api.NewPMS(v1)
 	}
 
 	// Swagger documentation
